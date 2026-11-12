@@ -7,6 +7,12 @@
 <p align="center"><em>From models, photographs and terrain to ink on paper.</em></p>
 
 <p align="center">
+  <a href="https://github.com/atlas-toolkit-org/AtlasToolkit/actions/workflows/ci.yml?query=event%3Apull_request"><img src="https://github.com/atlas-toolkit-org/AtlasToolkit/actions/workflows/ci.yml/badge.svg?event=pull_request" alt="CI status"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/licence-GPL--3.0--or--later-blue" alt="Licence: GPL-3.0-or-later"></a>
+  <a href="https://ko-fi.com/atlas_toolkit"><img src="https://img.shields.io/badge/support-Ko--fi-ff5e5b" alt="Support on Ko-fi"></a>
+</p>
+
+<p align="center">
   <a href="#install">Install</a> &nbsp;·&nbsp;
   <a href="#tools">Tools</a> &nbsp;·&nbsp;
   <a href="docs/TOOLS.md">User guide</a> &nbsp;·&nbsp;
