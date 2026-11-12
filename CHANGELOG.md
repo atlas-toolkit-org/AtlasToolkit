@@ -35,6 +35,10 @@
   - The guard tests no longer hold personal identifiers. The machine-path check now finds any user or home
     folder.
   - `.claude/` and `.ruff_cache/` are ignored.
+- **CI for a public repository:** every pull request ends in one required check, `ci-ok`.
+  - Markdown-only pull requests run the documentation tests in a couple of minutes instead of the full suites.
+  - `cache.yml` keeps the native helpers' build cache warm on `main`, so pull requests stop compiling them from
+    scratch.
 - **New files:** `CONTRIBUTING.md` (DCO sign-off), `CODE_OF_CONDUCT.md`, `SECURITY.md`, `TRADEMARKS.md` and
   `.github/FUNDING.yml` (Ko-fi). CI reads the presets repository's name from a variable only.
 

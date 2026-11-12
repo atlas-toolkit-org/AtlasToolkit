@@ -101,11 +101,11 @@ git push origin v2.0.0
 
 `.github/workflows/release.yml` then does three things:
 
-1. **Checks the tag.** It must match `version.py`, the version must have a `CHANGELOG.md` entry, and the commit must be on `main`. A mistyped tag stops here, before any billed work.
-2. **Runs all of `build.yml`:** the freeze, every gate and the install tests on all three OSes. It costs the same as the label `full-ci`, about $2.50. The test suites themselves ran on the version's pull request.
+1. **Checks the tag.** It must match `version.py`, the version must have a `CHANGELOG.md` entry, and the commit must be on `main`. A mistyped tag stops here, before the long work starts.
+2. **Runs all of `build.yml`:** the freeze, every gate and the install tests on all three OSes. It takes as long as the label `full-ci`. The test suites themselves ran on the version's pull request.
 3. **Makes a draft release** with all five installers, `SHA256SUMS.txt`, the changelog entry and links to the install guides (`scripts/release_notes.py`). If any installer is missing, there is no draft.
 
-It never publishes. A draft is visible only to people who can write to the repository, and it doesn't expire as CI artifacts do. On a private repository, even a published release is visible only to people with access to the repository.
+It never publishes. A draft is visible only to people who can write to the repository, and it doesn't expire as CI artifacts do.
 
 To redo a release, delete the draft and the tag, then push the tag again.
 

@@ -1,13 +1,14 @@
-# Coverage is complete and the triggers are rationed, so runs stay short and the queue free: Linux and Windows run on
-# pull requests. macOS and the oldest supported Python run when the label
-# `full-ci` is added, once per milestone before merging, or by hand. Test locally first (Windows, then Linux in WSL).
+# Every pull request runs this, and it always ends in one check, `ci-ok`, which the `main` ruleset requires (with DCO).
+# - Code changes: lint plus the Linux and Windows suites.
+# - Changes to Markdown and LICENSE only: lint plus the documentation tests (`docs`, about two minutes).
+# - The label `full-ci` (once per milestone before merging) or a manual run: macOS and the oldest supported Python too.
+# The native helpers' build comes from a cache that cache.yml keeps warm on `main`. Test locally first.
 name: ci
 
 on:
   pull_request:
     branches: [main]
     types: [opened, synchronize, reopened, labeled]
-    paths-ignore: ["docs/**", "**/*.md", "LICENSE"]
   workflow_dispatch:
 
 concurrency:
@@ -22,6 +23,27 @@ env:
   ATLAS_TEST_REQUIRE_HELPERS: "1"
 
 jobs:
+  # Does this pull request touch anything besides Markdown and LICENSE? A manual run always counts as code.
+  changes:
+    if: github.event.action != 'labeled'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      code: ${{ steps.diff.outputs.code }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 2           # the pull request's merge commit and its first parent, the base branch
+      - id: diff
+        env:
+          EVENT: ${{ github.event_name }}
+        run: |
+          if [ "$EVENT" != "pull_request" ]; then echo "code=true" >> "$GITHUB_OUTPUT"; exit 0; fi
+          files=$(git diff --name-only HEAD^1 HEAD)
+          printf '%s\n' "$files"
+          if printf '%s' "$files" | grep -qvE '\.md$|^LICENSE$'; then code=true; else code=false; fi
+          echo "code=$code" | tee -a "$GITHUB_OUTPUT"
+
   lint:
     if: github.event.action != 'labeled'
     runs-on: ubuntu-24.04
@@ -34,8 +56,26 @@ jobs:
       - name: Ruff
         run: uv run --locked --only-group dev ruff check .
 
+  # Markdown-only pull requests: the tests that read the documents (links, images, anchors, licence lines, paths).
+  docs:
+    needs: changes
+    if: needs.changes.outputs.code == 'false'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+      - run: uv sync --locked
+      - name: Documentation tests
+        working-directory: tests
+        env:
+          QT_QPA_PLATFORM: offscreen
+          ATLAS_TEST_REQUIRE_HELPERS: "0"     # this job builds no helpers
+        run: ../.venv/bin/python -m unittest test_readme test_licence test_portability
+
   linux:
-    if: github.event.action != 'labeled'
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     steps:
@@ -81,7 +121,8 @@ jobs:
           retention-days: 3
 
   windows:
-    if: github.event.action != 'labeled'
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: windows-2025
     timeout-minutes: 60
     steps:
@@ -183,3 +224,19 @@ jobs:
           QT_QPA_PLATFORM: xcb
           LIBGL_ALWAYS_SOFTWARE: "1"
         run: xvfb-run -a -s "-screen 0 1600x1000x24" .venv/bin/python scripts/dev/run_tests.py
+
+  # The one check the ruleset requires: every job above passed or was skipped on purpose.
+  ci-ok:
+    if: always()
+    needs: [changes, lint, docs, linux, windows, macos, oldest-python]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Every job passed or was skipped
+        env:
+          RESULTS: ${{ join(needs.*.result, ' ') }}
+        run: |
+          echo "$RESULTS"
+          for r in $RESULTS; do
+            case "$r" in success|skipped) ;; *) echo "A job ended with: $r"; exit 1 ;; esac
+          done

@@ -1,0 +1,50 @@
+# Keeps the native helpers' build cache warm on `main`. GitHub shares a cache saved on the default branch with every pull
+# request, but a cache saved by one pull request only with that pull request. Without this, each pull request would
+# compile the helpers from scratch (about 11 minutes on Windows, 5 on Linux). The key and paths match ci.yml exactly.
+name: cache
+
+on:
+  push:
+    branches: [main]
+    paths: ["native/**", "uv.lock", ".github/workflows/cache.yml"]
+  workflow_dispatch:
+
+concurrency:
+  group: cache-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  PYTHONUTF8: "1"
+
+jobs:
+  native:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, windows-2025, macos-15]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    env:
+      MACOSX_DEPLOYMENT_TARGET: "15.0"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+      - if: runner.os == 'Linux'
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq ninja-build
+      - if: runner.os == 'macOS'
+        run: brew install ninja
+      - run: uv sync --locked --all-extras
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            native/_deps
+            native/build
+          key: native-${{ runner.os }}-${{ hashFiles('native/**') }}
+          restore-keys: native-${{ runner.os }}-
+      - name: Native helpers
+        shell: bash
+        run: |
+          if [ "$RUNNER_OS" = "Windows" ]; then .venv/Scripts/python native/build.py; else .venv/bin/python native/build.py; fi
