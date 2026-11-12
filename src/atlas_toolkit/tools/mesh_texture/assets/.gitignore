@@ -1,0 +1,2 @@
+# The code repository ignores PNGs globally; these are required offline tool assets.
+!*.png

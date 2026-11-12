@@ -1,0 +1,22 @@
+{
+ "format": "atlas-toolkit.preset",
+ "format_version": 1,
+ "toolkit": "2.1.0",
+ "presets": [
+  {
+   "uid": "test-presets/stl-hatch-maker/test-contours",
+   "name": "Test contours",
+   "tool": "stl-hatch-maker",
+   "tool_version": "",
+   "values": {
+    "spacing": 2.0,
+    "cross": true
+   },
+   "explicit": [
+    "spacing",
+    "cross"
+   ],
+   "tip": "Made up, for tests."
+  }
+ ]
+}

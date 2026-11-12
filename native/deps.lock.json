@@ -1,0 +1,35 @@
+{
+  "_comment": "Pinned third-party sources for the native helpers. native/build.py fetches each one into native/_deps/<name> at exactly this revision; changing a revision is a deliberate, reviewed edit.",
+  "eigen": {
+    "url": "https://gitlab.com/libeigen/eigen.git",
+    "revision": "3147391d946bb4b6c68edd901f2add6ac1f31f8c",
+    "license": "MPL-2.0",
+    "used_by": ["stripes", "developable"]
+  },
+  "geometry-central": {
+    "url": "https://github.com/nmwsharp/geometry-central.git",
+    "revision": "019669ddabda05e0f71fa3587cfb3c1dadf19cb8",
+    "submodules": true,
+    "license": "MIT",
+    "used_by": ["stripes"]
+  },
+  "pmp": {
+    "url": "https://github.com/pmp-library/pmp-library.git",
+    "revision": "f2fb04f4a4188a5c1ab137e83b96e62fa99c639f",
+    "tag": "3.0.0",
+    "license": "MIT",
+    "used_by": ["remesh"]
+  },
+  "libigl": {
+    "url": "https://github.com/libigl/libigl-legacy.git",
+    "revision": "d4b67260855fe901541f2949ff21819147c08a4d",
+    "license": "MPL-2.0 (some modules GPL)",
+    "used_by": ["developable"]
+  },
+  "json": {
+    "url": "https://github.com/nlohmann/json.git",
+    "revision": "9cca280a4d0ccf0c08f47a99aa71d1b0e52f8d03",
+    "license": "MIT",
+    "used_by": ["developable"]
+  }
+}

@@ -1,0 +1,37 @@
+{
+ "format": "atlas-toolkit.preset",
+ "format_version": 1,
+ "toolkit": "2.1.0",
+ "presets": [
+  {
+   "uid": "test-presets/svg-overlap-cleaner/gentle-test",
+   "name": "Gentle test",
+   "tool": "svg-overlap-cleaner",
+   "tool_version": "",
+   "values": {
+    "tol": 0.02,
+    "angle": 3.0
+   },
+   "explicit": [
+    "tol",
+    "angle"
+   ],
+   "tip": "A made-up gentle clean, for tests."
+  },
+  {
+   "uid": "test-presets/svg-overlap-cleaner/bold-test",
+   "name": "Bold test",
+   "tool": "svg-overlap-cleaner",
+   "tool_version": "",
+   "values": {
+    "tol": 0.2,
+    "angle": 12.0
+   },
+   "explicit": [
+    "tol",
+    "angle"
+   ],
+   "tip": "A made-up bold clean, for tests."
+  }
+ ]
+}

@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mime-info xmlns="http://www.freedesktop.org/standards/shared-mime-info">
+  <mime-type type="application/x-atlas-workflow">
+    <comment>Atlas Toolkit workflow</comment>
+    <sub-class-of type="application/json"/>
+    <glob pattern="*.atlasflow"/>
+    <icon name="atlas-toolkit"/>
+  </mime-type>
+  <mime-type type="application/x-atlas-preset">
+    <comment>Atlas Toolkit presets</comment>
+    <sub-class-of type="application/json"/>
+    <glob pattern="*.atlaspreset"/>
+    <icon name="atlas-toolkit"/>
+  </mime-type>
+  <mime-type type="application/x-atlas-pack">
+    <comment>Atlas Toolkit preset pack</comment>
+    <sub-class-of type="application/zip"/>
+    <glob pattern="*.atlaspack"/>
+    <icon name="atlas-toolkit"/>
+  </mime-type>
+</mime-info>

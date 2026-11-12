@@ -1,0 +1,12 @@
+{
+ "format": "atlas-toolkit.pack",
+ "format_version": 1,
+ "collection": "test-presets",
+ "name": "Test Presets",
+ "tier": "complete",
+ "tier_rank": 30,
+ "pack_version": "1",
+ "edition": "test",
+ "publisher": "Atlas Toolkit tests",
+ "licence": "Test data: made-up values for the preset system's tests."
+}

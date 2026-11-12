@@ -1,0 +1,151 @@
+{
+  "format": "atlas-toolkit.workflow",
+  "version": 1,
+  "name": "Voxel Fill Exploded strata",
+  "description": "Filled voxel sculpture to native-grid pen drawing.",
+  "toolkit": "1.12.0",
+  "nodes": [
+    {
+      "id": "in1",
+      "type": "input",
+      "label": "",
+      "pos": [
+        0.0,
+        0.0
+      ],
+      "kind": "mesh",
+      "mode": "batch",
+      "path": ""
+    },
+    {
+      "id": "n1",
+      "type": "tool",
+      "label": "",
+      "pos": [
+        240.0,
+        0.0
+      ],
+      "tool": "voxelize-fill",
+      "tool_version": "0.1.0",
+      "values": {
+        "size_by": "count",
+        "across": 32,
+        "edge": 1.0,
+        "input_policy": "infer",
+        "geometry": "separate",
+        "layout": "cubes",
+        "gap": 5.0,
+        "adaptive_levels": 3,
+        "bar_axis": "z",
+        "effect": "explode",
+        "axis": "z",
+        "layer_cells": 3,
+        "separation": 200.0,
+        "band_cells": 2,
+        "erosion": 45.0,
+        "roughness": 60.0,
+        "seed": 1,
+        "cutaway": false,
+        "cut_normal": [
+          1.0,
+          0.0,
+          0.0
+        ],
+        "cut_position": 50.0,
+        "cut_side": "lower"
+      },
+      "format": ""
+    },
+    {
+      "id": "n2",
+      "type": "tool",
+      "label": "",
+      "pos": [
+        480.0,
+        0.0
+      ],
+      "tool": "plotter-vision",
+      "tool_version": "1.4.1",
+      "values": {
+        "theta": 65.0,
+        "psi": 150.0,
+        "radius": 190.0,
+        "lookat": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "fov": 60.0,
+        "projection": "perspective",
+        "edge_mode": "mesh",
+        "flat_angle": 0.01,
+        "sides": "auto",
+        "outline_layer": false,
+        "show_hidden": false,
+        "crossings": false,
+        "min_piece": 0.1,
+        "min_stroke": 0.0,
+        "decimate": false,
+        "target_faces": 3500,
+        "fix_winding": true,
+        "depth_layers": 1,
+        "far_dashed": false,
+        "stereo": false,
+        "eye_sep": 2.0,
+        "paper": "A3",
+        "orientation": "portrait",
+        "margin": 15.0,
+        "paper_width": 200.0,
+        "paper_height": 200.0,
+        "line_width": 0.25,
+        "outline_width": 0.5,
+        "optimise": true,
+        "simplify": 0.02
+      },
+      "format": ""
+    },
+    {
+      "id": "out1",
+      "type": "save",
+      "label": "",
+      "pos": [
+        720.0,
+        0.0
+      ],
+      "where": "next",
+      "folder": "",
+      "name": "{name}"
+    }
+  ],
+  "edges": [
+    {
+      "from": "in1",
+      "to": "n1",
+      "port": "in"
+    },
+    {
+      "from": "n1",
+      "to": "n2",
+      "port": "in"
+    },
+    {
+      "from": "n2",
+      "to": "out1",
+      "port": "in"
+    }
+  ],
+  "exposed": [
+    {
+      "node": "n1",
+      "key": "across"
+    },
+    {
+      "node": "n1",
+      "key": "gap"
+    },
+    {
+      "node": "n1",
+      "key": "cutaway"
+    }
+  ]
+}

@@ -1,0 +1,134 @@
+{
+  "format": "atlas-toolkit.workflow",
+  "version": 1,
+  "name": "Developable rulings",
+  "description": "",
+  "toolkit": "1.10.0",
+  "nodes": [
+    {
+      "id": "in1",
+      "type": "input",
+      "label": "",
+      "pos": [
+        0.0,
+        80.0
+      ],
+      "kind": "mesh",
+      "mode": "batch",
+      "path": ""
+    },
+    {
+      "id": "n1",
+      "type": "tool",
+      "label": "",
+      "pos": [
+        240.0,
+        80.0
+      ],
+      "tool": "mesh-developable",
+      "tool_version": "0.1.0",
+      "values": {
+        "preparation": "remesh",
+        "target_faces": 2000,
+        "energy": "covariance",
+        "subdivisions": 2,
+        "iterations": 1000,
+        "tolerance": 1e-06,
+        "max_faces": 250000
+      },
+      "format": ""
+    },
+    {
+      "id": "n2",
+      "type": "tool",
+      "label": "",
+      "pos": [
+        480.0,
+        0.0
+      ],
+      "tool": "plotter-vision",
+      "tool_version": "1.3",
+      "values": {
+        "theta": 70.0,
+        "psi": -150.0,
+        "radius": 170.0,
+        "lookat": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "fov": 60.0,
+        "projection": "perspective",
+        "flat_angle": 0.5,
+        "sides": "auto",
+        "outline_layer": true,
+        "show_hidden": false,
+        "crossings": true,
+        "min_piece": 0.1,
+        "min_stroke": 0.8,
+        "decimate": false,
+        "target_faces": 3500,
+        "fix_winding": true,
+        "depth_layers": 1,
+        "far_dashed": false,
+        "stereo": false,
+        "eye_sep": 2.0,
+        "paper": "A3",
+        "orientation": "portrait",
+        "margin": 15.0,
+        "line_width": 0.3,
+        "outline_width": 0.5,
+        "optimise": true,
+        "simplify": 0.02
+      },
+      "format": ""
+    },
+    {
+      "id": "out1",
+      "type": "save",
+      "label": "",
+      "pos": [
+        720.0,
+        0.0
+      ],
+      "where": "next",
+      "folder": "",
+      "name": "{name}"
+    },
+    {
+      "id": "out2",
+      "type": "save",
+      "label": "Save mesh (optional)",
+      "pos": [
+        480.0,
+        180.0
+      ],
+      "where": "next",
+      "folder": "",
+      "name": "{name}"
+    }
+  ],
+  "edges": [
+    {
+      "from": "in1",
+      "to": "n1",
+      "port": "in"
+    },
+    {
+      "from": "n1",
+      "to": "n2",
+      "port": "in"
+    },
+    {
+      "from": "n2",
+      "to": "out1",
+      "port": "in"
+    },
+    {
+      "from": "n1",
+      "to": "out2",
+      "port": "in"
+    }
+  ],
+  "exposed": []
+}

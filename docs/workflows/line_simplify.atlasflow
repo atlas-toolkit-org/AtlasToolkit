@@ -1,0 +1,70 @@
+{
+  "format": "atlas-toolkit.workflow",
+  "version": 1,
+  "name": "Line Simplify",
+  "description": "Conservative physical-error reduction of SVG line art, preserving gesture and motifs.",
+  "toolkit": "1.15.0",
+  "nodes": [
+    {
+      "id": "in1",
+      "type": "input",
+      "label": "",
+      "pos": [
+        0.0,
+        0.0
+      ],
+      "kind": "svg",
+      "mode": "batch",
+      "path": ""
+    },
+    {
+      "id": "n1",
+      "type": "tool",
+      "label": "",
+      "pos": [
+        240.0,
+        0.0
+      ],
+      "tool": "svg-simplify",
+      "tool_version": "0.1.0",
+      "values": {
+        "method": "rdp",
+        "tolerance": 0.05,
+        "area_factor": 1.0,
+        "curves": "keep",
+        "topology": true,
+        "corner_angle": 35.0,
+        "reversals": true,
+        "length_loss": 2.0,
+        "area_loss": 3.0,
+        "flatten_share": 20.0
+      },
+      "format": ""
+    },
+    {
+      "id": "out1",
+      "type": "save",
+      "label": "",
+      "pos": [
+        480.0,
+        0.0
+      ],
+      "where": "next",
+      "folder": "",
+      "name": "{name}"
+    }
+  ],
+  "edges": [
+    {
+      "from": "in1",
+      "to": "n1",
+      "port": "in"
+    },
+    {
+      "from": "n1",
+      "to": "out1",
+      "port": "in"
+    }
+  ],
+  "exposed": []
+}

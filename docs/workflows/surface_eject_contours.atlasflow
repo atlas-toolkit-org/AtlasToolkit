@@ -1,0 +1,186 @@
+{
+  "format": "atlas-toolkit.workflow",
+  "version": 1,
+  "name": "Surface Eject Contours",
+  "description": "Floating real surface fragments and matching cavities for A3 / 0.3 mm pen plotting.",
+  "toolkit": "1.14.4",
+  "nodes": [
+    {
+      "id": "in1",
+      "type": "input",
+      "label": "",
+      "pos": [
+        0.0,
+        0.0
+      ],
+      "kind": "mesh",
+      "mode": "batch",
+      "path": ""
+    },
+    {
+      "id": "n1",
+      "type": "tool",
+      "label": "",
+      "pos": [
+        240.0,
+        0.0
+      ],
+      "tool": "mesh-surface-eject",
+      "tool_version": "0.3.0",
+      "values": {
+        "shape": "cube",
+        "count": 24,
+        "size_min": 9.0,
+        "size_max": 13.0,
+        "depth_min": 2.0,
+        "depth_max": 4.0,
+        "spacing": 3.0,
+        "seed": 42,
+        "fully_detach": true,
+        "distance_min": 6.0,
+        "distance_max": 10.0,
+        "connectors": false,
+        "connector_percent": 100.0,
+        "connector_selection": "random",
+        "connector_seed": 0,
+        "connector_style": "cylinder",
+        "connector_diameter_min": 0.6,
+        "connector_diameter_max": 1.0,
+        "connector_taper": 0.55,
+        "connector_curve": 0.35,
+        "connector_irregularity": 0.15,
+        "connector_branch_count": "fixed",
+        "connector_branches": 0,
+        "connector_branches_min": 1,
+        "connector_branches_max": 8,
+        "connector_branch_placement": "split",
+        "connector_fork": 55.0,
+        "connector_branch_levels": 1,
+        "connector_branch_seed": 0,
+        "connector_spread": 25.0,
+        "connector_branch_thickness": 0.68,
+        "connector_extent": 35.0,
+        "region": "whole",
+        "band_from": 40.0,
+        "band_to": 80.0,
+        "selection_file": "",
+        "selection": "",
+        "export_mode": "combined",
+        "repair": "strict",
+        "repair_resolution": 128,
+        "segments": 32,
+        "max_faces": 1000000,
+        "up_axis": "auto",
+        "front": "auto",
+        "rotate": [
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      "format": ""
+    },
+    {
+      "id": "n2",
+      "type": "tool",
+      "label": "",
+      "pos": [
+        480.0,
+        0.0
+      ],
+      "tool": "contour-lines",
+      "tool_version": "1.0.1",
+      "values": {
+        "theta": 72.4,
+        "psi": 148.0,
+        "radius": 262.0,
+        "lookat": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "fov": 36.2,
+        "projection": "perspective",
+        "spacing_mm": 1.4,
+        "hidden": true,
+        "slice_offset": 0.0,
+        "up_axis": "auto",
+        "front": "auto",
+        "rotate": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "normalise": "set",
+        "reference_mesh": "",
+        "min_len": 4.0,
+        "min_gap": 0.45,
+        "join_any": 0.5,
+        "join_same": 1.5,
+        "gap_bridge": 1.5,
+        "paper": "A3",
+        "orientation": "landscape",
+        "margin": 25.0,
+        "paper_width": 200.0,
+        "paper_height": 200.0,
+        "line_width": 0.3,
+        "optimise": true,
+        "step_mm": 0.25,
+        "simplify": 0.08,
+        "draft_faces": 150000
+      },
+      "format": ""
+    },
+    {
+      "id": "out1",
+      "type": "save",
+      "label": "",
+      "pos": [
+        720.0,
+        0.0
+      ],
+      "where": "next",
+      "folder": "",
+      "name": "{name}"
+    }
+  ],
+  "edges": [
+    {
+      "from": "in1",
+      "to": "n1",
+      "port": "in"
+    },
+    {
+      "from": "n1",
+      "to": "n2",
+      "port": "in"
+    },
+    {
+      "from": "n2",
+      "to": "out1",
+      "port": "in"
+    }
+  ],
+  "exposed": [
+    {
+      "node": "n1",
+      "key": "count"
+    },
+    {
+      "node": "n1",
+      "key": "seed"
+    },
+    {
+      "node": "n1",
+      "key": "shape"
+    },
+    {
+      "node": "n1",
+      "key": "distance_min"
+    },
+    {
+      "node": "n1",
+      "key": "distance_max"
+    }
+  ]
+}

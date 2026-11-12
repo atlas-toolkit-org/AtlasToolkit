@@ -1,0 +1,15 @@
+# Copy to dev.local.toml (gitignored) and point at folders on this machine. Everything here is optional:
+# without it, tests that need these folders skip and dev scripts ask for paths on their command line.
+# Environment variables win: ATLAS_STUDIO_WORKSPACE, ATLAS_DESIGN_DIR, ATLAS_PRESETS_DIR. See src/atlas_toolkit/devpaths.py.
+
+[paths]
+# The studio workspace: 3d_models_db/ (reference models), projects/blender3d_project/ (the original Blender
+# pieces the 3D tools port), code/Python/_old/ (legacy scripts for the parity tests), code/R/ (DEM rasters).
+workspace = "C:/path/to/studio-workspace"
+
+# The studio design system read by scripts/sync_design.py (default: <workspace>/studio/design).
+# design = "C:/path/to/studio-workspace/studio/design"
+
+# The private preset packs repository (AtlasToolkit-presets): packs/<pack>/pack.json and presets/<tool>.json.
+# The app ships with no presets; tests and dev scripts that use real presets skip without this.
+# presets = "C:/path/to/AtlasToolkit-presets"

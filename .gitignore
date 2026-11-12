@@ -1,0 +1,46 @@
+# Python environments: dev (scripts/setup_env.py) and the GPU depth runtime (scripts/setup_ml.py)
+.venv/
+.venv-ml/
+__pycache__/
+*.egg-info/
+
+# builds: PyInstaller staging and published exes (scripts/build.py)
+build/
+dist/
+*.spec
+!packaging/*.spec
+
+# native helpers: pinned upstream checkouts, CMake trees, upstream research apps (native/build.py)
+native/_deps/
+native/build/
+native/reference/
+/*.log
+
+# build products installed into the package (rebuilt by native/build.py; notices stay tracked)
+src/atlas_toolkit/bin/*
+!src/atlas_toolkit/bin/.gitkeep
+src/atlas_toolkit/licenses/*-source.zip
+
+# machine-local settings and data
+dev.local.toml
+AtlasToolkit-data/
+.flowrep-install/
+
+# local, private archive of earlier dev and agent material (never published)
+_devarchive/
+
+# editors, tools and OS (.claude/: local agent settings and worktrees)
+.claude/
+.ruff_cache/
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+
+installers/
+
+# The private preset packs CI checks out (.github/actions/private-presets)
+_private-presets/
+
+docs/WEBSITE_RESEARCH.md

@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=Atlas Toolkit
+GenericName=Pen-plotter toolkit
+Comment=SVG clean-up, mesh preparation, mesh and photo drawing for pen plotters
+Exec=atlas-toolkit %F
+Icon=atlas-toolkit
+Terminal=false
+Categories=Graphics;VectorGraphics;3DGraphics;
+MimeType=application/x-atlas-workflow;application/x-atlas-preset;application/x-atlas-pack;
+Keywords=plotter;svg;stl;mesh;hatching;contour;
+StartupWMClass=atlas-toolkit

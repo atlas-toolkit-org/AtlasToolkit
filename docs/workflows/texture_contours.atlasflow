@@ -1,0 +1,186 @@
+{
+  "format": "atlas-toolkit.workflow",
+  "version": 1,
+  "name": "Surface Texture Contours",
+  "description": "Graphic surface relief for A3 / 0.3 mm pen drawings.",
+  "toolkit": "1.13.1",
+  "nodes": [
+    {
+      "id": "in1",
+      "type": "input",
+      "label": "",
+      "pos": [
+        0.0,
+        0.0
+      ],
+      "kind": "mesh",
+      "mode": "batch",
+      "path": ""
+    },
+    {
+      "id": "n1",
+      "type": "tool",
+      "label": "",
+      "pos": [
+        240.0,
+        0.0
+      ],
+      "tool": "mesh-texture",
+      "tool_version": "0.1.0",
+      "values": {
+        "source": "library",
+        "texture": "scales",
+        "heightmap": "",
+        "element_size": 6.0,
+        "aspect": 1.0,
+        "texture_rotation": 0.0,
+        "offset_u": 0.0,
+        "offset_v": 0.0,
+        "relief_mode": "raised",
+        "relief": 0.4,
+        "invert_height": false,
+        "suppression": 0.65,
+        "contrast": 2.5,
+        "crispness": 0.85,
+        "influence": "all",
+        "band_from": 50.0,
+        "band_to": 100.0,
+        "sphere_centre": [
+          0.0,
+          0.0,
+          25.0
+        ],
+        "sphere_radius": 30.0,
+        "feather": 15.0,
+        "invert_influence": false,
+        "mapping": "surface",
+        "cylinder_axis": "up",
+        "seam_rotation": 0.0,
+        "seam_feather": 20.0,
+        "preserve_borders": true,
+        "collision_protection": true,
+        "quality": "standard",
+        "tolerance": 0.04,
+        "max_faces": 400000,
+        "up_axis": "auto",
+        "front": "auto",
+        "rotate": [
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      "format": ""
+    },
+    {
+      "id": "n2",
+      "type": "tool",
+      "label": "",
+      "pos": [
+        480.0,
+        0.0
+      ],
+      "tool": "contour-lines",
+      "tool_version": "1.0.1",
+      "values": {
+        "theta": 72.4,
+        "psi": 148.0,
+        "radius": 262.0,
+        "lookat": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "fov": 36.2,
+        "projection": "perspective",
+        "spacing_mm": 1.4,
+        "hidden": true,
+        "slice_offset": 0.0,
+        "up_axis": "auto",
+        "front": "auto",
+        "rotate": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "normalise": "set",
+        "reference_mesh": "",
+        "min_len": 1.0,
+        "min_gap": 0.4,
+        "join_any": 0.5,
+        "join_same": 1.5,
+        "gap_bridge": 1.5,
+        "paper": "A3",
+        "orientation": "portrait",
+        "margin": 15.0,
+        "paper_width": 200.0,
+        "paper_height": 200.0,
+        "line_width": 0.3,
+        "optimise": true,
+        "step_mm": 0.25,
+        "simplify": 0.025,
+        "draft_faces": 150000
+      },
+      "format": ""
+    },
+    {
+      "id": "out1",
+      "type": "save",
+      "label": "",
+      "pos": [
+        720.0,
+        0.0
+      ],
+      "where": "next",
+      "folder": "",
+      "name": "{name}"
+    }
+  ],
+  "edges": [
+    {
+      "from": "in1",
+      "to": "n1",
+      "port": "in"
+    },
+    {
+      "from": "n1",
+      "to": "n2",
+      "port": "in"
+    },
+    {
+      "from": "n2",
+      "to": "out1",
+      "port": "in"
+    }
+  ],
+  "exposed": [
+    {
+      "node": "n1",
+      "key": "texture"
+    },
+    {
+      "node": "n1",
+      "key": "element_size"
+    },
+    {
+      "node": "n1",
+      "key": "relief"
+    },
+    {
+      "node": "n1",
+      "key": "influence"
+    },
+    {
+      "node": "n1",
+      "key": "band_from"
+    },
+    {
+      "node": "n1",
+      "key": "band_to"
+    },
+    {
+      "node": "n1",
+      "key": "feather"
+    }
+  ]
+}

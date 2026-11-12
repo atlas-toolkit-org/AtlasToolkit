@@ -1,0 +1,23 @@
+# Normalise text to LF in the repository; check out with the platform's line endings.
+* text=auto
+
+# Windows scripts need CRLF, shell scripts need LF, on every platform.
+*.bat  text eol=crlf
+*.cmd  text eol=crlf
+*.sh   text eol=lf
+Dockerfile text eol=lf
+
+# Binary assets
+*.png  binary
+*.jpg  binary
+*.ico  binary
+*.icns binary
+*.ttf  binary
+*.otf  binary
+*.stl  binary
+*.npz  binary
+*.zip  binary
+*.exe  binary
+
+# Run on Linux whatever the checkout: a CR would break the #! line.
+packaging/linux/AppRun text eol=lf

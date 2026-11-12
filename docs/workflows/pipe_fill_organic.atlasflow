@@ -1,0 +1,145 @@
+{
+  "format": "atlas-toolkit.workflow",
+  "version": 1,
+  "name": "Pipe Fill Organic",
+  "description": "Replace a closed model with pipes and draw their visible silhouettes on A3.",
+  "toolkit": "1.13.0",
+  "nodes": [
+    {
+      "id": "in1",
+      "type": "input",
+      "label": "",
+      "pos": [
+        0.0,
+        0.0
+      ],
+      "kind": "mesh",
+      "mode": "batch",
+      "path": ""
+    },
+    {
+      "id": "n1",
+      "type": "tool",
+      "label": "",
+      "pos": [
+        240.0,
+        0.0
+      ],
+      "tool": "pipe-fill",
+      "tool_version": "0.1.0",
+      "values": {
+        "mode": "organic",
+        "topology": "strands",
+        "spacing": 6.0,
+        "length": 28,
+        "straightness": 10.0,
+        "bend": 36.0,
+        "organic": 70.0,
+        "pattern_rotate": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "seed": 1,
+        "section": "solid",
+        "diameter": 2.2,
+        "variation": 0.0,
+        "wall": 22.0,
+        "gap": 0.3,
+        "clearance": 0.1,
+        "sides": 12,
+        "samples": 6,
+        "max_sites": 24000,
+        "max_faces": 2000000,
+        "repair": false,
+        "repair_resolution": 160,
+        "up_axis": "auto",
+        "front": "auto",
+        "rotate": [
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      "format": ""
+    },
+    {
+      "id": "n2",
+      "type": "tool",
+      "label": "",
+      "pos": [
+        480.0,
+        0.0
+      ],
+      "tool": "plotter-vision",
+      "tool_version": "1.4.1",
+      "values": {
+        "theta": 70.0,
+        "psi": -150.0,
+        "radius": 210.0,
+        "lookat": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "fov": 60.0,
+        "projection": "perspective",
+        "edge_mode": "features",
+        "flat_angle": 35.0,
+        "sides": "auto",
+        "outline_layer": false,
+        "show_hidden": false,
+        "crossings": false,
+        "min_piece": 0.1,
+        "min_stroke": 0.15,
+        "decimate": false,
+        "target_faces": 3500,
+        "fix_winding": true,
+        "depth_layers": 1,
+        "far_dashed": false,
+        "stereo": false,
+        "eye_sep": 2.0,
+        "paper": "A3",
+        "orientation": "portrait",
+        "margin": 15.0,
+        "paper_width": 200.0,
+        "paper_height": 200.0,
+        "line_width": 0.3,
+        "outline_width": 0.5,
+        "optimise": true,
+        "simplify": 0.02
+      },
+      "format": ""
+    },
+    {
+      "id": "out1",
+      "type": "save",
+      "label": "",
+      "pos": [
+        720.0,
+        0.0
+      ],
+      "where": "next",
+      "folder": "",
+      "name": "{name}"
+    }
+  ],
+  "edges": [
+    {
+      "from": "in1",
+      "to": "n1",
+      "port": "in"
+    },
+    {
+      "from": "n1",
+      "to": "n2",
+      "port": "in"
+    },
+    {
+      "from": "n2",
+      "to": "out1",
+      "port": "in"
+    }
+  ],
+  "exposed": []
+}

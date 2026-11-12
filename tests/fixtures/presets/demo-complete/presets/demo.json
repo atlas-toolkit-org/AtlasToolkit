@@ -1,0 +1,60 @@
+{
+ "format": "atlas-toolkit.preset",
+ "format_version": 1,
+ "toolkit": "2.1.0",
+ "presets": [
+  {
+   "uid": "demo-presets/demo/narrow",
+   "name": "Narrow",
+   "tool": "demo",
+   "tool_version": "1.2",
+   "values": {
+    "width": 2.0,
+    "mode": "a",
+    "flag": true
+   },
+   "explicit": [
+    "width",
+    "mode",
+    "flag"
+   ],
+   "tip": "Thin and plain."
+  },
+  {
+   "uid": "demo-presets/demo/wide",
+   "name": "Wide",
+   "tool": "demo",
+   "tool_version": "1.2",
+   "values": {
+    "width": 8.0,
+    "mode": "b",
+    "flag": false
+   },
+   "explicit": [
+    "width",
+    "mode",
+    "flag"
+   ],
+   "tip": "Wide and bold."
+  },
+  {
+   "uid": "demo-presets/demo/mobius",
+   "name": "Möbius",
+   "tool": "demo",
+   "tool_version": "1.2",
+   "values": {
+    "width": 5.0,
+    "mode": "b",
+    "flag": true,
+    "source": "file"
+   },
+   "explicit": [
+    "width",
+    "mode",
+    "flag",
+    "source"
+   ],
+   "tip": "Sets the source too."
+  }
+ ]
+}

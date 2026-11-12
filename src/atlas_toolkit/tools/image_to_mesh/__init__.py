@@ -1,0 +1,77 @@
+"""Non-geographic images to calibrated reliefs and open drawing surfaces."""
+from atlas_toolkit.core import Bool, Choice, Float, Inputs, Output, Section, Tool
+from atlas_toolkit.geom.heightfield.params import heightfield_params,topology_params
+from .image_to_mesh import SOURCE_KEYS
+
+
+TOOL = Tool(
+    id='image-to-mesh', name='Image to Mesh', version='0.1.1', category='image2mesh',
+    icon='image-to-mesh', action='Build mesh',
+    summary='Prepare a photo or grayscale image and turn its tones into a physical relief or drawing surface.',
+    tagline='Image tones to relief, with a calibrated black-to-white height scale.',
+    description='Read a non-geographic image, choose grayscale conversion or an RGB channel, adjust tones '
+        'and generate faithful, smooth, faceted or terraced relief. Black is zero relief and white is the '
+        'requested height, before Z-factor. Transparent pixels are masked by default. '
+        'Printable solids are validated before export; open surfaces feed mesh-to-SVG drawing tools. '
+        'Uses the whole image, with EXIF orientation, quarter turns and mirroring. Geographic metadata '
+        'is ignored; use Raster DEM to Mesh for geographic elevation data.',
+    inputs=Inputs('image'),
+    output=Output('{stem}_image_{geometry}.stl', 'mesh', formats=('.stl', '.obj', '.ply')),
+    signature='atlas-toolkit:image-to-mesh', engine='.engine:run', inspect='.engine:inspect',
+    viewer='.viewer:PlacementView', sample='.engine:make_sample',
+    runs_in='process', preview='mesh', columns=('faces', 'height', 'watertight'),
+    preset_inputs=SOURCE_KEYS+('footprint','missing','gap_size','contact_trim','contact_policy'),
+    test_values={'pitch': 4., 'paper': 'A5'},
+    requires_if=(('remesh', {'method': 'faceted'}),),
+    optional=(('remesh', 'Boundary-preserving faceted relief; bundled with Atlas'),),
+    params=[
+        Section('Image preparation',
+            Choice('grayscale', 'Height source', 'weighted', [('weighted', 'Weighted grayscale'),
+                ('average', 'RGB average'), ('lightness', 'Lightness · min/max'),
+                ('red', 'Red channel'), ('green', 'Green channel'), ('blue', 'Blue channel')],
+                help='Grayscale inputs bypass color conversion and retain their numeric precision.'),
+            Choice('input_range', 'Input range', 'native', [('native', 'Native bit depth / float 0–1'),
+                ('custom', 'Custom source range')], advanced=True),
+            Float('source_black', 'Source black value', 0., min=-1e12, max=1e12,
+                  visible_if={'input_range': 'custom'}, advanced=True),
+            Float('source_white', 'Source white value', 1., min=-1e12, max=1e12,
+                  visible_if={'input_range': 'custom'}, advanced=True),
+            Bool('auto_levels', 'Auto levels', False,
+                 help='Stretch valid source minimum/maximum before tonal adjustments. Neutral is off; later adjustments are never stretched again.'),
+            Float('denoise', 'Noise smoothing', 0., unit='px', min=0., max=20., slider=True,
+                  help='Mask-aware Gaussian radius in original image pixels, before tone adjustments. Zero preserves detail.'),
+            Float('black_level', 'Black level', 0., min=0., max=1., decimals=3, slider=True, advanced=True),
+            Float('white_level', 'White level', 1., min=0., max=1., decimals=3, slider=True, advanced=True),
+            Float('brightness', 'Brightness', 0., min=-1., max=1., decimals=3, slider=True,
+                  help='Add to normalized tones; positive raises the relief.'),
+            Float('contrast', 'Contrast', 1., min=0., max=4., decimals=3, slider=True,
+                  help='Multiply contrast around mid-gray. One preserves source contrast.'),
+            Float('gamma', 'Gamma', 1., min=.1, max=5., decimals=3, slider=True,
+                  help='Intensity raised to gamma; values above one darken and lower mid-tones.'),
+            Bool('invert', 'Invert heights', False)),
+        Section('Image orientation',
+            Choice('quarter_turns', 'Image quarter turn', '0', [('0', 'Original'), ('1', '90° clockwise'),
+                ('2', '180°'), ('3', '270° clockwise')]),
+            Bool('mirror_x', 'Mirror horizontally', False),
+            Bool('mirror_y', 'Mirror vertically', False),
+            Bool('pixel_aspect', 'Keep pixel aspect', True),
+            Float('map_width', 'Aspect width', 200., unit='mm', min=.1, max=100000., visible_if={'pixel_aspect': False}),
+            Float('map_height', 'Aspect height', 200., unit='mm', min=.1, max=100000., visible_if={'pixel_aspect': False})),
+        Section('Image mask',
+            Choice('alpha_mode', 'Transparency', 'mask', [('mask', 'Mask transparent areas'),
+                ('white', 'Composite onto white'), ('black', 'Composite onto black')]),
+            Float('alpha_threshold', 'Alpha threshold', 0., min=0., max=1., decimals=3, slider=True,
+                  visible_if={'alpha_mode': 'mask'}, help='Pixels at or below this alpha are excluded. Zero excludes only fully transparent pixels.'),
+            Bool('exclude_background', 'Exclude background tone', False),
+            Float('background', 'Background tone', 0., min=0., max=1., decimals=3,
+                  visible_if={'exclude_background': True}, help='Compare normalized grayscale before smoothing and tonal adjustments.'),
+            Float('background_tolerance', 'Background tolerance', 0., min=0., max=1., decimals=3,
+                  visible_if={'exclude_background': True}),
+            Choice('footprint', 'Footprint', 'valid', [('valid', 'Valid image'), ('rectangle', 'Image rectangle')]),
+            Choice('missing', 'Missing areas', 'expose', [('expose', 'Leave masked'),
+                ('gaps', 'Fill small internal gaps'), ('minimum', 'Fill to image minimum')]),
+            Float('gap_size', 'Maximum gap diameter', 2., unit='mm', min=.1, max=100., visible_if={'missing': 'gaps'})),
+        topology_params(.002),
+        *heightfield_params(image=True),
+    ],
+)

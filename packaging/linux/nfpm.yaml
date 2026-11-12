@@ -1,0 +1,84 @@
+# The deb and rpm packages, made by scripts/package.py from the folder build (dist/atlas-toolkit). One description for both.
+# The dependencies are what the bundle needs and does not carry, as found by reading every ELF file's NEEDED list: the graphics
+# stack and base libraries it must take from the system (packaging/atlas_toolkit.spec), and Qt's X11 and Wayland needs.
+# scripts/install_test.py proves on clean distributions that this list is complete.
+name: atlas-toolkit
+version: ${VERSION}
+arch: amd64
+platform: linux
+release: "1"
+section: graphics
+priority: optional
+maintainer: sci.co.plot <hello@atlas-toolkit.org>
+vendor: sci.co.plot
+homepage: https://atlas-toolkit.org
+description: |-
+  Pen-plotter toolkit: SVG clean-up, mesh preparation, mesh and photo drawing in one app.
+license: GPL-3.0-or-later
+
+deb:
+  compression: xz
+rpm:
+  compression: xz
+
+overrides:
+  deb:
+    depends:
+      - libc6 (>= 2.34)
+      - libegl1
+      - libexpat1
+      - libgcc-s1
+      - libgl1
+      - liblzma5
+      - libstdc++6
+      - libwayland-client0
+      - libwayland-cursor0
+      - libwayland-egl1
+      - libxcb1
+      - libzstd1
+      - zlib1g
+    recommends:
+      - xdg-utils
+  rpm:
+    # Fedora and RHEL name these packages differently from release to release, but all of them provide the sonames.
+    depends:
+      - libc.so.6(GLIBC_2.34)(64bit)
+      - libEGL.so.1()(64bit)
+      - libGL.so.1()(64bit)
+      - libexpat.so.1()(64bit)
+      - libgcc_s.so.1()(64bit)
+      - liblzma.so.5()(64bit)
+      - libstdc++.so.6()(64bit)
+      - libwayland-client.so.0()(64bit)
+      - libwayland-cursor.so.0()(64bit)
+      - libwayland-egl.so.1()(64bit)
+      - libxcb.so.1()(64bit)
+      - libz.so.1()(64bit)
+      - libzstd.so.1()(64bit)
+    recommends:
+      - mesa-dri-drivers
+      - xdg-utils
+
+contents:
+  - src: ${APP_DIR}
+    dst: /opt/atlas-toolkit
+    type: tree
+  - src: /opt/atlas-toolkit/atlas-toolkit
+    dst: /usr/bin/atlas-toolkit
+    type: symlink
+  - src: packaging/linux/atlas-toolkit.desktop
+    dst: /usr/share/applications/atlas-toolkit.desktop
+  - src: packaging/linux/atlas-toolkit.xml
+    dst: /usr/share/mime/packages/atlas-toolkit.xml
+  - src: ${ICON_DIR}
+    dst: /usr/share/icons/hicolor
+    type: tree
+  # In the app's own folder, not /usr/share/doc: minimal systems tell dpkg to skip that one, and notices must not depend on it.
+  - src: LICENSE
+    dst: /opt/atlas-toolkit/LICENSE
+  - src: THIRD_PARTY_NOTICES.md
+    dst: /opt/atlas-toolkit/THIRD_PARTY_NOTICES.md
+
+scripts:
+  postinstall: packaging/linux/refresh-desktop.sh
+  postremove: packaging/linux/refresh-desktop.sh

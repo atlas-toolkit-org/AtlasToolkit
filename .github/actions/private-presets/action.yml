@@ -1,0 +1,38 @@
+# The private preset packs (AtlasToolkit-presets) for the tests that check real presets, when this repository has the
+# deploy key for them (secret PRESETS_DEPLOY_KEY) and knows where they are (variable PRESETS_REPOSITORY, owner/name). With the key,
+# a missing pack is an error (ATLAS_TEST_REQUIRE_PRESETS=1); without it, those tests skip as they do on a fresh clone.
+# It costs one extra checkout, no extra job. Setup: docs/PRESETS.md, "Continuous integration".
+name: private presets
+description: Check out the private preset packs when a deploy key is set
+inputs:
+  key:
+    description: The deploy key's private half (secrets.PRESETS_DEPLOY_KEY)
+    required: false
+    default: ""
+  repository:
+    description: owner/name of the presets repository (vars.PRESETS_REPOSITORY); no default, the repository is private
+    required: false
+    default: ""
+runs:
+  using: composite
+  steps:
+    - id: check
+      shell: bash
+      env:
+        KEY: ${{ inputs.key }}
+        REPO: ${{ inputs.repository }}
+      run: |
+        if [ -n "$KEY" ] && [ -n "$REPO" ]; then echo "available=true" >> "$GITHUB_OUTPUT"; else
+          echo "No PRESETS_DEPLOY_KEY or PRESETS_REPOSITORY: tests of the private preset packs will skip."; fi
+    - if: steps.check.outputs.available == 'true'
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      with:
+        repository: ${{ inputs.repository }}
+        ssh-key: ${{ inputs.key }}
+        path: _private-presets
+        persist-credentials: false
+    - if: steps.check.outputs.available == 'true'
+      shell: bash
+      run: |
+        echo "ATLAS_PRESETS_DIR=$GITHUB_WORKSPACE/_private-presets" >> "$GITHUB_ENV"
+        echo "ATLAS_TEST_REQUIRE_PRESETS=1" >> "$GITHUB_ENV"

@@ -1,0 +1,20 @@
+{
+ "format": "atlas-toolkit.preset",
+ "format_version": 1,
+ "toolkit": "2.1.0",
+ "presets": [
+  {
+   "uid": "test-presets/plotter-vision/test-features",
+   "name": "Test features",
+   "tool": "plotter-vision",
+   "tool_version": "",
+   "values": {
+    "flat_angle": 35.0
+   },
+   "explicit": [
+    "flat_angle"
+   ],
+   "tip": "Made up, for tests."
+  }
+ ]
+}

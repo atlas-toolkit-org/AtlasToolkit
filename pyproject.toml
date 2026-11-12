@@ -1,0 +1,100 @@
+[build-system]
+requires = ["setuptools>=77"]   # PEP 639: an SPDX licence expression and license-files
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "atlas-toolkit"
+dynamic = ["version"]
+description = "Atlas pen-plotter toolkit: SVG clean-up, mesh preparation, mesh and photo drawing in one app."
+readme = "README.md"
+requires-python = ">=3.12,<3.15"
+authors = [{ name = "João Gonçalves (sci.co.plot)" }]
+# The app; bundled components keep their own licences (THIRD_PARTY_NOTICES.md). Preset packs are sold separately under
+# their own licence and are not part of this program (docs/PRESETS.md).
+license = "GPL-3.0-or-later"
+license-files = ["LICENSE", "COPYRIGHT.md", "THIRD_PARTY_NOTICES.md", "src/atlas_toolkit/ui/theme/fonts/OFL-LICENSE.txt"]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Environment :: X11 Applications :: Qt",
+    "Intended Audience :: End Users/Desktop",
+    "Operating System :: Microsoft :: Windows",
+    "Operating System :: MacOS",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+    "Topic :: Multimedia :: Graphics :: 3D Modeling",
+    "Topic :: Artistic Software",
+]
+dependencies = [
+    "pynanoinstantmeshes==0.0.3",  # FlowRep quad preparation
+    "PySide6-Essentials>=6.7",
+    "numpy>=2.0",
+    "scipy>=1.13",
+    "trimesh>=4.4",
+    "shapely>=2.0",
+    "manifold3d>=3.0",       # trimesh booleans and cap triangulation
+    "mapbox-earcut>=1.0",    # polygon triangulation for slice caps
+    "rtree>=1.3",            # trimesh spatial queries and fallback ray casting
+    "networkx>=3.0",         # trimesh graph helpers (split, fill_holes)
+    "pyqtgraph>=0.13.7",     # 3D viewer (pyqtgraph.opengl)
+    "PyOpenGL>=3.1.7",
+    "scikit-image>=0.24",    # Photo Hatching: CLAHE, Canny, SLIC, skeletons, contours
+    "pillow>=10",            # photos in (EXIF-aware), depth maps out
+    "rasterio==1.5.2",       # numeric DEM rasters, masks and metric reprojection
+    "affine==3.0.1",         # explicit affine composition for bounded raster grids
+    "pydelatin==0.4.0",      # error-controlled adaptive terrain triangulation
+    "fast_simplification>=0.1.7",   # Plotter Vision: quadric decimation (trimesh.simplify_quadric_decimation)
+    "libigl>=2.6.3",         # Porous Forms: signed distance with winding-number sign
+]
+
+[project.urls]
+Homepage = "https://atlas-toolkit.org"
+Source = "https://github.com/atlas-toolkit-org/AtlasToolkit"
+Issues = "https://github.com/atlas-toolkit-org/AtlasToolkit/issues"
+Funding = "https://ko-fi.com/atlas_toolkit"
+
+[project.optional-dependencies]
+fast = ["embreex; sys_platform != 'linux' or platform_machine != 'aarch64'"]   # fast ray casting for the Hatch Maker, used when it installs
+
+[dependency-groups]
+dev = ["ruff>=0.14"]
+build = ["pyinstaller>=6.10", "dmgbuild>=1.6; sys_platform == 'darwin'"]
+
+[tool.uv]
+default-groups = ["dev", "build"]
+# A supported target without a wheel for some dependency fails when locking, not on somebody's machine.
+required-environments = [
+    "sys_platform == 'win32' and platform_machine == 'AMD64'",
+    "sys_platform == 'darwin' and platform_machine == 'arm64'",
+    "sys_platform == 'linux' and platform_machine == 'x86_64'",
+]
+
+# Lint only, never `ruff format`: the project keeps its own compact style.
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+extend-exclude = ["native/_deps", "native/reference", "_devarchive", "build", "dist", "src/atlas_toolkit/bin"]
+
+[tool.ruff.lint]
+select = ["E9", "F63", "F7", "F82"]    # the classes that are real bugs; some unused imports are deliberate probes
+
+[project.scripts]
+atlas-toolkit = "atlas_toolkit.__main__:main"
+
+[project.gui-scripts]
+atlas-toolkit-gui = "atlas_toolkit.__main__:gui_main"
+
+[tool.setuptools.dynamic]
+version = { attr = "atlas_toolkit.version.__version__" }
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+"atlas_toolkit" = ["bin/*", "licenses/*"]
+"atlas_toolkit.ui.theme" = ["*.json", "fonts/*.ttf", "fonts/*.txt"]
+"atlas_toolkit.tools.mesh_texture" = ["assets/*.json", "assets/*.png"]
+"atlas_toolkit.tools.flowrep_sketch" = ["icon.svg"]
+
+# Read by the Atlas gallery: every sub-folder of this directory is one tool and one Atlas code unit.
+[tool.atlas-toolkit]
+tools = "src/atlas_toolkit/tools"

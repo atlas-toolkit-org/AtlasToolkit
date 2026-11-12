@@ -1,0 +1,4 @@
+#!/bin/sh
+# The AppImage's entry point. The folder inside is the same build the deb and rpm install.
+here=$(dirname "$(readlink -f "$0")")
+exec "$here/usr/lib/atlas-toolkit/atlas-toolkit" "$@"

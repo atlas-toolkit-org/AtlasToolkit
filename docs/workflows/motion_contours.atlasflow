@@ -1,0 +1,197 @@
+{
+  "format": "atlas-toolkit.workflow",
+  "version": 1,
+  "name": "Motion Contours",
+  "description": "Layered motion sculpture to A3 / 0.3 mm pen drawing.",
+  "toolkit": "1.16.2",
+  "nodes": [
+    {
+      "id": "in1",
+      "type": "input",
+      "label": "",
+      "pos": [
+        0.0,
+        0.0
+      ],
+      "kind": "mesh",
+      "mode": "batch",
+      "path": ""
+    },
+    {
+      "id": "n1",
+      "type": "tool",
+      "label": "",
+      "pos": [
+        240.0,
+        0.0
+      ],
+      "tool": "mesh-motion",
+      "tool_version": "0.3.0",
+      "values": {
+        "structure": "laminae",
+        "gesture": "gust",
+        "amount": 1.0,
+        "reach": 45.0,
+        "heading": 0.0,
+        "preserve": 40.0,
+        "taper": 70.0,
+        "curl": 8.0,
+        "cycles": 2.0,
+        "phase": 0.0,
+        "turn": 160.0,
+        "variation": 40.0,
+        "seed": 19,
+        "layers": 64,
+        "gap": 18.0,
+        "lanes": 8,
+        "bar_gap": 12.0,
+        "layer_axis": "up",
+        "tilt": 0.0,
+        "hold_base": 6.0,
+        "influence": "all",
+        "band_from": 50.0,
+        "band_to": 100.0,
+        "sphere_centre": [
+          0.0,
+          0.0,
+          25.0
+        ],
+        "sphere_radius": 30.0,
+        "feather": 15.0,
+        "invert_influence": false,
+        "paint_style": "layers",
+        "paint_feather": 8.0,
+        "selection_file": "",
+        "selection": "",
+        "up_axis": "auto",
+        "front": "auto",
+        "rotate": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "resolution": 12,
+        "max_faces": 1500000
+      },
+      "format": ""
+    },
+    {
+      "id": "n2",
+      "type": "tool",
+      "label": "",
+      "pos": [
+        480.0,
+        0.0
+      ],
+      "tool": "contour-lines",
+      "tool_version": "1.0.1",
+      "values": {
+        "theta": 72.4,
+        "psi": 148.0,
+        "radius": 262.0,
+        "lookat": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "fov": 36.2,
+        "projection": "perspective",
+        "spacing_mm": 2.0,
+        "hidden": true,
+        "slice_offset": 0.0,
+        "up_axis": "auto",
+        "front": "auto",
+        "rotate": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "normalise": "set",
+        "reference_mesh": "",
+        "min_len": 4.0,
+        "min_gap": 0.45,
+        "join_any": 0.5,
+        "join_same": 1.5,
+        "gap_bridge": 1.5,
+        "paper": "A3",
+        "orientation": "landscape",
+        "margin": 25.0,
+        "paper_width": 200.0,
+        "paper_height": 200.0,
+        "line_width": 0.3,
+        "optimise": true,
+        "step_mm": 0.25,
+        "simplify": 0.08,
+        "draft_faces": 150000
+      },
+      "format": ""
+    },
+    {
+      "id": "out1",
+      "type": "save",
+      "label": "",
+      "pos": [
+        720.0,
+        0.0
+      ],
+      "where": "next",
+      "folder": "",
+      "name": "{name}"
+    }
+  ],
+  "edges": [
+    {
+      "from": "in1",
+      "to": "n1",
+      "port": "in"
+    },
+    {
+      "from": "n1",
+      "to": "n2",
+      "port": "in"
+    },
+    {
+      "from": "n2",
+      "to": "out1",
+      "port": "in"
+    }
+  ],
+  "exposed": [
+    {
+      "node": "n1",
+      "key": "structure"
+    },
+    {
+      "node": "n1",
+      "key": "gesture"
+    },
+    {
+      "node": "n1",
+      "key": "reach"
+    },
+    {
+      "node": "n1",
+      "key": "heading"
+    },
+    {
+      "node": "n1",
+      "key": "preserve"
+    },
+    {
+      "node": "n1",
+      "key": "taper"
+    },
+    {
+      "node": "n1",
+      "key": "curl"
+    },
+    {
+      "node": "n1",
+      "key": "layers"
+    },
+    {
+      "node": "n1",
+      "key": "seed"
+    }
+  ]
+}

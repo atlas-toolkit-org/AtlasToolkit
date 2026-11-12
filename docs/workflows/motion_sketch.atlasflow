@@ -1,0 +1,225 @@
+{
+  "format": "atlas-toolkit.workflow",
+  "version": 1,
+  "name": "Motion Sketch",
+  "description": "Layered motion sculpture to A3 / 0.3 mm pen drawing.",
+  "toolkit": "1.16.2",
+  "nodes": [
+    {
+      "id": "in1",
+      "type": "input",
+      "label": "",
+      "pos": [
+        0.0,
+        0.0
+      ],
+      "kind": "mesh",
+      "mode": "batch",
+      "path": ""
+    },
+    {
+      "id": "n1",
+      "type": "tool",
+      "label": "",
+      "pos": [
+        240.0,
+        0.0
+      ],
+      "tool": "mesh-motion",
+      "tool_version": "0.3.0",
+      "values": {
+        "structure": "laminae",
+        "gesture": "gust",
+        "amount": 1.0,
+        "reach": 45.0,
+        "heading": 0.0,
+        "preserve": 40.0,
+        "taper": 70.0,
+        "curl": 8.0,
+        "cycles": 2.0,
+        "phase": 0.0,
+        "turn": 160.0,
+        "variation": 40.0,
+        "seed": 19,
+        "layers": 64,
+        "gap": 18.0,
+        "lanes": 8,
+        "bar_gap": 12.0,
+        "layer_axis": "up",
+        "tilt": 0.0,
+        "hold_base": 6.0,
+        "influence": "all",
+        "band_from": 50.0,
+        "band_to": 100.0,
+        "sphere_centre": [
+          0.0,
+          0.0,
+          25.0
+        ],
+        "sphere_radius": 30.0,
+        "feather": 15.0,
+        "invert_influence": false,
+        "paint_style": "layers",
+        "paint_feather": 8.0,
+        "selection_file": "",
+        "selection": "",
+        "up_axis": "auto",
+        "front": "auto",
+        "rotate": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "resolution": 12,
+        "max_faces": 1500000
+      },
+      "format": ""
+    },
+    {
+      "id": "n2",
+      "type": "tool",
+      "label": "",
+      "pos": [
+        480.0,
+        0.0
+      ],
+      "tool": "sketch-hatching",
+      "tool_version": "1.0.1",
+      "values": {
+        "theta": 80.0,
+        "psi": 155.0,
+        "radius": 262.0,
+        "lookat": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "fov": 38.0,
+        "projection": "perspective",
+        "complexity": 0.5,
+        "hatching": true,
+        "density": 1.0,
+        "field": "principal",
+        "outline_weight": 0.16,
+        "wobble": 0.07,
+        "seed": 7,
+        "light_az": -40.0,
+        "light_el": 40.0,
+        "ambient": 0.42,
+        "light_frame": "camera",
+        "shadows": true,
+        "softness": 3.0,
+        "key": 0.85,
+        "ao": 0.6,
+        "form_shading": 0.7,
+        "gamma": 1.0,
+        "tone_blur": 0.8,
+        "suggestive": true,
+        "suggestive_strength": 3.0,
+        "valleys": true,
+        "valley_strength": 110.0,
+        "creases": true,
+        "crease_angle": 55.0,
+        "lost_found": true,
+        "passes": 3,
+        "tone_scheme": "classic",
+        "angle": 45.0,
+        "max_len": 45.0,
+        "min_len": 2.5,
+        "edge_gap": 0.35,
+        "focus": false,
+        "focus_u": 0.5,
+        "focus_v": 0.3,
+        "focus_radius": 8.5,
+        "focus_light_az": 25.0,
+        "focus_light_el": 55.0,
+        "up_axis": "auto",
+        "front": "auto",
+        "rotate": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "normalise": "set",
+        "reference_mesh": "",
+        "paper": "A3",
+        "orientation": "landscape",
+        "margin": 25.0,
+        "fine_width": 0.2,
+        "bold_width": 0.4,
+        "max_ink": 0.0,
+        "px_per_mm": 5.0,
+        "draft_faces": 150000,
+        "line_width": 0.3
+      },
+      "format": ""
+    },
+    {
+      "id": "out1",
+      "type": "save",
+      "label": "",
+      "pos": [
+        720.0,
+        0.0
+      ],
+      "where": "next",
+      "folder": "",
+      "name": "{name}"
+    }
+  ],
+  "edges": [
+    {
+      "from": "in1",
+      "to": "n1",
+      "port": "in"
+    },
+    {
+      "from": "n1",
+      "to": "n2",
+      "port": "in"
+    },
+    {
+      "from": "n2",
+      "to": "out1",
+      "port": "in"
+    }
+  ],
+  "exposed": [
+    {
+      "node": "n1",
+      "key": "structure"
+    },
+    {
+      "node": "n1",
+      "key": "gesture"
+    },
+    {
+      "node": "n1",
+      "key": "reach"
+    },
+    {
+      "node": "n1",
+      "key": "heading"
+    },
+    {
+      "node": "n1",
+      "key": "preserve"
+    },
+    {
+      "node": "n1",
+      "key": "taper"
+    },
+    {
+      "node": "n1",
+      "key": "curl"
+    },
+    {
+      "node": "n1",
+      "key": "layers"
+    },
+    {
+      "node": "n1",
+      "key": "seed"
+    }
+  ]
+}

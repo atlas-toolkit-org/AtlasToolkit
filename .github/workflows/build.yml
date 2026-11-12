@@ -1,0 +1,152 @@
+# Freeze the app on each OS and run every release gate on the result. It is long (macOS especially), so this runs
+# only with the label `full-ci` (once per milestone before merging), by hand, or from release.yml when a version tag is pushed.
+# Local first: docs/dev/multi-os-port.md.
+name: build
+
+on:
+  pull_request:
+    branches: [main]
+    types: [labeled]
+    paths-ignore: ["docs/**", "**/*.md", "LICENSE"]
+  workflow_dispatch:
+  workflow_call:
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  PYTHONUTF8: "1"
+  ATLAS_TEST_REQUIRE_HELPERS: "1"
+
+jobs:
+  linux:
+    if: github.event_name != 'pull_request' || github.event.label.name == 'full-ci'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            native/_deps
+            native/build
+          key: native-alma9-${{ hashFiles('native/**') }}
+          restore-keys: native-alma9-
+      - name: The build image, on the glibc 2.34 floor
+        run: docker build -q -t atlas-linux-build packaging/linux
+      - name: Freeze, self-test --strict, audit, frozen checks, the 3D view on X11, then the deb and rpm
+        run: |
+          docker run --rm -v "$PWD:/src" -w /src -e PYTHONUTF8 -e ATLAS_TEST_REQUIRE_HELPERS atlas-linux-build sh -c '
+            uv sync --locked --all-extras &&
+            .venv/bin/python scripts/build.py --skip-tests &&
+            (Xvfb :99 -screen 0 1600x1000x24 +extension GLX & sleep 3
+             DISPLAY=:99 QT_QPA_PLATFORM=xcb LIBGL_ALWAYS_SOFTWARE=1 .venv/bin/python scripts/check_frozen_gui.py --exe dist/atlas-toolkit/atlas-toolkit) &&
+            .venv/bin/python scripts/package.py --skip-build'
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: installers-linux
+          path: dist/installers/*
+          retention-days: 3
+          compression-level: 0
+
+  # Each package on a clean distribution. The Python running the test comes from uv and brings no system libraries with it, so
+  # that nothing hides a dependency the package forgot to declare.
+  install-linux:
+    needs: linux
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        image: ["ubuntu:22.04", "ubuntu:24.04", "ubuntu:26.04", "debian:12", "fedora:45", "rockylinux:9"]
+        format: [package, appimage]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: installers-linux
+          path: installers
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+      - run: uv python install 3.12 --install-dir "$PWD/py"
+      - name: Install, prove, uninstall
+        env:
+          IMAGE: ${{ matrix.image }}
+          FORMAT: ${{ matrix.format }}
+        run: |
+          case "$FORMAT-$IMAGE" in
+            appimage-*) package=$(ls installers/*.AppImage) ;;
+            package-ubuntu*|package-debian*) package=$(ls installers/*.deb) ;;
+            *) package=$(ls installers/*.rpm) ;;
+          esac
+          python=$(find py -mindepth 1 -maxdepth 1 -type d -name 'cpython-*' | head -1)/bin/python3
+          docker run --rm -v "$PWD:/w:ro" "$IMAGE" "/w/$python" /w/scripts/install_test.py "/w/$package" --container
+
+  windows:
+    if: github.event_name != 'pull_request' || github.event.label.name == 'full-ci'
+    runs-on: windows-2025
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+      - run: uv sync --locked --all-extras
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            native/_deps
+            native/build
+          key: native-${{ runner.os }}-${{ hashFiles('native/**') }}
+          restore-keys: native-${{ runner.os }}-
+      - name: Freeze as a folder, self-test --strict, audit, frozen checks
+        run: .venv\Scripts\python scripts\build.py --skip-tests --onedir
+      - name: The 3D view with no GPU, as Qt falls back to its bundled renderer
+        run: .venv\Scripts\python scripts\check_frozen_gui.py --exe "dist\Atlas Toolkit\Atlas Toolkit.exe"
+      - name: Inno Setup, pinned like every other tool
+        run: |
+          Invoke-WebRequest https://github.com/jrsoftware/issrc/releases/download/is-6_7_3/innosetup-6.7.3.exe -OutFile inno.exe
+          if ((Get-FileHash inno.exe -Algorithm SHA256).Hash -ne '9C73C3BAE7ED48D44112A0F48E66742C00090BDB5BEF71D9D3C056C66E97B732') { throw 'checksum mismatch' }
+          Start-Process -Wait inno.exe -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART','/CURRENTUSER'
+      - name: The installer
+        run: .venv\Scripts\python scripts\package.py --skip-build
+      - name: Install, prove, uninstall
+        run: .venv\Scripts\python scripts\install_test.py (Get-Item dist\installers\*.exe).FullName
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: installers-windows
+          path: dist/installers/*
+          retention-days: 3
+          compression-level: 0
+
+  macos:
+    if: github.event_name != 'pull_request' || github.event.label.name == 'full-ci'
+    runs-on: macos-15
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+      - run: brew install ninja
+      - run: uv sync --locked --all-extras
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            native/_deps
+            native/build
+          key: native-${{ runner.os }}-${{ hashFiles('native/**') }}
+          restore-keys: native-${{ runner.os }}-
+      - name: Freeze the .app, self-test --strict, audit, frozen checks
+        run: .venv/bin/python scripts/build.py --skip-tests
+      - name: The 3D view on Cocoa (soft, the runner has no GPU)
+        run: .venv/bin/python scripts/check_frozen_gui.py --exe "dist/Atlas Toolkit.app/Contents/MacOS/Atlas Toolkit" --soft
+      - name: The disk image
+        run: .venv/bin/python scripts/package.py --skip-build
+      - name: Mount, install, prove, uninstall (soft 3D view, the runner has no GPU)
+        run: .venv/bin/python scripts/install_test.py dist/installers/*.dmg --soft-gl
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: installers-macos
+          path: dist/installers/*
+          retention-days: 3
+          compression-level: 0

@@ -1,0 +1,22 @@
+{
+ "format": "atlas-toolkit.preset",
+ "format_version": 1,
+ "toolkit": "2.1.0",
+ "presets": [
+  {
+   "uid": "test-presets/raster-dem-to-mesh/test-contours",
+   "name": "Test contours",
+   "tool": "raster-dem-to-mesh",
+   "tool_version": "",
+   "values": {
+    "vertical_error": 0.05,
+    "maximum_edge": 2.0
+   },
+   "explicit": [
+    "vertical_error",
+    "maximum_edge"
+   ],
+   "tip": "Made up, for tests."
+  }
+ ]
+}

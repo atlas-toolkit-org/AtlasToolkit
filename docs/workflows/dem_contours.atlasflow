@@ -1,0 +1,164 @@
+{
+  "format": "atlas-toolkit.workflow",
+  "version": 1,
+  "name": "DEM Terrain Contours",
+  "description": "Geographic numeric DEM to an open terrain surface and pen-plotter SVG. A CRS is required in the source or override.",
+  "toolkit": "1.11.1",
+  "nodes": [
+    {
+      "id": "in1",
+      "type": "input",
+      "label": "",
+      "pos": [
+        0.0,
+        0.0
+      ],
+      "kind": "image",
+      "mode": "batch",
+      "path": ""
+    },
+    {
+      "id": "n1",
+      "type": "tool",
+      "label": "",
+      "pos": [
+        270.0,
+        0.0
+      ],
+      "tool": "raster-dem-to-mesh",
+      "tool_version": "0.3.1",
+      "values": {
+        "source_mode": "auto",
+        "band": 1,
+        "source_crs": "",
+        "elevation_units": "auto",
+        "metadata_scale": true,
+        "footprint": "valid",
+        "exclude_background": false,
+        "background": 0.0,
+        "background_tolerance": 0.0,
+        "missing": "expose",
+        "gap_size": 2.0,
+        "contact_policy": "manual",
+        "contact_trim": 0.02,
+        "method": "smooth",
+        "sampling": "grid",
+        "preview_quality": "balanced",
+        "vertical_error": 0.02,
+        "maximum_edge": 1.0,
+        "boundary_error": 0.025,
+        "triangle_budget": 2000000,
+        "pitch": 0.5,
+        "smooth_radius": 1.5,
+        "target_faces": 2500,
+        "surface_error": 0.75,
+        "terrace_step": 1.0,
+        "paper": "A3",
+        "orientation": "landscape",
+        "margin": 10.0,
+        "paper_width": 200.0,
+        "paper_height": 200.0,
+        "height_mode": "geographic",
+        "relief_height": 20.0,
+        "z_factor": 3.0,
+        "basal_height": 2.0,
+        "plate_fit": "snug",
+        "plate_width": 190.0,
+        "plate_height": 277.0,
+        "plate_aspect": false,
+        "lock_scale": false,
+        "terrain_width": 180.0,
+        "padding": 5.0,
+        "base_mode": "mm",
+        "base_height": 2.0,
+        "base_percent": 20.0,
+        "base_minimum": 1.0,
+        "corner_radius": 0.0,
+        "yaw": 0.0,
+        "geometry": "surface"
+      },
+      "format": ""
+    },
+    {
+      "id": "n2",
+      "type": "tool",
+      "label": "",
+      "pos": [
+        540.0,
+        0.0
+      ],
+      "tool": "contour-lines",
+      "tool_version": "1.0.1",
+      "values": {
+        "theta": 45.0,
+        "psi": -30.0,
+        "radius": 180.0,
+        "lookat": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "fov": 36.2,
+        "projection": "orthographic",
+        "spacing_mm": 2.0,
+        "hidden": true,
+        "slice_offset": 0.0,
+        "up_axis": "+z",
+        "front": "-y",
+        "rotate": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "normalise": "set",
+        "reference_mesh": "",
+        "min_len": 4.0,
+        "min_gap": 0.45,
+        "join_any": 0.5,
+        "join_same": 1.5,
+        "gap_bridge": 1.5,
+        "paper": "A3",
+        "orientation": "landscape",
+        "margin": 25.0,
+        "paper_width": 200.0,
+        "paper_height": 200.0,
+        "line_width": 0.3,
+        "optimise": true,
+        "step_mm": 0.25,
+        "simplify": 0.08,
+        "draft_faces": 150000
+      },
+      "format": ""
+    },
+    {
+      "id": "out1",
+      "type": "save",
+      "label": "",
+      "pos": [
+        810.0,
+        0.0
+      ],
+      "where": "next",
+      "folder": "",
+      "name": "{name}"
+    }
+  ],
+  "edges": [
+    {
+      "from": "in1",
+      "to": "n1",
+      "port": "in"
+    },
+    {
+      "from": "n1",
+      "to": "n2",
+      "port": "in"
+    },
+    {
+      "from": "n2",
+      "to": "out1",
+      "port": "in"
+    }
+  ],
+  "exposed": []
+}

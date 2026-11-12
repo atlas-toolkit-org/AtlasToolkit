@@ -1,0 +1,178 @@
+{
+  "format": "atlas-toolkit.workflow",
+  "version": 1,
+  "name": "Image Relief Contours",
+  "description": "Non-geographic grayscale or color image through Image to Mesh to clean pen-plotter SVG line art.",
+  "toolkit": "1.11.1",
+  "nodes": [
+    {
+      "id": "in1",
+      "type": "input",
+      "label": "",
+      "pos": [
+        0.0,
+        0.0
+      ],
+      "kind": "image",
+      "mode": "batch",
+      "path": ""
+    },
+    {
+      "id": "n1",
+      "type": "tool",
+      "label": "",
+      "pos": [
+        270.0,
+        0.0
+      ],
+      "tool": "image-to-mesh",
+      "tool_version": "0.1.1",
+      "values": {
+        "grayscale": "weighted",
+        "input_range": "native",
+        "source_black": 0.0,
+        "source_white": 1.0,
+        "auto_levels": false,
+        "denoise": 0.0,
+        "black_level": 0.0,
+        "white_level": 1.0,
+        "brightness": 0.0,
+        "contrast": 1.0,
+        "gamma": 1.0,
+        "invert": false,
+        "quarter_turns": "0",
+        "mirror_x": false,
+        "mirror_y": false,
+        "pixel_aspect": true,
+        "map_width": 200.0,
+        "map_height": 200.0,
+        "alpha_mode": "mask",
+        "alpha_threshold": 0.0,
+        "exclude_background": false,
+        "background": 0.0,
+        "background_tolerance": 0.0,
+        "footprint": "valid",
+        "missing": "expose",
+        "gap_size": 2.0,
+        "contact_policy": "manual",
+        "contact_trim": 0.002,
+        "method": "smooth",
+        "sampling": "grid",
+        "preview_quality": "balanced",
+        "vertical_error": 0.02,
+        "maximum_edge": 1.0,
+        "boundary_error": 0.025,
+        "triangle_budget": 2000000,
+        "pitch": 0.5,
+        "smooth_radius": 1.5,
+        "target_faces": 2500,
+        "surface_error": 0.75,
+        "terrace_step": 1.0,
+        "paper": "A3",
+        "orientation": "landscape",
+        "margin": 10.0,
+        "paper_width": 200.0,
+        "paper_height": 200.0,
+        "relief_height": 20.0,
+        "z_factor": 1.0,
+        "basal_height": 2.0,
+        "plate_fit": "snug",
+        "plate_width": 190.0,
+        "plate_height": 277.0,
+        "plate_aspect": false,
+        "lock_scale": false,
+        "terrain_width": 180.0,
+        "padding": 5.0,
+        "base_mode": "mm",
+        "base_height": 2.0,
+        "base_percent": 20.0,
+        "base_minimum": 1.0,
+        "corner_radius": 0.0,
+        "yaw": 0.0,
+        "geometry": "surface"
+      },
+      "format": ""
+    },
+    {
+      "id": "n2",
+      "type": "tool",
+      "label": "",
+      "pos": [
+        540.0,
+        0.0
+      ],
+      "tool": "contour-lines",
+      "tool_version": "1.0.1",
+      "values": {
+        "theta": 0.0,
+        "psi": 0.0,
+        "radius": 240.0,
+        "lookat": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "fov": 36.2,
+        "projection": "orthographic",
+        "spacing_mm": 1.2,
+        "hidden": true,
+        "slice_offset": 0.0,
+        "up_axis": "+z",
+        "front": "-y",
+        "rotate": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "normalise": "set",
+        "reference_mesh": "",
+        "min_len": 1.5,
+        "min_gap": 0.25,
+        "join_any": 0.3,
+        "join_same": 0.8,
+        "gap_bridge": 0.5,
+        "paper": "A3",
+        "orientation": "landscape",
+        "margin": 25.0,
+        "paper_width": 200.0,
+        "paper_height": 200.0,
+        "line_width": 0.3,
+        "optimise": true,
+        "step_mm": 0.25,
+        "simplify": 0.05,
+        "draft_faces": 150000
+      },
+      "format": ""
+    },
+    {
+      "id": "out1",
+      "type": "save",
+      "label": "",
+      "pos": [
+        810.0,
+        0.0
+      ],
+      "where": "next",
+      "folder": "",
+      "name": "{name}"
+    }
+  ],
+  "edges": [
+    {
+      "from": "in1",
+      "to": "n1",
+      "port": "in"
+    },
+    {
+      "from": "n1",
+      "to": "n2",
+      "port": "in"
+    },
+    {
+      "from": "n2",
+      "to": "out1",
+      "port": "in"
+    }
+  ],
+  "exposed": []
+}

@@ -1,0 +1,73 @@
+{
+  "format": "atlas-toolkit.workflow",
+  "version": 1,
+  "name": "Line Smooth",
+  "description": "Smooth jagged SVG line art with physical limits and all-pen topology guards.",
+  "toolkit": "1.15.1",
+  "nodes": [
+    {
+      "id": "in1",
+      "type": "input",
+      "label": "",
+      "pos": [
+        0.0,
+        0.0
+      ],
+      "kind": "svg",
+      "mode": "batch",
+      "path": ""
+    },
+    {
+      "id": "n1",
+      "type": "tool",
+      "label": "",
+      "pos": [
+        260.0,
+        0.0
+      ],
+      "tool": "svg-smooth",
+      "tool_version": "0.1.0",
+      "values": {
+        "method": "whittaker",
+        "span": 2.0,
+        "strength": 100.0,
+        "deviation": 0.08,
+        "curves": "keep",
+        "topology": true,
+        "corner_angle": 65.0,
+        "corner_support": 2.0,
+        "area_change": 3.0,
+        "length_change": 40.0,
+        "sample_step": 0.08,
+        "curve_error": 0.005,
+        "filled": false
+      },
+      "format": ""
+    },
+    {
+      "id": "out1",
+      "type": "save",
+      "label": "",
+      "pos": [
+        520.0,
+        0.0
+      ],
+      "where": "next",
+      "folder": "",
+      "name": "{name}"
+    }
+  ],
+  "edges": [
+    {
+      "from": "in1",
+      "to": "n1",
+      "port": "in"
+    },
+    {
+      "from": "n1",
+      "to": "out1",
+      "port": "in"
+    }
+  ],
+  "exposed": []
+}

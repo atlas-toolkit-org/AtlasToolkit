@@ -1,0 +1,158 @@
+{
+  "format": "atlas-toolkit.workflow",
+  "version": 1,
+  "name": "Remesh Flowrep",
+  "description": "",
+  "toolkit": "1.10.3",
+  "nodes": [
+    {
+      "id": "in1",
+      "type": "input",
+      "label": "",
+      "pos": [
+        0.0,
+        0.0
+      ],
+      "kind": "mesh",
+      "mode": "batch",
+      "path": ""
+    },
+    {
+      "id": "n1",
+      "type": "tool",
+      "label": "",
+      "pos": [
+        240.0,
+        0.0
+      ],
+      "tool": "remesh-decimate",
+      "tool_version": "0.1.0",
+      "values": {
+        "method": "quads",
+        "quad_algorithm": "instant",
+        "density": "faces",
+        "target_faces": 5000,
+        "retain": 25.0,
+        "edge_length": 1.0,
+        "length_units": "relative",
+        "preserve_boundary": true,
+        "preserve_features": true,
+        "feature_angle": 45.0,
+        "surface_error": 2.0,
+        "normal_deviation": 60.0,
+        "iterations": 10,
+        "project": true,
+        "min_edge": 0.35,
+        "max_edge": 2.0,
+        "direction": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "elongation": 4.0,
+        "cell_base": "uniform",
+        "irregularity": 0.0,
+        "seed": 1,
+        "dissolve_angle": 0.5,
+        "regional_detail": false,
+        "regional_density": 4.0,
+        "influence": "all",
+        "band_from": 50.0,
+        "band_to": 100.0,
+        "sphere_centre": [
+          0.0,
+          0.0,
+          25.0
+        ],
+        "sphere_radius": 30.0,
+        "feather": 15.0,
+        "invert_influence": false,
+        "voxel_size": 1.0,
+        "adaptivity": 0.0,
+        "separate_shells": true,
+        "up_axis": "auto",
+        "front": "auto",
+        "rotate": [
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      "format": ""
+    },
+    {
+      "id": "n2",
+      "type": "tool",
+      "label": "",
+      "pos": [
+        480.0,
+        0.0
+      ],
+      "tool": "flowrep-sketch",
+      "tool_version": "0.1.2",
+      "values": {
+        "theta": 70.0,
+        "psi": -150.0,
+        "radius": 170.0,
+        "lookat": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "fov": 60.0,
+        "projection": "perspective",
+        "dmax": 20.0,
+        "prepare": "preserve",
+        "target_faces": 6000,
+        "crease_angle": 45.0,
+        "regularize": 5,
+        "silhouette": true,
+        "show_hidden": false,
+        "line_width": 0.3,
+        "tolerance": 0.05,
+        "min_length": 0.5,
+        "paper": "A3",
+        "orientation": "portrait",
+        "margin": 15.0,
+        "up_axis": "auto",
+        "front": "auto",
+        "rotate": [
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      "format": ""
+    },
+    {
+      "id": "out1",
+      "type": "save",
+      "label": "",
+      "pos": [
+        720.0,
+        0.0
+      ],
+      "where": "next",
+      "folder": "",
+      "name": "{name}"
+    }
+  ],
+  "edges": [
+    {
+      "from": "in1",
+      "to": "n1",
+      "port": "in"
+    },
+    {
+      "from": "n1",
+      "to": "n2",
+      "port": "in"
+    },
+    {
+      "from": "n2",
+      "to": "out1",
+      "port": "in"
+    }
+  ],
+  "exposed": []
+}

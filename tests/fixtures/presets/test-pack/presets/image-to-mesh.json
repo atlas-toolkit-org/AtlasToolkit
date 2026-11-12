@@ -1,0 +1,20 @@
+{
+ "format": "atlas-toolkit.preset",
+ "format_version": 1,
+ "toolkit": "2.1.0",
+ "presets": [
+  {
+   "uid": "test-presets/image-to-mesh/test-soft-contours",
+   "name": "Test soft contours",
+   "tool": "image-to-mesh",
+   "tool_version": "",
+   "values": {
+    "vertical_error": 0.04
+   },
+   "explicit": [
+    "vertical_error"
+   ],
+   "tip": "Made up, for tests."
+  }
+ ]
+}

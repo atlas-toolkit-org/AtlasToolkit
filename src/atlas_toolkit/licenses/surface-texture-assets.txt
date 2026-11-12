@@ -1,0 +1,15 @@
+Surface Texture: twelve prepared CC0 heightmaps
+
+Sources: ambientCG (Lennart Demes) and TextureCan.
+https://docs.ambientcg.com/license/
+https://www.texturecan.com/terms/
+https://creativecommons.org/publicdomain/zero/1.0/
+
+All selected PBR height/displacement maps are released under CC0-1.0. They may be copied, modified and
+redistributed, including commercially. Source credit is retained as a courtesy. Atlas does not claim authorship
+of the source maps. Prepared height tiles and locally generated relief thumbnails are derived from those maps.
+No source website logos, product renders or Substance generator files are bundled.
+
+Source URLs, map names, source precision, original archive/map hashes, prepared file hashes and exact processing
+settings are recorded in atlas_toolkit/tools/mesh_texture/assets/catalog.json. The reusable preparation script
+is scripts/prepare_surface_textures.py. Complete source archives are not needed at runtime.

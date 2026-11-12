@@ -1,0 +1,213 @@
+{
+  "format": "atlas-toolkit.workflow",
+  "version": 1,
+  "name": "Surface Texture Botanical Sketch",
+  "description": "Graphic surface relief for A3 / 0.3 mm pen drawings.",
+  "toolkit": "1.13.1",
+  "nodes": [
+    {
+      "id": "in1",
+      "type": "input",
+      "label": "",
+      "pos": [
+        0.0,
+        0.0
+      ],
+      "kind": "mesh",
+      "mode": "batch",
+      "path": ""
+    },
+    {
+      "id": "n1",
+      "type": "tool",
+      "label": "",
+      "pos": [
+        240.0,
+        0.0
+      ],
+      "tool": "mesh-texture",
+      "tool_version": "0.1.0",
+      "values": {
+        "source": "library",
+        "texture": "leaf_veins",
+        "heightmap": "",
+        "element_size": 9.0,
+        "aspect": 1.0,
+        "texture_rotation": 0.0,
+        "offset_u": 0.0,
+        "offset_v": 0.0,
+        "relief_mode": "raised",
+        "relief": 0.4,
+        "invert_height": false,
+        "suppression": 0.65,
+        "contrast": 2.5,
+        "crispness": 0.85,
+        "influence": "all",
+        "band_from": 50.0,
+        "band_to": 100.0,
+        "sphere_centre": [
+          0.0,
+          0.0,
+          25.0
+        ],
+        "sphere_radius": 30.0,
+        "feather": 15.0,
+        "invert_influence": false,
+        "mapping": "surface",
+        "cylinder_axis": "up",
+        "seam_rotation": 0.0,
+        "seam_feather": 20.0,
+        "preserve_borders": true,
+        "collision_protection": true,
+        "quality": "standard",
+        "tolerance": 0.04,
+        "max_faces": 400000,
+        "up_axis": "auto",
+        "front": "auto",
+        "rotate": [
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      "format": ""
+    },
+    {
+      "id": "n2",
+      "type": "tool",
+      "label": "",
+      "pos": [
+        480.0,
+        0.0
+      ],
+      "tool": "sketch-hatching",
+      "tool_version": "1.0.1",
+      "values": {
+        "theta": 80.0,
+        "psi": 155.0,
+        "radius": 262.0,
+        "lookat": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "fov": 38.0,
+        "projection": "perspective",
+        "complexity": 0.75,
+        "hatching": true,
+        "density": 0.7,
+        "field": "principal",
+        "outline_weight": 0.16,
+        "wobble": 0.0,
+        "seed": 7,
+        "light_az": -40.0,
+        "light_el": 40.0,
+        "ambient": 0.42,
+        "light_frame": "camera",
+        "shadows": true,
+        "softness": 3.0,
+        "key": 0.85,
+        "ao": 0.6,
+        "form_shading": 0.1,
+        "gamma": 1.0,
+        "tone_blur": 0.3,
+        "suggestive": true,
+        "suggestive_strength": 2.0,
+        "valleys": true,
+        "valley_strength": 15.0,
+        "creases": true,
+        "crease_angle": 20.0,
+        "lost_found": true,
+        "passes": 3,
+        "tone_scheme": "classic",
+        "angle": 45.0,
+        "max_len": 45.0,
+        "min_len": 2.5,
+        "edge_gap": 0.35,
+        "focus": false,
+        "focus_u": 0.5,
+        "focus_v": 0.3,
+        "focus_radius": 8.5,
+        "focus_light_az": 25.0,
+        "focus_light_el": 55.0,
+        "up_axis": "auto",
+        "front": "auto",
+        "rotate": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "normalise": "set",
+        "reference_mesh": "",
+        "paper": "A3",
+        "orientation": "portrait",
+        "margin": 15.0,
+        "fine_width": 0.2,
+        "bold_width": 0.4,
+        "max_ink": 0.0,
+        "px_per_mm": 5.0,
+        "draft_faces": 150000
+      },
+      "format": ""
+    },
+    {
+      "id": "out1",
+      "type": "save",
+      "label": "",
+      "pos": [
+        720.0,
+        0.0
+      ],
+      "where": "next",
+      "folder": "",
+      "name": "{name}"
+    }
+  ],
+  "edges": [
+    {
+      "from": "in1",
+      "to": "n1",
+      "port": "in"
+    },
+    {
+      "from": "n1",
+      "to": "n2",
+      "port": "in"
+    },
+    {
+      "from": "n2",
+      "to": "out1",
+      "port": "in"
+    }
+  ],
+  "exposed": [
+    {
+      "node": "n1",
+      "key": "texture"
+    },
+    {
+      "node": "n1",
+      "key": "element_size"
+    },
+    {
+      "node": "n1",
+      "key": "relief"
+    },
+    {
+      "node": "n1",
+      "key": "influence"
+    },
+    {
+      "node": "n1",
+      "key": "band_from"
+    },
+    {
+      "node": "n1",
+      "key": "band_to"
+    },
+    {
+      "node": "n1",
+      "key": "feather"
+    }
+  ]
+}
