@@ -1,0 +1,4 @@
+# The DCO app (github.com/apps/dco) checks that every commit in a pull request is signed off (`git commit -s`), which
+# certifies the Developer Certificate of Origin: see CONTRIBUTING.md. Members of atlas-toolkit-org are not asked to.
+require:
+  members: false
