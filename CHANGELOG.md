@@ -1,6 +1,6 @@
 # Changelog
 
-## 2.2.0 (2026-11-11)
+## 2.2.0 (2026-11-12)
 
 **Open source: Atlas Toolkit is free software under GPL-3.0-or-later**
 - **The licence:** `LICENSE` holds the GPL version 3, and `COPYRIGHT.md` the notice ("João Gonçalves (sci.co.plot)
@@ -41,6 +41,10 @@
     scratch.
 - **New files:** `CONTRIBUTING.md` (DCO sign-off), `CODE_OF_CONDUCT.md`, `SECURITY.md`, `TRADEMARKS.md` and
   `.github/FUNDING.yml` (Ko-fi). CI reads the presets repository's name from a variable only.
+- **The public repository:** github.com/atlas-toolkit-org/AtlasToolkit.
+  - Pull requests need a DCO sign-off (`.github/dco.yml`) and a green `ci-ok`.
+  - The README shows CI, licence and Ko-fi badges, and counts 48 tools.
+  - The install guides say where to download each package.
 
 ## 2.1.1 (2026-11-10)
 

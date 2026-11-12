@@ -23,7 +23,7 @@
   <img src="docs/images/readme/hero.webp" alt="Four drawings made with Atlas Toolkit: a sketched bust, a twisted head in cross-hatching, a head peeling open like a plant, and a hatched photograph of a bridge" width="100%">
 </p>
 
-Atlas Toolkit is a desktop app for pen-plotter art. It gathers 47 tools for sculpting 3D models, turning models and
+Atlas Toolkit is a desktop app for pen-plotter art. It gathers 48 tools for sculpting 3D models, turning models and
 images into line drawings, and preparing those drawings for the plotter.
 
 **Aim.** To take a drawing from first idea to a file the plotter can draw well, without leaving one app.
@@ -42,7 +42,8 @@ geometry you can also print.
 
 ## Install
 
-There are no public downloads yet. `scripts/package.py` makes these packages from source
+Installers are published on the [Releases](https://github.com/atlas-toolkit-org/AtlasToolkit/releases) page. The first release, 2.2.0, is being tested before
+it goes out. Until then, `scripts/package.py` makes the same packages from source
 ([Building](docs/BUILDING.md), [Packaging](docs/PACKAGING.md)).
 
 | System | Package | Guide |

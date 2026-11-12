@@ -2,6 +2,9 @@
 
 Needs Windows 10 or 11, 64-bit. No administrator rights unless you install for all users.
 
+Download the Windows `.exe` installer from the [Releases](https://github.com/atlas-toolkit-org/AtlasToolkit/releases) page. Each release lists `SHA256SUMS.txt` to check
+the download against.
+
 ## Install
 
 1. Run `AtlasToolkit-<version>-windows-x64-setup.exe`.

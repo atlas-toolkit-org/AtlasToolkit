@@ -4,6 +4,9 @@ Needs macOS 15 or later on Apple Silicon (M1 or newer). Intel Macs are not suppo
 
 **How far this has been tested:** the Mac build is built and tested automatically on GitHub's Mac machines, but nobody has tried it by hand on a real Mac yet. Those machines have no graphics card, so 3D previews on a real GPU, Retina scaling and trackpad gestures have not been seen working. `docs/PLATFORMS.md` lists what is proven.
 
+Download the `.dmg` disk image from the [Releases](https://github.com/atlas-toolkit-org/AtlasToolkit/releases) page. Each release lists `SHA256SUMS.txt` to check
+the download against.
+
 ## Install
 
 1. Open `AtlasToolkit-<version>-macos-arm64.dmg`.

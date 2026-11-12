@@ -97,7 +97,7 @@ One PySide6 app for pen-plotter tools, in its own repository. `README.md` is the
 .venv\Scripts\python scripts\build.py            :: or --onedir, --skip-tests, --skip-native, --no-splash
 .venv\Scripts\python native\build.py             :: C++ helpers only: --only stripes,remesh  --check  --no-fetch
 .venv\Scripts\python scripts\package.py          :: the installers into dist\installers, only when asked (docs/PACKAGING.md)
-git tag vX.Y.Z && git push origin vX.Y.Z         :: billed, only when asked: a private draft release with every installer
+git tag vX.Y.Z && git push origin vX.Y.Z         :: only when asked: a draft release (private until published) with every installer
 python scripts\install_test.py <package> --container   :: installs it for real, so containers and CI only: proves it, removes it
 .venv\Scripts\python scripts\new_tool.py <folder> --kind svg|mesh|mesh2svg
 python scripts\doctor.py                         :: is this machine ready to develop and build? (any OS)
