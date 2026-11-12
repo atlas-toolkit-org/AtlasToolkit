@@ -88,16 +88,26 @@ WSL2 with Ubuntu 24.04 and Docker Engine inside it does everything except a real
 - **Docker Hub pulls may fail with "network is unreachable".** WSL can lack an IPv6 route, and dockerd doesn't fall back to IPv4. Turn IPv6 off with a file in `/etc/sysctl.d/`.
 - **From PowerShell, run WSL commands from a script file.** Inline `wsl -- bash -c` loses `$` and quotes.
 
-## CI and what it costs
+## CI
 
-The repository is private, so Actions minutes are billed, and macOS costs ten times what Linux does. Test locally first, Windows and then Linux, and push batches that already pass.
+The repository is public, so GitHub's standard runners are free. A full run still takes about half an hour, so test
+locally first, Windows and then Linux, and push batches that already pass.
 
 | Runs | When | What |
 |---|---|---|
-| `ci.yml` | Each pull request | Linux and Windows suites, lint |
+| `ci.yml` | Each pull request that changes code | Lint, then the Linux and Windows suites |
+| `ci.yml` | Each pull request that changes only Markdown or `LICENSE` | Lint, then the documentation tests (`docs`, a couple of minutes) |
 | `ci.yml` | Label `full-ci` | macOS suite, the oldest Python |
+| `cache.yml` | A push to `main` that changes `native/` or `uv.lock`, or by hand | Builds the native helpers to warm the cache every pull request restores |
 | `build.yml` | Label `full-ci`, by hand, or from `release.yml` | Freeze on all three OSes, every gate, the installers, and the install test on clean systems |
 | `release.yml` | A pushed version tag | All of `build.yml`, then a draft release with every installer |
+
+Every run of `ci.yml` ends in **`ci-ok`**. It passes when every other job passed or was skipped on purpose. The `main`
+ruleset requires it, together with the DCO check. Its name never changes, so the ruleset need not change when jobs do.
+
+A commit whose message contains `[skip ci]` runs no workflows. Use it only for changes that cannot affect a test, such
+as CI configuration that CI itself is about to exercise; the required `ci-ok` check then needs an admin to merge past
+it.
 
 Add the label `full-ci` once per milestone before merging. It only fires when added, so after a fix, remove it and add it again.
 
@@ -105,7 +115,7 @@ Add the label `full-ci` once per milestone before merging. It only fires when ad
 
 ## Release checklist
 
-There is no public release yet. This is what a build must pass before it could be one. To make a private draft from a merged version, see "A draft release" in `docs/PACKAGING.md`.
+This is what a build must pass before it is released. To make a draft release from a merged version, see "A draft release" in `docs/PACKAGING.md`.
 
 1. `python scripts/doctor.py` says ready.
 2. Tests pass on Windows, then on Linux.

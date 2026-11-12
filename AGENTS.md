@@ -69,8 +69,10 @@ One PySide6 app for pen-plotter tools, in its own repository. `README.md` is the
   `paths.open_url`, never `QDesktopServices`. A child then gets a clean environment and dies with its job on every OS
   (`test_portability` checks, `test_procs` proves it). A new helper uses `runtimes.find_helper` and `check_helper`.
 - **CI is rationed.** The public repository's runners are free, but full runs are long and the private presets
-  repository's are not. Test locally first (Windows, then Linux in WSL) and push batches that already pass. Pull requests run Linux and Windows; the label `full-ci` runs
-  macOS and the oldest Python, once per milestone before merging. Every milestone ends with a full run on all three OSes.
+  repository's are not. Test locally first (Windows, then Linux in WSL) and push batches that already pass. Pull requests run Linux and Windows (only the
+  documentation tests when just Markdown changed); the label `full-ci` runs macOS and the oldest Python, once per
+  milestone before merging. Every run ends in `ci-ok`, the check the `main` ruleset requires with DCO. Every
+  milestone ends with a full run on all three OSes.
 - **No full preset testing, for now (decided 2026-11-11).** It takes too long and costs too much CI. CI does not
   read the private presets: do not add the `PRESETS_DEPLOY_KEY` secret, so those tests skip there. Locally, after a
   preset change, run `tests/test_private_presets.py` (seconds) and the test module of each tool whose presets changed,
