@@ -96,5 +96,5 @@ AppKit turns file names on the command line into "open file" events as well. Qt 
   `_isolate` hides the display from Qt whenever it runs offscreen.
 - Every test module starts with `import _isolate`, which keeps settings and caches out of real profiles on every OS
   (`ATLAS_TOOLKIT_HOME`). `tests/test_portability.py` checks this.
-- CI is rationed because the repository is private: test locally first, and add the label `full-ci` to a pull request
+- CI is rationed because full runs are long: test locally first, and add the label `full-ci` to a pull request
   once per milestone to run macOS and the oldest Python.

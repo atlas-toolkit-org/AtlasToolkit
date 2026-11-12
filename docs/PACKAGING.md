@@ -106,6 +106,11 @@ git push origin v2.0.0
 3. **Makes a draft release** with all five installers, `SHA256SUMS.txt`, the changelog entry and links to the install guides (`scripts/release_notes.py`). If any installer is missing, there is no draft.
 
 It never publishes. A draft is visible only to people who can write to the repository, and it doesn't expire as CI artifacts do.
+The tag itself is public as soon as it is pushed, like the source it points to.
+
+To mark a version as a pre-release (a tested build that is not yet announced), tick **Set as a pre-release** on the
+draft, or run `gh release edit vX.Y.Z --prerelease`. Publishing a pre-release makes it downloadable without making it
+the latest release.
 
 To redo a release, delete the draft and the tag, then push the tag again.
 

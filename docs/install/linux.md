@@ -2,6 +2,9 @@
 
 Needs a 64-bit x86 system with glibc 2.34 or later: Ubuntu 22.04 and later, Debian 12 and later, Fedora, or RHEL, Rocky and AlmaLinux 9 and later. It works on both X11 and Wayland.
 
+Download the `.deb`, `.rpm` or `.AppImage` package from the [Releases](https://github.com/atlas-toolkit-org/AtlasToolkit/releases) page. Each release lists `SHA256SUMS.txt` to check
+the download against.
+
 ## Install
 
 Debian and Ubuntu:
