@@ -665,7 +665,8 @@ class GuiFlowTests(unittest.TestCase):
         self.addCleanup(lambda: dlg.running() or dlg.close())
         self.wait(lambda: dlg.plan is not None, 60)
         texts = " ".join(w.text() for w in dlg.findChildren(QLabel))
-        for words in ("No NVIDIA graphics card", "Disk space", "Reached them", "minutes", "ml-runtime", "CPU only"):
+        build = "PyTorch for macOS" if os_key == "darwin" else "CPU only"     # a Mac's build runs on the CPU too
+        for words in ("No NVIDIA graphics card", "Disk space", "Reached them", "minutes", "ml-runtime", build):
             self.assertIn(words, texts)
         self.assertNotIn(str(Path.home()), texts, "no machine paths on screen")
         go = next(b for b in dlg.findChildren(QPushButton) if b.text() == "Install")
