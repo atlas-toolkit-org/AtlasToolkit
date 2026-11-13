@@ -312,6 +312,8 @@ class SetupDialog(QDialog):
         self.rt_status: dict = {}
         self.rt_installer: dict = {}
         self.rt_progress: dict = {}           # key -> "Installing … 45%" while an installer window works
+        self.rt_details: dict = {}            # key -> (Details button, the folding body)
+        self.rt_open: set[str] = set(self.ctx.settings.get("setup_open_components") or [])
         for key, rt in runtimes.RUNTIMES.items():
             lay.addWidget(self._runtime_card(key, rt))
         lay.addStretch(1)
@@ -326,6 +328,10 @@ class SetupDialog(QDialog):
         state = badge("")
         top.addWidget(state)
         top.addStretch(1)
+        toggle = QPushButton("Details")               # folds what follows the status: who uses it, why, how
+        toggle.setProperty("variant", "ghost")
+        toggle.setCursor(Qt.PointingHandCursor)
+        top.addWidget(toggle)
         cl.addLayout(top)
         buttons = FlowLayout()                    # under the name, wrapping: long labels never widen the window
         if rt.installer:                          # it can install itself: Install / Update / Change build, Check, Remove
@@ -360,6 +366,14 @@ class SetupDialog(QDialog):
         self.rt_status[key] = (state, where)
         self._refresh_runtime(key)
 
+        body = QWidget(objectName="transparent")      # the details, folded until asked for (remembered)
+        outer = cl
+        cl = QVBoxLayout(body)
+        cl.setContentsMargins(0, 4, 0, 0)
+        cl.setSpacing(12)
+        outer.addWidget(body)
+        self.rt_details[key] = (toggle, body)
+        toggle.clicked.connect(lambda _=False, k=key: self.show_details(k, k not in self.rt_open))
         need, can = runtime_users(self.ctx.registry, key)
         if need or can:
             cl.addWidget(label("When you need it"))
@@ -404,7 +418,18 @@ class SetupDialog(QDialog):
                 row.addWidget(dot, 0, Qt.AlignTop)
                 row.addWidget(_text(note, "muted"), 1)
                 cl.addLayout(row)
+        self.show_details(key, key in self.rt_open, remember=False)
         return card
+
+    def show_details(self, key: str, open_: bool, remember: bool = True) -> None:
+        """Unfold (or fold) a component card's details; the cards left open are remembered."""
+        toggle, body = self.rt_details[key]
+        body.setVisible(open_)
+        toggle.setIcon(icon("down" if open_ else "right", self.theme["text-2"], 14))
+        toggle.setToolTip("Hide the details" if open_ else "Which tools use it, why, and how to install it")
+        (self.rt_open.add if open_ else self.rt_open.discard)(key)
+        if remember:
+            self.ctx.settings.set("setup_open_components", sorted(self.rt_open))
 
     def _use_row(self, tool, text: str) -> QWidget:
         row = QWidget(objectName="transparent")

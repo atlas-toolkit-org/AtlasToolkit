@@ -528,8 +528,9 @@ way. All of it is remembered.
   for random variations and new seeds. Where a tool's outputs go until it has its own choice, how many heavy jobs
   run at once (each in its own worker process: faster batches, more memory), and what happens when a run ends
   (show the output, flash the taskbar, a sound).
-- **Components:** the optional components (Blender, the GPU depth runtime): whether they are found, the tools that
-  use them, why, how to install them, and **Locate**.
+- **Components:** the optional components (Blender, the GPU depth runtime), one card each with whether it is found,
+  its buttons and **Locate**. **Details** unfolds the tools that use it, why, and how to install it; the cards you
+  leave open stay open.
 - **Presets:** your presets and the preset packs you have loaded. Load an `.atlaspreset` file, an `.atlaspack`
   pack or a `.zip` holding them (you see what it holds and what it would change first), see whether a pack is
   **Official** (signed by its publisher, unchanged) and who signed it, trust another publisher's key, save your presets to a file, copy a

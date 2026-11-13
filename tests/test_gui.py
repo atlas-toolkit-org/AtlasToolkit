@@ -569,6 +569,13 @@ class GuiFlowTests(unittest.TestCase):
         self.assertIs(self.win.show_help("setup"), d)                       # the former About › Setup
         self.assertEqual(d.tabs.currentIndex(), SetupDialog.TABS.index("components"))
         self.assertEqual(set(d.rt_status), set(RUNTIMES))                   # a card per runtime
+        toggle, body = d.rt_details["blender"]                              # its details fold, remembered
+        was = "blender" in d.rt_open
+        toggle.click()
+        self.assertEqual(body.isVisibleTo(d), not was)
+        self.assertEqual("blender" in self.ctx.settings.get("setup_open_components"), not was)
+        toggle.click()
+        self.assertEqual(body.isVisibleTo(d), was)
         self.assert_tabs_fit_smallest(d)
         fake = self.tmp / "blender-here.exe"
         fake.write_text("")

@@ -44,6 +44,10 @@
   three OSes on the frozen app (`build.yml` with `depth: true`, which `release.yml` passes), and by hand on an NVIDIA
   machine.
 
+**Setup › Components folds each component's details**
+- A component's card shows its name, status, buttons and where it was found; **Details** unfolds which tools use it,
+  why, how to install it and the notes. Cards start folded, and the ones left open are remembered.
+
 ## 2.2.0 (2026-11-12)
 
 **Open source: Atlas Toolkit is free software under GPL-3.0-or-later**
