@@ -62,7 +62,7 @@
       "platforms": ["darwin"],
       "gpu": false,
       "download": {"darwin": 130},
-      "installed": {"darwin": 420}
+      "installed": {"darwin": 530}
     }
   }
 }
