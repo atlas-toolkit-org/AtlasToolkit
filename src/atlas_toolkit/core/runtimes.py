@@ -179,8 +179,8 @@ RUNTIMES: dict[str, Runtime] = {
         commands="atlas-toolkit components install depth",
         notes=("<b>Model weights download on first use</b>: about 1.3 GB per model, once, into the Hugging Face "
                "cache (<code>~/.cache/huggingface</code>, or <code>HF_HOME</code>). The first drawing with a model "
-               "needs an internet connection and takes a few minutes; after that the models load from disk, "
-               "offline.",
+               "needs an internet connection and takes a few minutes, with its progress in the status bar (quick "
+               "previews use the rough depth until then); after that the models load from disk, offline.",
                "Depths are cached by image, model and detail, so changing hatching settings never re-runs the "
                "model.",
                "On a Mac the models run on the CPU. Apple's GPU is untested with them so far: to try it, set "

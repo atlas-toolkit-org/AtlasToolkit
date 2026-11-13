@@ -466,8 +466,14 @@ per-user folder):
 .venv\Scripts\python scripts\setup_ml.py --check photo.jpg    :: every model at every detail level, timings and GPU memory
 ```
 
-Each model's weights (about 1.3 GB) download into the Hugging Face cache on first use. Depth is cached per photo,
-model and detail in `depth/` in the cache folder, so changing the hatching never runs the model again.
+Each model's weights (about 1.3 GB) download once, into the Hugging Face cache (`~/.cache/huggingface`, or
+`HF_HOME`), the first time a run uses that model. The installer can fetch the default model in advance. During the
+download, the status bar shows how much has arrived, the speed and the time left. The log says where the model goes,
+and when it is done that it will not download again. Cancel stops the download and deletes the partial file, so the
+next run starts it again. If it fails, the message says how far it got and what to check (the connection, a proxy,
+the disk).
+Quick previews never start a download: until the model is there, they use the rough depth and say so. Depth is cached
+per photo, model and detail in `depth/` in the cache folder, so changing the hatching never runs the model again.
 
 | Model | Licence | On this RTX 5070 Laptop (8 GB), fp16 |
 |---|---|---|

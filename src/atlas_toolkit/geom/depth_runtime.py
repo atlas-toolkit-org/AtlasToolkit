@@ -932,9 +932,10 @@ def install(p: Plan, observer: Observer | None = None, cancelled: threading.Even
                     model = L["model"]
                     hub = hf_hub_dir() / ("models--" + server_models()[model["key"]][0].replace("/", "--"))
                     hub.mkdir(parents=True, exist_ok=True)
+                    from .depth import download_env      # plain downloads: the folder grows as bytes arrive
                     with Watch(meter, w, [hub], model["download"]):
                         code, out = run([venv_python(f.target), "-u", server_script(), "--fetch", model["key"]],
-                                        child_env(f, HF_HUB_DISABLE_PROGRESS_BARS="1"))
+                                        child_env(f, HF_HUB_DISABLE_PROGRESS_BARS="1", **download_env()))
                     if code != 0:
                         kind, hint = classify(out)
                         result.notes.append(f"The model did not download ({kind}); it will download on first use instead.")

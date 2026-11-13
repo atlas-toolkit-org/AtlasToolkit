@@ -48,6 +48,20 @@
 - A component's card shows its name, status, buttons and where it was found; **Details** unfolds which tools use it,
   why, how to install it and the notes. Cards start folded, and the ones left open are remembered.
 
+**Photo Hatching 1.1.0: a depth model's first download shows its progress**
+- When a model's weights (about 1.3 GB) download on first use, the status bar shows how much has arrived, the speed
+  and the time left, or that it is waiting for the network. Before, it stayed at 5 % "depth". The log says where the
+  model goes, and when it is done that it will not download again.
+- A failed download says how far it got and what to check (the connection, a proxy, a full disk). Cancel stops the
+  download and deletes its partial file, which Hugging Face never reuses. Partial files left by an earlier killed
+  download are cleared before the next one. A download that keeps going no longer gives up after 30 minutes; one
+  that receives nothing for 4 minutes stops and says so.
+- Quick previews never start a download. Until the model is there they use the rough depth, with a warning, and
+  Hatch downloads it.
+- Models download over plain HTTPS, not Hugging Face's Xet transfer, which writes in bursts and left the bar
+  standing still. The installer's "download the model now" uses the same method. A user's own `HF_HUB_DISABLE_XET`
+  setting still wins.
+
 ## 2.2.0 (2026-11-12)
 
 **Open source: Atlas Toolkit is free software under GPL-3.0-or-later**

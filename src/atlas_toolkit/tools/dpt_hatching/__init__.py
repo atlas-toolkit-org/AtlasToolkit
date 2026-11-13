@@ -15,7 +15,7 @@ def style_is(*names):
 TOOL = Tool(
     id="dpt-hatching",
     name="Photo Hatching",
-    version="1.0.1",
+    version="1.1.0",
     optional=(("depth", "Depth from a neural network (MiDaS / DPT, Depth Anything) on the GPU; without it, "
                         "a depth-map file or a rough depth from tone"),),
     category="image",

@@ -45,7 +45,8 @@ def run(ctx, src: Path, dst: Path | None, p) -> Result:
     lines = [src.name,
              f"  picture    {out['size'][0]} × {out['size'][1]} px worked, {out['mm_per_px']:.3f} mm per px, "
              f"{p.paper} {p.orientation}" + ("  (draft)" if ctx.draft else ""),
-             f"  depth      {p.depth_source}" + (f": {p.model}, {p.detail} detail" if p.depth_source == "model" else ""),
+             "  depth      " + (out["depth_note"] or p.depth_source
+                                    + (f": {p.model}, {p.detail} detail" if p.depth_source == "model" else "")),
              f"  style      {p.style}, {p.direction} direction, {p.layers} layer(s), {p.spacing_dark:g}–"
              f"{p.spacing_light:g} mm"]
     for l in out["layers"]:
