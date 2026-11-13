@@ -365,12 +365,15 @@ licence (`pack.json` `licence`, with the full text in `media/`).
 | Essentials | 20 | Exactly 3 per tool, each clearly unlike the others | Paid |
 | Complete | 30 | 5 or more per tool (3 for utility tools), Essentials included | Paid |
 
-- **Where to get them:** official packs are published on [Ko-fi](https://ko-fi.com/atlas_toolkit) and
-  [atlas-toolkit.org](https://atlas-toolkit.org). The Basic pack is free there.
-- **Official packs' licence** (`LicenseRef-Atlas-Presets-1.0`):
-  - Use the presets for personal and commercial work. Drawings, prints and models made with them are yours, and you
-    may sell them.
+- **Where to get them:** the tiers are described at [atlas-toolkit.org/presets](https://atlas-toolkit.org/presets/).
+  The Basic pack is a free download there. Essentials and Complete are sold on [Ko-fi](https://ko-fi.com/atlas_toolkit)
+  with 12 months of new versions, through a personal download link. After that, the last version of the 12 months stays
+  yours.
+- **Paid packs' licence** (Essentials, Complete: `LicenseRef-Atlas-Presets-1.0`, full text in the pack's `LICENCE.md`):
+  - For one person, on their own computers. Use the presets for personal and commercial work. Drawings, prints and
+    models made with them are yours, and you may sell them.
   - Don't pass the pack, or presets copied from it, on to others.
+- **The Basic pack** is CC BY 4.0: free to share and adapt, with credit.
 - **Paid presets never enter this repository.** Not in specs, tests, docs, workflows or scripts. Tests use the
   made-up packs in `tests/fixtures/presets/`, and dev scripts read the real packs through `[paths] presets` in
   `dev.local.toml`. Docs may name pack presets, but they never list a paid preset's values. CI does not read the
