@@ -4,14 +4,14 @@ Entry point for `python -m atlas_toolkit`, the console script and the frozen exe
     atlas-toolkit                         open the app
     atlas-toolkit drawing.svg model.stl   open the app with these files (also: drop them on the exe)
     atlas-toolkit --tool voxelizer a.stl  open a tool with files
-    atlas-toolkit list | describe | run | presets | self-test ...   command line (see core/cli.py)
+    atlas-toolkit list | describe | run | presets | self-test | components ...   command line (see core/cli.py)
 """
 from __future__ import annotations
 
 import multiprocessing
 import sys
 
-COMMANDS = {"list", "describe", "run", "presets", "self-test", "--version", "-h", "--help"}
+COMMANDS = {"list", "describe", "run", "presets", "self-test", "components", "--version", "-h", "--help"}
 
 
 def _ancestors() -> list[int]:

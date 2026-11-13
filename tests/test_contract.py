@@ -71,17 +71,21 @@ class ContractTests(unittest.TestCase):
 
     def test_optional_runtimes_are_known_and_explained(self):
         import dataclasses
-        from atlas_toolkit.core.runtimes import DEPTH_PACKAGES, RUNTIMES
+        from atlas_toolkit.core.runtimes import INSTALLER_API, RUNTIMES
         for t in registry().ordered():
             for key, what in t.optional:
                 self.assertIn(key, RUNTIMES, t.id)
                 self.assertTrue(what.strip(), t.id)
         for key, rt in RUNTIMES.items():             # the About window's Setup tab explains every runtime
             self.assertTrue(rt.why and rt.steps and rt.url and rt.setting and rt.file_filter, key)
+            if rt.installer:                         # Setup › Components and `components` drive it through this alone
+                mod = rt.installer_module()
+                self.assertEqual([n for n in INSTALLER_API if not callable(getattr(mod, n, None))], [], key)
+                self.assertIn(f"components install {key}", rt.commands, key)
         bad = dataclasses.replace(registry().ordered()[0], optional=(("nope", "x"),))
         self.assertTrue(any("optional" in e for e in validate(bad)))
         setup = (Path(__file__).resolve().parents[1] / "scripts" / "setup_ml.py").read_text(encoding="utf-8")
-        self.assertIn(f"PACKAGES = {DEPTH_PACKAGES!r}".replace("'", '"'), setup)   # the same packages
+        self.assertIn("depth_runtime.install(", setup)   # one installer: the script runs the app's own
 
     def test_defaults_are_within_range(self):
         for t in REG.ordered():

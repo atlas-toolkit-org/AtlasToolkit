@@ -80,9 +80,37 @@ def cache_dir() -> Path:
 
 
 def ml_runtime_dir() -> Path:
-    """Where `scripts/setup_ml.py --user` puts the GPU depth runtime: a large, machine-specific environment, so
+    """Where the depth environment's installer (geom/depth_runtime.py) puts it: a large, machine-specific environment, so
     never in the roaming profile (%LOCALAPPDATA%\\AtlasToolkit\\ml-runtime on Windows). Not created here."""
     return _base("runtime") / "ml-runtime"
+
+
+def display_path(path) -> str:
+    """Where a file is, said without this computer's particulars: inside the built app as "bundled with the app",
+    under the app's folder as <app>/…, under a standard folder by its variable (%ProgramFiles%, %LOCALAPPDATA%,
+    %USERPROFILE% … on Windows, ~ elsewhere). Anywhere else only its file name shows."""
+    p = Path(path)
+    bundle = getattr(sys, "_MEIPASS", None)
+    win = sys.platform == "win32"
+    roots = []
+    if bundle:
+        roots.append(("bundled with the app", Path(bundle)))
+    roots.append(("<app>", app_home()))
+    if win:
+        for var in ("ProgramFiles", "ProgramFiles(x86)", "ProgramW6432", "ProgramData", "LOCALAPPDATA", "APPDATA",
+                    "USERPROFILE"):
+            if os.environ.get(var):
+                roots.append((f"%{var}%", Path(os.environ[var])))
+    else:
+        roots.append(("~", Path.home()))
+    sep = "\\" if win else "/"
+    for name, root in sorted(roots, key=lambda r: len(str(r[1])), reverse=True):     # the most specific first
+        try:
+            rel = p.resolve().relative_to(root.resolve())
+        except (ValueError, OSError):
+            continue
+        return name if name == "bundled with the app" else name + sep + sep.join(rel.parts)
+    return "…" + sep + p.name
 
 
 def program_inside(path: str) -> str:
@@ -104,7 +132,7 @@ def venv_python(venv: Path) -> Path:
 
 
 def _child_env() -> dict:
-    # Not imported at the top: scripts/setup_ml.py loads this file alone, before anything is installed.
+    # Not imported at the top: this module stays free of the app's other imports.
     from .procs import child_env
     return child_env()
 

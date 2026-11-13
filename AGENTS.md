@@ -85,6 +85,10 @@ One PySide6 app for pen-plotter tools, in its own repository. `README.md` is the
     `src/atlas_toolkit/bin/` (gitignored) and regenerates the tracked notices in `src/atlas_toolkit/licenses/`.
   - A helper change bumps the helper's version, its protocol check in the tool's `backend.py`, and the cache key.
   - The developable helper is GPL: keep its corresponding-source archive building and shipping.
+- **The depth environment installs from the app** (`geom/depth_runtime.py`, pins in `depth_runtime.json`). The suite
+  tests it against a stand-in uv (`tests/test_depth_runtime.py`, seconds); the real download runs only for releases
+  (`build.yml` with `depth: true`) and by hand on an NVIDIA machine (`docs/PACKAGING.md`). After changing a pin, bump
+  its `revision` and run `scripts/dev/depth_install_test.py`.
 
 ## Commands
 
@@ -102,7 +106,9 @@ python scripts\install_test.py <package> --container   :: installs it for real, 
 .venv\Scripts\python scripts\new_tool.py <folder> --kind svg|mesh|mesh2svg
 python scripts\doctor.py                         :: is this machine ready to develop and build? (any OS)
 python scripts\setup_env.py [--lock]             :: the dev venv (.venv), with uv or pip; --lock refreshes both locks
-python scripts\setup_ml.py [--user] [--check]    :: GPU depth runtime: .venv-ml here, or the per-user folder
+.venv\Scripts\python scripts\setup_ml.py [--user] [--check]   :: the depth environment (the app's own installer): .venv-ml here, or the per-user folder
+.venv\Scripts\python -m atlas_toolkit components [install|check|remove] depth   :: the same as Setup › Components › Install…
+python scripts\dev\depth_install_test.py --app <console exe> [--gpu]   :: the real depth download: releases (CI) and by hand only, never in the suite
 .venv\Scripts\python scripts\dev\run_tests.py    :: each test module in its own process, as CI runs them
 .venv\Scripts\ruff check .                       :: lint only; never `ruff format`
 .venv\Scripts\python scripts\dev\param_sweep.py --tool <id> [--models v17,augustus,julia] [--quick]   :: 3D tools' settings

@@ -70,7 +70,10 @@ Each of these leaves a small piece of itself in the installer: the Inno Setup in
 ## Installed separately, never shipped
 
 Blender (GPL-3.0-or-later), PyTorch (BSD-3-Clause), Hugging Face Transformers (Apache-2.0), and the depth
-models. MiDaS 3.1 BEiT-L-512 is MIT and DPT-Large is Apache-2.0. **Depth Anything V2 Large is for non-commercial use
+models. The depth environment's installer (Setup › Components) downloads these on the user's request, with uv
+(MIT OR Apache-2.0, from Astral's GitHub releases, checked by SHA-256) and the Python that uv fetches
+(python-build-standalone: the PSF licence and those of its bundled libraries). None of them is part of the app or its
+installers. MiDaS 3.1 BEiT-L-512 is MIT and DPT-Large is Apache-2.0. **Depth Anything V2 Large is for non-commercial use
 only** (CC BY-NC 4.0).
 
 ## Compliance

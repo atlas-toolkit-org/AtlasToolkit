@@ -17,7 +17,9 @@ ROOT = Path(__file__).resolve().parents[1]
 SRC = ROOT / "src"
 # Windows-only calls live here, behind platform checks. Anywhere else they need their own guard and a line here.
 WINDOWS_MODULES = {"atlas_toolkit/__main__.py", "atlas_toolkit/core/paths.py", "atlas_toolkit/core/procs.py",
-                   "atlas_toolkit/geom/heightfield/resources.py", "atlas_toolkit/ui/app.py", "flowrep3d/metrics.py"}
+                   "atlas_toolkit/geom/heightfield/resources.py", "atlas_toolkit/ui/app.py", "flowrep3d/metrics.py",
+                   "atlas_toolkit/core/gpu.py",                 # the display adapters in the registry
+                   "atlas_toolkit/geom/depth_runtime.py"}       # whether Windows allows long paths
 # Only these start processes directly, so a child always gets procs.child_env and dies with the job that started it.
 PROCESS_MODULES = {"atlas_toolkit/core/paths.py", "atlas_toolkit/core/procs.py"}
 WINDOWS_ONLY = re.compile(r"\b(ctypes\.windll|ctypes\.WinDLL|os\.startfile|import winreg|import msvcrt|wintypes)\b")

@@ -1,0 +1,68 @@
+{
+  "_comment": "The depth environment the app installs (geom/depth_runtime.py): every version pinned, uv checked by SHA-256. Changing a pin is a deliberate edit: bump revision (installed environments then offer Update), and prove it with scripts/dev/depth_install_test.py on each OS. Sizes are measured estimates in MB, used for the disk check, the time estimate and the progress bar. Builds are tried in order; the first whose card and driver limits fit is chosen, otherwise the CPU build.",
+  "revision": 1,
+  "python": "3.13",
+  "torch": "2.14.1",
+  "packages": ["transformers==5.22.1", "numpy==2.5.4", "pillow==13.0.0", "safetensors==0.8.0", "huggingface_hub==2.4.0"],
+  "exclude_newer": "2026-11-13T00:00:00Z",
+  "uv": {
+    "version": "0.13.6",
+    "files": {
+      "win32-x86_64": {"url": "https://github.com/astral-sh/uv/releases/download/0.13.6/uv-x86_64-pc-windows-msvc.zip",
+                       "sha256": "a2a8820d5eea32f08ef467ef3b7f66883a9b076d5737a2fc2fbb5f458d1bb50f", "bytes": 15239500},
+      "linux-x86_64": {"url": "https://github.com/astral-sh/uv/releases/download/0.13.6/uv-x86_64-unknown-linux-gnu.tar.gz",
+                       "sha256": "f29c3e94ffabd7e6f3ba521dba169a9b7ec12100bf3257087f0f24f6123f3645", "bytes": 16799024},
+      "darwin-arm64": {"url": "https://github.com/astral-sh/uv/releases/download/0.13.6/uv-aarch64-apple-darwin.tar.gz",
+                       "sha256": "60fbd5c8a1ed681845eea28d9d622fcde03c51e91a43465b64a1e17db1ed3472", "bytes": 14235670}
+    }
+  },
+  "sizes": {
+    "python": {"download": 25, "installed": 70},
+    "packages": {"download": 45, "installed": 150}
+  },
+  "model": {"key": "dpt-beit-large-512", "label": "MiDaS 3.1 BEiT-L-512", "download": 1380},
+  "builds": {
+    "cu130": {
+      "label": "NVIDIA GPU (CUDA 13.0)",
+      "about": "For NVIDIA cards from the GTX 16 and RTX 20 series on (Turing and newer), with driver 580 or newer.",
+      "index": "https://download.pytorch.org/whl/cu130",
+      "platforms": ["win32", "linux"],
+      "gpu": true,
+      "min_compute": [7, 5],
+      "max_compute": [12, 9],
+      "min_driver": {"win32": 580.0, "linux": 580.0},
+      "download": {"win32": 2010, "linux": 3150},
+      "installed": {"win32": 2990, "linux": 5280}
+    },
+    "cu126": {
+      "label": "NVIDIA GPU (CUDA 12.6)",
+      "about": "For older NVIDIA cards (Maxwell, Pascal, Volta: GTX 900 and 10 series, Titan V) and for drivers 528 to 579. Not for RTX 50 cards.",
+      "index": "https://download.pytorch.org/whl/cu126",
+      "platforms": ["win32", "linux"],
+      "gpu": true,
+      "min_compute": [5, 0],
+      "max_compute": [9, 0],
+      "min_driver": {"win32": 528.33, "linux": 525.6},
+      "download": {"win32": 2620, "linux": 3300},
+      "installed": {"win32": 3900, "linux": 6000}
+    },
+    "cpu": {
+      "label": "CPU only",
+      "about": "Works on any computer, without an NVIDIA card. Much slower: about 10 to 30 times longer per drawing.",
+      "index": "https://download.pytorch.org/whl/cpu",
+      "platforms": ["win32", "linux"],
+      "gpu": false,
+      "download": {"win32": 140, "linux": 210},
+      "installed": {"win32": 550, "linux": 760}
+    },
+    "mac": {
+      "label": "Apple silicon",
+      "about": "PyTorch for macOS. The depth models run on the CPU (Apple's GPU only on request: ATLAS_DEPTH_DEVICE=mps, untested).",
+      "index": "",
+      "platforms": ["darwin"],
+      "gpu": false,
+      "download": {"darwin": 130},
+      "installed": {"darwin": 530}
+    }
+  }
+}

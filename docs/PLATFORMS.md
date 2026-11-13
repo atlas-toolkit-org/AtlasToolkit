@@ -43,6 +43,12 @@ GitHub's Mac runners have no GPU. They draw with Apple's software renderer, so a
 
 GPU depth estimation on macOS stays opt-in for the same reason (`ATLAS_DEPTH_DEVICE=mps`), and it runs on the CPU by default.
 
+**The depth environment's installer** (Setup › Components › Install…) is proven as follows:
+
+- **CI, every release, all three OSes, on the frozen app:** the real CPU install, a model run, Photo Hatching with model depth, a reinstall and Remove (`scripts/dev/depth_install_test.py`). The runners have no GPU, so this also proves the "no NVIDIA card" path.
+- **By hand:** the CUDA 13.0 build on Windows 11 with an RTX 5070 Laptop GPU (driver 595), detected, installed and proven on the GPU.
+- **Not yet proven:** the CUDA 12.6 build on a real older card, a Linux desktop with NVIDIA's driver, and a Mac by hand.
+
 ## Graphics
 
 The 3D views need OpenGL 2.0 or later from the system or from Qt.

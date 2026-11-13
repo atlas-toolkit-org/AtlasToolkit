@@ -56,7 +56,9 @@ def spacing_for(tone, t_k: float, d_dark: float, d_light: float):
     return np.where(tone < t_k, 1.0 / dens, np.inf)
 
 
-def get_depth(src: Path, rgb_shape, L, p, log) -> np.ndarray:
+def get_depth(src: Path, rgb_shape, L, p, log, progress=None, draft: bool = False, note=None) -> np.ndarray:
+    """The depth map. A model's first use downloads it, with progress (between 5 and 20 % of the run); a quick preview
+    never starts that download: it uses the rough depth and says why (`note` gets a line for the report)."""
     h, w = rgb_shape[:2]
     if p.depth_source == "rough":
         log("depth: rough guess from tone (no model)")
@@ -67,7 +69,18 @@ def get_depth(src: Path, rgb_shape, L, p, log) -> np.ndarray:
             raise gdepth.DepthError(f"no depth-map file: {f}")
         log(f"depth from {f.name}")
         return gdepth.from_file(f, (h, w))
-    return gdepth.from_model(src, p.model, p.detail, (h, w), log)
+    say = (lambda f, m: progress(0.05 + 0.15 * f, m)) if progress else None
+    try:
+        return gdepth.from_model(src, p.model, p.detail, (h, w), log, progress=say, allow_download=not draft)
+    except gdepth.NotDownloaded as e:
+        msg = (f"Preview with the rough depth: {e.label} is not downloaded yet (about {gdepth.gb(e.total_mb)}, once). "
+               "Hatch (or running a workflow) downloads it, with progress; previews use it from then on.")
+        log(msg, "warning")
+        if progress:
+            progress(0.05, "rough depth until the model is downloaded")
+        if note is not None:
+            note.append(f"rough (preview: {e.label} not downloaded yet; Hatch downloads it once)")
+        return gdepth.rough(L)
 
 
 def render(src: Path, p, progress=None, log=None, draft: bool = False, cancel=None) -> dict:
@@ -80,7 +93,8 @@ def render(src: Path, p, progress=None, log=None, draft: bool = False, cancel=No
     h, w = rgb.shape[:2]
     L = fld.lightness(rgb)
     say(0.05, "depth")
-    depth = get_depth(Path(src), rgb.shape, L, p, log)
+    depth_note: list = []
+    depth = get_depth(Path(src), rgb.shape, L, p, log, progress=progress, draft=draft, note=depth_note)
     t["depth"] = time.perf_counter() - t0
 
     t1 = time.perf_counter()
@@ -185,7 +199,7 @@ def render(src: Path, p, progress=None, log=None, draft: bool = False, cancel=No
     t["ordering"] = time.perf_counter() - t4
     return {"layers": [l for l in layers if l.polylines], "sheet": (W, H), "rect": (tx, ty, w * s, h * s),
             "rgb": rgb, "depth": depth, "tone": tone, "timings": t, "travel": (before, after), "mm_per_px": s,
-            "size": (w, h)}
+            "size": (w, h), "depth_note": depth_note[0] if depth_note else ""}
 
 
 def _length(pl) -> float:

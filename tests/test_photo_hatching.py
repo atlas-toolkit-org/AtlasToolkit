@@ -3,7 +3,10 @@
 tone layers, superpixels that follow the picture, the SVG, and (when the GPU runtime is installed) the depth models."""
 import _isolate  # first: settings and caches stay in a temporary folder
 import math
+import os
+import sys
 import tempfile
+import time
 import unittest
 from pathlib import Path
 from unittest import mock
@@ -217,7 +220,144 @@ class OutputTests(unittest.TestCase):
         self.assertGreater(next(s.value for s in res.stats if s.key == "strokes"), 50)
 
 
-@unittest.skipUnless(gdepth.runtime_python(), "GPU runtime not installed (scripts/setup_ml.py)")
+FAKE_SERVER = Path(__file__).parent / "fixtures" / "fake_depth_server.py"
+
+
+class FirstDownloadTests(unittest.TestCase):
+    """A model's first use downloads about 1.3 GB: the user sees its progress, where it goes, that it worked or why it
+    did not, and a cancel stops it. A quick preview never starts it. (A stand-in server, no torch.)"""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        tmp = Path(self.tmp.name)
+        self.folder = tmp / "hub" / "models--fake"
+        for patch in (mock.patch.object(gdepth, "runtime_python", lambda: Path(sys.executable)),
+                      mock.patch.object(gdepth, "server_script", lambda: FAKE_SERVER),
+                      mock.patch.object(gdepth, "cache_dir", lambda: tmp / "cache"),
+                      mock.patch.object(gdepth, "_CLIENT", None)):
+            patch.start()
+            self.addCleanup(patch.stop)
+        self.addCleanup(self._close)
+        self.src = tmp / "photo.png"
+        from PIL import Image
+        Image.new("RGB", (40, 30), (120, 110, 100)).save(self.src)
+
+    def _close(self):
+        if gdepth._CLIENT is not None and gdepth._CLIENT.alive():
+            gdepth._CLIENT.close()
+        self.tmp.cleanup()
+
+    def mode(self, name: str):
+        patch = mock.patch.dict(os.environ, FAKE_DEPTH=name, FAKE_DEPTH_FOLDER=str(self.folder))
+        patch.start()
+        self.addCleanup(patch.stop)
+
+    def depth(self, **kw):
+        logs, bars = [], []
+        d = gdepth.from_model(self.src, "dpt-beit-large-512", "native", (30, 40), logs.append,
+                              progress=lambda f, m: bars.append((f, m)), **kw)
+        return d, logs, bars
+
+    def test_a_download_shows_its_progress_where_it_goes_and_that_it_worked(self):
+        self.mode("download")
+        d, logs, bars = self.depth()
+        self.assertEqual(d.shape, (30, 40))
+        self.assertIn("not on this computer yet", logs[0])
+        self.assertIn(str(self.folder), logs[0])
+        self.assertTrue(any("Downloaded Fake Model" in m and "will not download again" in m for m in logs))
+        labels = [m for _f, m in bars]
+        self.assertTrue(any("of 2.00 MB" in m or " of 2 MB" in m for m in labels), labels)
+        self.assertTrue(any("first use only" in m for m in labels))
+        fracs = [f for f, _m in bars]
+        self.assertEqual(fracs, sorted(fracs))                        # never goes back
+        self.assertGreater(max(fracs[:-1]), 0.1)                      # it really moved before the end
+        self.assertEqual(fracs[-1], 1.0)
+
+    def test_a_downloaded_model_says_nothing_about_downloads(self):
+        self.mode("cached")
+        _d, logs, bars = self.depth()
+        self.assertEqual(bars, [])
+        self.assertFalse(any("download" in m.lower() for m in logs))
+
+    def test_a_failed_download_says_how_far_it_got_and_what_to_do(self):
+        self.mode("fail")
+        with self.assertRaises(gdepth.DepthError) as cm:
+            self.depth()
+        msg = str(cm.exception)
+        self.assertIn("did not finish downloading", msg)
+        self.assertIn("internet connection", msg)
+        self.assertIn("run it again", msg)
+        self.assertIn("couldn't connect", msg)                       # the details stay
+
+    def test_a_stalled_download_gives_up_and_stops_the_server(self):
+        self.mode("hang")
+        with mock.patch.object(gdepth, "STALL_S", 0.5), self.assertRaises(gdepth.DepthError) as cm:
+            self.depth()
+        self.assertIn("stopped growing", str(cm.exception))
+        self.assertFalse(gdepth._CLIENT.alive())
+
+    def test_cancelling_stops_the_download(self):
+        self.mode("hang")
+
+        class Stop(Exception):
+            pass
+
+        def cancel(f, m):
+            raise Stop()
+        with self.assertRaises(Stop):
+            gdepth.from_model(self.src, "dpt-beit-large-512", "native", (30, 40), progress=cancel)
+        self.assertFalse(gdepth._CLIENT.alive())
+        self.assertEqual(list(self.folder.glob("blobs/*.incomplete")), [])   # never reused: not left behind
+        self.mode("cached")                                          # the next run starts a new server
+        d, _logs, _bars = self.depth()
+        self.assertEqual(d.shape, (30, 40))
+
+    def test_a_quick_preview_never_starts_a_download(self):
+        self.mode("download")
+        with self.assertRaises(gdepth.NotDownloaded):
+            self.depth(allow_download=False)
+        self.assertFalse(self.folder.exists())
+        p = TOOL.values({"depth_source": "model", "work_px": 400})
+        logs, note = [], []
+        L = np.full((30, 40), 0.5, np.float32)
+        d = dh.get_depth(self.src, (30, 40, 3), L, p, lambda m, level="info": logs.append((level, m)),
+                         draft=True, note=note)
+        self.assertEqual(d.shape, (30, 40))
+        self.assertEqual(logs[0][0], "warning")
+        self.assertIn("not downloaded yet", logs[0][1])
+        self.assertIn("rough", note[0])
+        self.assertFalse(self.folder.exists())
+
+    def test_old_partial_files_are_cleared_and_never_counted(self):
+        blobs = self.folder / "blobs"
+        blobs.mkdir(parents=True)
+        old, fresh = blobs / "a.1111.incomplete", blobs / "a.2222.incomplete"
+        old.write_bytes(b"x" * 3_000_000)                             # more than the whole "model"
+        fresh.write_bytes(b"x" * 10)
+        os.utime(old, (time.time() - 3600, time.time() - 3600))
+        self.mode("download")
+        _d, _logs, bars = self.depth()
+        self.assertFalse(old.exists())                                # left by a killed download: removed
+        self.assertTrue(fresh.exists())                               # maybe another window's: kept
+        self.assertLess(bars[1][0], 0.9)                              # the bar starts from nothing
+
+    def test_models_download_over_plain_https_unless_the_user_chose(self):
+        with mock.patch.dict(os.environ):
+            os.environ.pop("HF_HUB_DISABLE_XET", None)
+            self.assertEqual(gdepth.download_env(), {"HF_HUB_DISABLE_XET": "1"})
+            os.environ["HF_HUB_DISABLE_XET"] = "0"
+            self.assertEqual(gdepth.download_env(), {})
+
+    def test_labels_and_hints_read_well(self):
+        dl = gdepth.Download()
+        dl.update({"state": "progress", "model": "M", "total_mb": 1380, "done_mb": 420, "folder": "f"})
+        self.assertEqual(dl.label({"rate_mbs": 12.3, "eta_s": 78}),
+                         "Downloading M (first use only): 0.42 GB of 1.38 GB · 12.3 MB/s · about 1 min 18 s left")
+        self.assertIn("disk", gdepth.download_failure(dl, "OSError: [Errno 28] No space left on device"))
+        self.assertIn("run it again", gdepth.download_failure(dl, "RuntimeError: something odd").lower())
+
+
+@unittest.skipUnless(gdepth.runtime_python(), "depth environment not installed (atlas-toolkit components install depth)")
 class DepthModelTests(unittest.TestCase):
     """Runs the real model through the runtime once (a few seconds when the weights are already downloaded)."""
 

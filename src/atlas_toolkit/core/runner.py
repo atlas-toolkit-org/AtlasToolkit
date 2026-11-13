@@ -60,6 +60,11 @@ class Runner:
     def busy(self) -> bool:
         return self.thread.busy() or self.process.busy()
 
+    def recycle_process_lane(self) -> bool:
+        """Restart the worker processes when they are idle, releasing what they hold open (an installer replacing a
+        runtime needs this). False while process jobs run or wait."""
+        return self.process.recycle()
+
     def shutdown(self) -> None:
         self.thread.shutdown()
         self.process.shutdown()
@@ -218,6 +223,16 @@ class _ProcessLane(_Lane):
 
     def busy(self) -> bool:
         return bool(self.pending) or bool(self._running())
+
+    def recycle(self) -> bool:
+        """End every idle worker process and what it started (a warm helper or server keeps files open); the next job
+        starts a fresh one. False, changing nothing, while a job runs or waits."""
+        with self.cv:
+            if self.pending or self._running():
+                return False
+            for w in self.workers:
+                w._kill()
+        return True
 
     def shutdown(self) -> None:
         super().shutdown()

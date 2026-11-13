@@ -10,6 +10,7 @@ Command line, generated from the tool specs (no tool writes its own parser):
     atlas-toolkit presets import FILE...       .atlaspreset into your presets; .atlaspack (or a .zip of packs) installs
     atlas-toolkit presets inspect FILE...      what a file holds, who signed it, what importing it would do
     atlas-toolkit self-test
+    atlas-toolkit components [list | install KEY | check KEY | remove KEY]   the optional components (core/components)
 
 Runs happen in this process, one input after the other, with progress on stderr.
 """
@@ -57,6 +58,8 @@ def build_parser() -> argparse.ArgumentParser:
                     help="trust the publishers who signed these packs from now on (check their key first: inspect)")
     pn = prs.add_parser("inspect", help="show what files hold and what importing them would do, changing nothing")
     pn.add_argument("files", nargs="+")
+    from .components import add_parser as add_components
+    add_components(sub)
     run = sub.add_parser("run", help="run a tool on files")
     tools = run.add_subparsers(dest="tool", required=True, metavar="TOOL")
     for t in reg.ordered():
@@ -106,6 +109,9 @@ def main(argv: list | None = None) -> int:
         return describe(reg.get(args.tool))
     if args.command == "presets":
         return presets_command(reg, args)
+    if args.command == "components":
+        from .components import command
+        return command(args)
     if args.command == "self-test":
         from .selftest import run_all
         return run_all(keep=args.keep, tools=args.tools, report=args.report, strict=args.strict)

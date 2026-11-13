@@ -66,7 +66,7 @@ Your own files stay, so a later install finds them again. To remove those too, d
 | Folder | What it holds |
 |---|---|
 | `~/.config/atlas-toolkit` | Settings, presets, plug-ins and workflows |
-| `~/.local/share/atlas-toolkit` | Run history and the depth runtime |
+| `~/.local/share/atlas-toolkit` | Run history, and the depth environment (`ml-runtime`, with its installer's tools in `ml-runtime-base`) |
 | `~/.cache/atlas-toolkit` | Caches and previews |
 
 If you set `XDG_CONFIG_HOME`, `XDG_DATA_HOME` or `XDG_CACHE_HOME`, the app uses those locations instead.

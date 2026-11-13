@@ -50,14 +50,6 @@ class RuntimePathTests(unittest.TestCase):
                     paths._base.cache_clear()
         self.assertEqual(found, (Path(tmp) / ".config" / "atlas-toolkit", Path(tmp) / ".cache" / "atlas-toolkit"))
 
-    def test_this_file_loads_on_its_own_for_setup_ml(self):
-        """scripts/setup_ml.py loads it by file, before anything is installed: no package around it, no relative imports."""
-        import importlib.util
-        spec = importlib.util.spec_from_file_location("atlas_paths_alone", paths.__file__)
-        alone = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(alone)
-        self.assertEqual(alone.APP_DIR_NAME, paths.APP_DIR_NAME)
-
     def test_venv_python_per_platform(self):
         rel = paths.venv_python(Path("env")).relative_to("env").as_posix()
         self.assertEqual(rel, "Scripts/python.exe" if sys.platform == "win32" else "bin/python")
