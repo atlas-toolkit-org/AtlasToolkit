@@ -1,6 +1,9 @@
 # Freeze the app on each OS and run every release gate on the result. It is long (macOS especially), so this runs
 # only with the label `full-ci` (once per milestone before merging), by hand, or from release.yml when a version tag is pushed.
 # Local first: docs/dev/multi-os-port.md.
+# With `depth: true` (always from release.yml; by hand: gh workflow run build.yml --ref <branch> -f depth=true) each OS also
+# installs the depth environment for real from the frozen app and runs a model: scripts/dev/depth_install_test.py. It
+# downloads about 1.5 GB per OS, so the label `full-ci` leaves it out.
 name: build
 
 on:
@@ -9,7 +12,16 @@ on:
     types: [labeled]
     paths-ignore: ["docs/**", "**/*.md", "LICENSE"]
   workflow_dispatch:
+    inputs:
+      depth:
+        description: "Also install the depth environment for real on each OS (as releases do)"
+        type: boolean
+        default: false
   workflow_call:
+    inputs:
+      depth:
+        type: boolean
+        default: false
 
 concurrency:
   group: build-${{ github.ref }}
@@ -85,10 +97,31 @@ jobs:
           python=$(find py -mindepth 1 -maxdepth 1 -type d -name 'cpython-*' | head -1)/bin/python3
           docker run --rm -v "$PWD:/w:ro" "$IMAGE" "/w/$python" /w/scripts/install_test.py "/w/$package" --container
 
+  # The depth environment from the AppImage on a clean runner, not the build image: what a user's desktop does.
+  depth-linux:
+    needs: linux
+    if: inputs.depth
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: installers-linux
+          path: installers
+      - name: Install for real, run a model, Photo Hatching, reinstall, remove
+        env:
+          APPIMAGE_EXTRACT_AND_RUN: "1"
+          QT_QPA_PLATFORM: offscreen
+        run: |
+          app=$(ls "$PWD"/installers/*.AppImage)
+          chmod +x "$app"
+          python3 scripts/dev/depth_install_test.py --app "$app"
+
   windows:
     if: github.event_name != 'pull_request' || github.event.label.name == 'full-ci'
     runs-on: windows-2025
-    timeout-minutes: 60
+    timeout-minutes: ${{ inputs.depth && 90 || 60 }}   # the depth install adds about 15 minutes
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
@@ -113,6 +146,9 @@ jobs:
         run: .venv\Scripts\python scripts\package.py --skip-build
       - name: Install, prove, uninstall
         run: .venv\Scripts\python scripts\install_test.py (Get-Item dist\installers\*.exe).FullName
+      - name: The depth environment, installed for real from the frozen app (releases)
+        if: inputs.depth
+        run: .venv\Scripts\python scripts\dev\depth_install_test.py --app "dist\Atlas Toolkit\atlas-toolkit.exe"
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: installers-windows
@@ -123,7 +159,7 @@ jobs:
   macos:
     if: github.event_name != 'pull_request' || github.event.label.name == 'full-ci'
     runs-on: macos-15
-    timeout-minutes: 45
+    timeout-minutes: ${{ inputs.depth && 75 || 45 }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
@@ -144,6 +180,9 @@ jobs:
         run: .venv/bin/python scripts/package.py --skip-build
       - name: Mount, install, prove, uninstall (soft 3D view, the runner has no GPU)
         run: .venv/bin/python scripts/install_test.py dist/installers/*.dmg --soft-gl
+      - name: The depth environment, installed for real from the frozen app (releases)
+        if: inputs.depth
+        run: .venv/bin/python scripts/dev/depth_install_test.py --app "dist/Atlas Toolkit.app/Contents/MacOS/Atlas Toolkit"
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: installers-macos

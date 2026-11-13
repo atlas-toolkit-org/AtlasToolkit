@@ -77,6 +77,21 @@ class OrphanTests(unittest.TestCase):
         self.assertTrue(_isolate.process_gone(worker), "the worker survived Cancel")
         self.assertTrue(_isolate.process_gone(child), "the child survived Cancel")
 
+    def test_recycle_waits_for_jobs_then_ends_idle_workers_and_their_children(self):
+        """What an installer does before replacing a runtime that a worker's warm server holds open."""
+        runner, job, events, ended = self.start_job()
+        worker, child = self.wait_for_pids()
+        self.assertFalse(runner.recycle_process_lane(), "a running job is never killed by a recycle")
+        self.assertFalse(_isolate.process_gone(child, 0.2))
+        runner.cancel(job)
+        self.assertTrue(ended.wait(30))
+        deadline = time.monotonic() + 10
+        while not runner.recycle_process_lane():       # the lane goes idle a moment after the job's last event
+            self.assertLess(time.monotonic(), deadline)
+            time.sleep(0.1)
+        self.assertTrue(_isolate.process_gone(worker))
+        self.assertTrue(_isolate.process_gone(child))
+
     def test_a_worker_that_crashes_takes_its_child_along(self):
         _runner, _job, events, ended = self.start_job()
         worker, child = self.wait_for_pids()

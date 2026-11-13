@@ -87,6 +87,32 @@ Some files in the bundle lack libraries on a normal system, and that is fine: th
 
 The rpm depends on sonames rather than package names, because Fedora and RHEL name these packages differently from release to release.
 
+## The depth environment's installer
+
+The installer behind Setup › Components › Install… downloads 0.2 to 3 GB, so the everyday suite never does: it tests
+the whole flow against a stand-in uv in seconds (`tests/test_depth_runtime.py`). The real download is tested only for
+releases, by `scripts/dev/depth_install_test.py` against the frozen app:
+
+1. `components list`: what the computer has, and the build it would get.
+2. The pinned torch wheel of every build exists for this OS and Python.
+3. The real install, timed and measured against the sizes in `depth_runtime.json`.
+4. A real model run.
+5. Photo Hatching with depth from the model.
+6. An install over itself.
+7. `remove`, leaving nothing behind.
+
+`build.yml` runs it with the input `depth: true`, which `release.yml` always passes. To try it on a branch without a
+release, run the workflow by hand (`gh workflow run build.yml --ref <branch> -f depth=true`). The runners have no GPU,
+so CI proves the CPU build and the "no NVIDIA card" path on all three OSes.
+
+**Before each release, by hand, on an NVIDIA machine:** the GPU path, which CI cannot reach:
+
+```bat
+python scripts\dev\depth_install_test.py --app "dist\Atlas Toolkit\atlas-toolkit.exe" --gpu --no-reinstall
+```
+
+Also do it on Linux (in WSL, CUDA comes through Windows' driver) when the pins change.
+
 ## A draft release
 
 Once a version is merged to `main`, tag it:
@@ -102,7 +128,7 @@ git push origin v2.0.0
 `.github/workflows/release.yml` then does three things:
 
 1. **Checks the tag.** It must match `version.py`, the version must have a `CHANGELOG.md` entry, and the commit must be on `main`. A mistyped tag stops here, before the long work starts.
-2. **Runs all of `build.yml`:** the freeze, every gate and the install tests on all three OSes. It takes as long as the label `full-ci`. The test suites themselves ran on the version's pull request.
+2. **Runs all of `build.yml`:** the freeze, every gate and the install tests on all three OSes, plus the depth environment's real install on each (below). It takes a little longer than the label `full-ci`. The test suites themselves ran on the version's pull request.
 3. **Makes a draft release** with all five installers, `SHA256SUMS.txt`, the changelog entry and links to the install guides (`scripts/release_notes.py`). If any installer is missing, there is no draft.
 
 It never publishes. A draft is visible only to people who can write to the repository, and it doesn't expire as CI artifacts do.

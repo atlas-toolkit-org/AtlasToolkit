@@ -217,7 +217,7 @@ class OutputTests(unittest.TestCase):
         self.assertGreater(next(s.value for s in res.stats if s.key == "strokes"), 50)
 
 
-@unittest.skipUnless(gdepth.runtime_python(), "GPU runtime not installed (scripts/setup_ml.py)")
+@unittest.skipUnless(gdepth.runtime_python(), "depth environment not installed (atlas-toolkit components install depth)")
 class DepthModelTests(unittest.TestCase):
     """Runs the real model through the runtime once (a few seconds when the weights are already downloaded)."""
 

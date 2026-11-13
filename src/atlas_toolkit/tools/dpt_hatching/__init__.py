@@ -27,7 +27,7 @@ TOOL = Tool(
         "A depth model (MiDaS 3.1 BEiT-L-512 by default) estimates how far each part of the photo is. Strokes follow "
         "the forms that depth reveals, their density follows the photo's tone, darker tones get crossing layers, and "
         "the edges where one surface passes in front of another become outlines. The depth model runs in the "
-        "separate GPU runtime (scripts/setup_ml.py) and is cached per photo; without it, use a depth-map file or the "
+        "separate depth environment (Setup › Components › Install…) and is cached per photo; without it, use a depth-map file or the "
         "rough guess."),
     inputs=Inputs("image", exclude=(r"_depth\.png$",)),
     output=Output("{stem}_photohatch.svg", "svg"),

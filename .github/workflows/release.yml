@@ -29,6 +29,8 @@ jobs:
   build:
     needs: check
     uses: ./.github/workflows/build.yml
+    with:
+      depth: true              # releases also install the depth environment for real on each OS
 
   draft:
     needs: build

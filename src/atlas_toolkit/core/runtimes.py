@@ -56,13 +56,24 @@ class Runtime:
     commands: str = ""          # commands to copy, with {home} (the app's folder), {py} (a Python launcher),
                                 # {venv_py} (the Python inside the new environment), {mkdir}, {cd}, {torch} and {cpu} for this system
     notes: tuple = ()           # anything else worth knowing: size, downloads, licences (simple HTML)
+    installer: str = ""         # a module that installs it for the user (see INSTALLER_API); Setup and the CLI use it
 
     def locate_fn(self):
         mod, _, attr = self.find.partition(":")
         return getattr(importlib.import_module(mod), attr)
 
+    def installer_module(self):
+        return importlib.import_module(self.installer) if self.installer else None
 
-DEPTH_PACKAGES = ["transformers>=4.46", "numpy", "pillow", "safetensors", "huggingface_hub"]   # = setup_ml.PACKAGES
+
+# What an installer module offers (geom/depth_runtime.py is one). Setup › Components and `atlas-toolkit components`
+# drive any runtime through these alone:
+#   builds() -> [(key, label, about)]        plan(build, with_model, settings=, online=) -> a Plan (summary(), checks,
+#   stages(), ok())    install(plan, observer, cancelled, release, settings) -> a Result (ok, lines())
+#   check(model, image, observer) -> (ok, info, lines)    remove(release, models) -> (MB freed, removed)
+#   status() -> {python, ours, stamp, folder, update, busy}    tidy()    detect() -> what hardware it found
+#   default_model() -> the model Check runs (or None)
+INSTALLER_API = ("builds", "plan", "install", "check", "remove", "status", "tidy", "detect", "default_model")
 
 RUNTIMES: dict[str, Runtime] = {
     "texture": Runtime(
@@ -146,29 +157,26 @@ RUNTIMES: dict[str, Runtime] = {
     "depth": Runtime(
         key="depth", label="Depth environment", find="atlas_toolkit.geom.depth:runtime_python",
         setting="ml_python", env="ATLAS_TOOLKIT_ML_PYTHON", need="(Python with PyTorch)",
-        hint=f"Create the depth environment in your user folder (see Setup › Components), or point to its {PYTHON_FILE} "
-             "with “Locate Depth environment…”.",
-        url="https://pytorch.org/get-started/locally/", get="Get PyTorch",
+        hint="Install the depth environment from Setup › Components (one button, nothing else needed), or point to "
+             f"an environment's {PYTHON_FILE} with “Locate Depth environment…”.",
+        url="https://pytorch.org/get-started/locally/", get="About PyTorch",
         file_filter=_programs("Python", "python", "python3"),
+        installer="atlas_toolkit.geom.depth_runtime",
         why="Tools that draw photos read the scene's depth to make strokes wrap around forms. The best depth "
             "comes from neural networks (MiDaS / DPT, Depth Anything) run with PyTorch, ideally on an NVIDIA GPU. "
-            "PyTorch and its CUDA libraries are large (about 4.5 GB), so they live in a separate Python "
+            "PyTorch and its CUDA libraries are large (0.5 to 5 GB), so they live in a separate Python "
             "environment outside the app (<b>ml-runtime</b> in your local app-data folder); the toolkit starts "
             "it when a drawing needs a model's depth and keeps it running between drawings. Without it these "
             "tools still work, from a "
             "depth-map file you provide or a rough depth guessed from tone.",
-        steps=("Install <b>Python 3.12</b> (python.org). Any version PyTorch supports will do.",
-               "Create the environment in your local app-data folder and install PyTorch and the model libraries "
-               "with the commands below. Use the CUDA build that suits your NVIDIA driver (pytorch.org lists them), or the "
-               "CPU build on machines without an NVIDIA GPU: it works, only much slower.",
-               "Restart the toolkit, or press <b>Locate Depth environment…</b> and pick the environment's "
-               f"<code>{PYTHON_FILE}</code> if you made it elsewhere (or set <code>ATLAS_TOOLKIT_ML_PYTHON</code>)."),
-        commands='{mkdir} "{home}"\n'
-                 '{cd} "{home}"\n'
-                 '{py} -m venv ml-runtime\n'
-                 '{venv_py} -m pip install --upgrade pip\n'
-                 '{venv_py} -m pip install {torch}\n'
-                 '{venv_py} -m pip install ' + " ".join(f'"{p}"' if ">" in p else p for p in DEPTH_PACKAGES) + "{cpu}",
+        steps=("Press <b>Install…</b>. Atlas looks for an NVIDIA card, picks the PyTorch build that suits it (or the "
+               "CPU build), and shows what it will download, the disk space and the time before anything starts. "
+               "It needs no Python of your own and changes nothing outside its folder.",
+               "Follow the progress; when it ends, the tools find the environment by themselves. <b>Check</b> proves "
+               "it still works (and on which device), <b>Remove</b> deletes everything it installed.",
+               "Made an environment yourself? Press <b>Locate Depth environment…</b> and pick its "
+               f"<code>{PYTHON_FILE}</code> (or set <code>ATLAS_TOOLKIT_ML_PYTHON</code>)."),
+        commands="atlas-toolkit components install depth",
         notes=("<b>Model weights download on first use</b>: about 1.3 GB per model, once, into the Hugging Face "
                "cache (<code>~/.cache/huggingface</code>, or <code>HF_HOME</code>). The first drawing with a model "
                "needs an internet connection and takes a few minutes; after that the models load from disk, "
@@ -179,9 +187,10 @@ RUNTIMES: dict[str, Runtime] = {
                "<code>ATLAS_DEPTH_DEVICE=mps</code>.",
                "Model licences: MiDaS 3.1 BEiT-L-512 (MIT) and DPT-Large (Apache-2.0) allow any use; "
                "<b>Depth Anything V2 Large is for non-commercial use only</b> (CC BY-NC 4.0).",
-               "From the source checkout, <code>python scripts/setup_ml.py</code> does all of this "
-               "(<code>--user</code> for the per-user folder above, as the commands do; without it, "
-               "<code>.venv-ml</code> in the checkout; <code>--cpu</code> for the CPU build, <code>--check</code> to test every model).")),
+               "On a server or over SSH, the command line does the same: <code>atlas-toolkit components install "
+               "depth</code>, then <code>components check depth</code> (<code>components --help</code> lists the options).",
+               "No NVIDIA card? The CPU build works on any computer, only slower. AMD and Intel graphics cards are "
+               "not used by these PyTorch builds.")),
 }
 
 

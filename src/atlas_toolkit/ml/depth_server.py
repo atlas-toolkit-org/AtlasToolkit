@@ -17,7 +17,9 @@ aspect ratio (the Colab notebooks squashed it to 384 x 384). Detail:
     high     long side about 1024 px
     boost    layout from the native pass, fine detail (high frequencies) from the high pass
 
-    python depth_server.py --check [image]     run every model once and report sizes, times and memory
+    python depth_server.py --check [image] [model ...]   run the models and report sizes, times and memory
+    python depth_server.py --probe                       one JSON line: versions, device, a GPU sanity check
+    python depth_server.py --fetch MODEL                 download a model now (first use would) and load it once
 """
 from __future__ import annotations
 
@@ -288,7 +290,42 @@ def check(image: str | None, models=None) -> int:
     return 0 if ok else 1
 
 
+def probe() -> int:
+    """One JSON line about this environment, downloading nothing: what the installer checks before trusting it. PyTorch's
+    own word on the GPU counts, not the driver's: the device must be usable, its architecture compiled in, and a small
+    product on it must come out right."""
+    info: dict = {"python": sys.version.split()[0], "ok": False}
+    try:
+        import torch
+        info.update(torch=torch.__version__, cuda=torch.version.cuda, cuda_ok=bool(torch.cuda.is_available()), arch=[])
+        if info["cuda_ok"]:
+            info["arch"] = list(torch.cuda.get_arch_list())
+            info["device"] = torch.cuda.get_device_name(0)
+            major, minor = torch.cuda.get_device_capability(0)
+            info["sm"] = f"sm_{major}{minor}"
+            a = torch.arange(16.0, device="cuda").reshape(4, 4)
+            b = torch.arange(16.0).reshape(4, 4)
+            info["math_ok"] = bool(torch.allclose((a @ a).cpu(), b @ b))
+        else:
+            info["device"] = "CPU"
+        import numpy
+        import PIL
+        import safetensors  # noqa: F401
+        import transformers
+        info.update(numpy=numpy.__version__, pillow=PIL.__version__, transformers=transformers.__version__, ok=True)
+    except Exception as e:
+        info["error"] = f"{type(e).__name__}: {e}"
+    print(json.dumps(info), flush=True)
+    return 0 if info["ok"] else 1
+
+
 if __name__ == "__main__":
+    if len(sys.argv) > 1 and sys.argv[1] == "--probe":
+        sys.exit(probe())
+    if len(sys.argv) > 2 and sys.argv[1] == "--fetch":       # --fetch model: download it now and load it once
+        Depth().load(sys.argv[2], print)
+        print(f"ready: {MODELS[sys.argv[2]][3]}", flush=True)
+        sys.exit(0)
     if len(sys.argv) > 1 and sys.argv[1] == "--check":      # --check [photo] [model ...]
         rest = sys.argv[2:]
         sys.exit(check(next((a for a in rest if a not in MODELS), None), [a for a in rest if a in MODELS]))

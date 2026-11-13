@@ -15,6 +15,7 @@ shows nothing particular to this computer, except a default output folder the pe
 """
 from __future__ import annotations
 
+import html
 import shutil
 import sys
 import threading
@@ -38,14 +39,23 @@ from .widgets.flow import FlowLayout
 from .widgets.spin import IntSpin
 
 
+_INSTALLERS: dict = {}                    # runtime key -> its open installer window (they outlive the Setup window)
+
+
+def venv_exists(folder) -> bool:
+    return Path(folder).is_dir() and any(Path(folder).glob("pyvenv.cfg"))
+
+
 class SetupDialog(QDialog):
     cache_measured = Signal(str)          # from the thread that adds up the cache folder
+    runtime_checked = Signal(str, bool, object)   # from the thread that checks a component: key, works, lines
     TABS = ("general", "outputs", "components", "presets", "storage")
 
     def __init__(self, ctx, parent=None):
         super().__init__(parent)
         self.ctx = ctx
         self.theme = ctx.theme
+        self.runtime_checked.connect(self._runtime_checked)
         self.setObjectName("setupDialog")
         self.setWindowTitle(f"Setup · {APP_NAME}")
         self.setWindowIcon(icon("gear", self.theme["highlight"], 32))
@@ -300,6 +310,8 @@ class SetupDialog(QDialog):
             "more with an optional component installed on this computer. Install one only when you use those "
             "tools; the app finds it by itself, and you can always point to it with <b>Locate</b>.", "summary"))
         self.rt_status: dict = {}
+        self.rt_installer: dict = {}
+        self.rt_progress: dict = {}           # key -> "Installing … 45%" while an installer window works
         for key, rt in runtimes.RUNTIMES.items():
             lay.addWidget(self._runtime_card(key, rt))
         lay.addStretch(1)
@@ -316,6 +328,22 @@ class SetupDialog(QDialog):
         top.addStretch(1)
         cl.addLayout(top)
         buttons = FlowLayout()                    # under the name, wrapping: long labels never widen the window
+        if rt.installer:                          # it can install itself: Install / Update / Change build, Check, Remove
+            install = QPushButton("Install…")
+            install.setProperty("variant", "primary")
+            install.setIcon(icon("down", self.theme["on-accent"], 14))
+            install.clicked.connect(lambda _=False, k=key: self.open_installer(k))
+            check = QPushButton("Check")
+            check.setIcon(icon("activity", self.theme["text-2"], 14))
+            check.setToolTip("Prove it works: versions, the device it runs on, and a model run")
+            check.clicked.connect(lambda _=False, k=key: self.check_runtime(k))
+            remove = QPushButton("Remove…")
+            remove.setProperty("variant", "danger")
+            remove.setIcon(icon("trash", self.theme["danger"], 14))
+            remove.clicked.connect(lambda _=False, k=key: self.remove_runtime(k))
+            for b in (install, check, remove):
+                buttons.addWidget(b)
+            self.rt_installer[key] = (install, check, remove)
         locate = QPushButton(f"Locate {rt.label}…")
         locate.setIcon(icon("folder", self.theme["text-2"], 14))
         locate.clicked.connect(lambda _=False, k=key: self.locate(k))
@@ -390,13 +418,111 @@ class SetupDialog(QDialog):
     def _refresh_runtime(self, key: str) -> None:
         state, where = self.rt_status[key]
         found = runtimes.find(key)
-        set_badge(state, "found" if found else "not installed", "success" if found else "")
         rt = runtimes.get(key)
-        where.setText(f"Found: {display_path(found)}" if found else
-                      f"Not found. Install it as below, or point to it with Locate {rt.label}.")
+        busy = self.rt_progress.get(key, "")
+        set_badge(state, "installing" if busy else "found" if found else "not installed",
+                  "live" if busy else "success" if found else "")
+        text = (f"Found: {html.escape(display_path(found))}" if found else
+                f"Not found. {'Press Install…, or' if rt.installer else 'Install it as below, or'} point to one with "
+                f"Locate {rt.label}.")
+        inst = rt.installer_module()
+        if inst is not None:
+            st = inst.status()
+            install, check, remove = self.rt_installer[key]
+            stamp = st["stamp"]
+            if stamp:
+                text += html.escape(f"\nInstalled by Atlas on {stamp.get('date', '?')[:10]}: {stamp.get('label')} · "
+                                    f"PyTorch {stamp.get('torch')} · runs on {stamp.get('device')}.").replace("\n", "<br>")
+            if st["update"]:
+                text += "<br><b>An update is available</b>: Update… installs the newer version."
+            install.setText("Installing…" if busy else "Update…" if st["update"] else
+                            "Change build…" if st["ours"] else "Install…")
+            install.setEnabled(not busy)
+            check.setEnabled(found is not None and not busy)
+            remove.setVisible(st["ours"] or venv_exists(st["folder"]))
+            remove.setEnabled(not busy)
+        if busy:
+            text += f"<br>{html.escape(busy)}"
+        where.setTextFormat(Qt.RichText)
+        where.setText(text)
         where.setToolTip("" if not found else
                          "<app> is the folder of Atlas Toolkit; " +
                          ("%…% names a standard Windows folder." if sys.platform == "win32" else "~ is your home folder."))
+
+    def open_installer(self, key: str) -> None:
+        """The installer window, one per component. Its parent is the main window, so closing Setup does not stop it."""
+        from .runtime_install import RuntimeInstallDialog
+        dlg = _INSTALLERS.get(key)
+        if dlg is None:
+            dlg = RuntimeInstallDialog(self.ctx, key, self.parent() or self)
+            dlg.setAttribute(Qt.WA_DeleteOnClose)
+            _INSTALLERS[key] = dlg
+            dlg.destroyed.connect(lambda *_a, k=key: _INSTALLERS.pop(k, None))
+        dlg.progress_text.connect(lambda text, k=key: self._installer_progress(k, text))
+        dlg.changed.connect(lambda k=key: self._refresh_runtime(k))
+        dlg.show()
+        dlg.raise_()
+        dlg.activateWindow()
+
+    def _installer_progress(self, key: str, text: str) -> None:
+        if self.rt_progress.get(key, "") == text:
+            return
+        self.rt_progress[key] = text
+        if key in self.rt_status:
+            self._refresh_runtime(key)
+
+    def check_runtime(self, key: str) -> None:
+        """Run the installer's check off the UI thread and show what it says."""
+        inst = runtimes.get(key).installer_module()
+        _, check, _ = self.rt_installer[key]
+        check.setEnabled(False)
+        check.setText("Checking…")
+
+        def work():
+            try:
+                ok, _info, lines = inst.check(None, None)
+            except Exception as e:
+                ok, lines = False, [f"{type(e).__name__}: {e}"]
+            self.runtime_checked.emit(key, ok, lines)
+
+        threading.Thread(target=work, daemon=True).start()
+
+    def _runtime_checked(self, key: str, ok: bool, lines) -> None:
+        _, check, _ = self.rt_installer[key]
+        check.setText("Check")
+        check.setEnabled(True)
+        box = QMessageBox(QMessageBox.Information if ok else QMessageBox.Warning, f"{runtimes.get(key).label}",
+                          ("It works." if ok else "It does not work.") + "\n\n" + "\n".join(lines), parent=self)
+        box.setInformativeText("To run a model once and see its speed, use Check with a model in the installer window "
+                               "(Install… → after an install), or the command line: components check KEY --model …"
+                               .replace("KEY", key))
+        box.exec()
+
+    def remove_runtime(self, key: str) -> None:
+        rt = runtimes.get(key)
+        inst = rt.installer_module()
+        st = inst.status()
+        if self.ctx.bridge.busy():
+            QMessageBox.information(self, "Wait for the running jobs", "Some tools are still running and may be using "
+                                    f"the {rt.label}. Let them finish (or cancel them), then remove it.")
+            return
+        box = QMessageBox(QMessageBox.Question, f"Remove the {rt.label}?",
+                          f"This deletes {display_path(st['folder'])} and the installer's files beside it "
+                          f"({display_path(Path(str(st['folder']) + '-base'))}). Tools then use their fallbacks until "
+                          "you install it again.", QMessageBox.Yes | QMessageBox.Cancel, self)
+        models = QCheckBox("Also delete the downloaded models")
+        box.setCheckBox(models)
+        if box.exec() != QMessageBox.Yes:
+            return
+        try:
+            freed, gone = inst.remove(self.ctx.bridge.runner.recycle_process_lane, models.isChecked())
+        except Exception as e:
+            QMessageBox.warning(self, "Not removed", str(getattr(e, "message", e)))
+            return
+        self._refresh_runtime(key)
+        self.ctx.refresh_runtimes()
+        QMessageBox.information(self, "Removed", (f"Freed {human_size(int(freed * 2**20))}:\n" + "\n".join(gone))
+                                if gone else "There was nothing to remove.")
 
     def locate(self, key: str, path: str | None = None) -> None:
         """Point at a runtime's program (a file dialog, or `path`); remembered in the app settings."""

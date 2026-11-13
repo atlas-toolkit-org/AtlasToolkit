@@ -271,19 +271,24 @@ class DepthRuntimeTests(unittest.TestCase):
         self.assertEqual(self.server.choose_device(torch), "cuda")
         self.assertEqual(self.server.choose_device(torch, "nonsense"), "cuda")
 
-    def test_the_install_commands_fit_the_system(self):
+    def test_the_installer_fits_the_system(self):
+        """A Mac gets PyPI's PyTorch (no CUDA builds exist for it) and never a CUDA choice; Windows and Linux get the
+        CUDA builds and the CPU one. The command line is one command, the same in every shell."""
+        from atlas_toolkit.core import gpu
+        from atlas_toolkit.geom import depth_runtime as dr
         rt = get_runtime("depth")
-        with patch.object(sys, "platform", "darwin"):
-            mac = setup_commands(rt)
-        self.assertNotIn("cu130", mac)
-        self.assertIn("pip install torch\n", mac)
-        self.assertIn("mkdir -p", mac)
-        self.assertNotIn("pushd", mac)
-        with patch.object(sys, "platform", "win32"):
-            windows = setup_commands(rt)
-        self.assertIn("--index-url https://download.pytorch.org/whl/cu130", windows)
-        self.assertIn("# CPU only", windows)
-        self.assertIn("pushd", windows)
+        for platform in ("darwin", "win32", "linux"):
+            with patch.object(sys, "platform", platform):
+                keys = [k for k, _, _ in dr.builds()]
+                chosen = dr.choose(gpu.GpuReport("apple" if platform == "darwin" else "none")).build
+                command = setup_commands(rt)
+            self.assertNotIn("pushd", command)
+            self.assertIn("components install depth", command)
+            if platform == "darwin":
+                self.assertEqual((keys, chosen), (["mac"], "mac"))
+                self.assertEqual(dr.lock()["builds"]["mac"]["index"], "")
+            else:
+                self.assertEqual((keys, chosen), (["cu130", "cu126", "cpu"], "cpu"))
 
 
 if __name__ == "__main__":

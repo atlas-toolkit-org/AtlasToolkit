@@ -1,5 +1,49 @@
 # Changelog
 
+## 2.3.0 (2026-11-13)
+
+**The depth environment installs from the app**
+- **One button:** Setup › Components › **Install…** sets up Photo Hatching's depth environment (PyTorch and the
+  model libraries) for anyone, including people who installed Atlas from an installer. They no longer need Python of
+  their own, a terminal, or the source tree. Before anything is downloaded, the installer window shows:
+  - the graphics card it found and the build it chose, with the reason;
+  - the download size, the disk space needed and kept, and the expected time;
+  - the folder it installs into;
+  - a tick, note or cross for disk space, the folder, and the download sites;
+  - any other environment that would be used instead.
+- **While it installs:** each stage and one progress bar with the size, speed and time left. Details shows uv's own
+  output, and everything goes to a log file. Cancel removes what was begun. The app stays usable, and the
+  Components card shows the progress.
+- **When it ends:** it says what it proved (the PyTorch version and the device it runs on), where the environment
+  is, its size and the time it took. A failure says why, in plain words: the network, a proxy's certificate, a full
+  disk, a locked file, or a GPU check that failed (with the next build to try). It also offers Copy details and Try
+  again. **Check** proves the environment still works, and **Remove** deletes everything the installer put there.
+- **The card is found automatically** (new `core/gpu.py`): `nvidia-smi` gives the card, its driver and compute
+  capability. Without it, Windows' display adapters or Linux's PCI devices still tell a card with a missing driver
+  (or the nouveau driver) from no card at all. The build:
+  - **CUDA 13.0** for Turing and newer with driver 580 or newer;
+  - **CUDA 12.6** for Maxwell to Volta, or drivers 528 to 579;
+  - **CPU** otherwise, with what would allow the GPU build;
+  - **PyTorch for macOS** on a Mac.
+- **The environment has to prove itself first.** It is built in `ml-runtime.partial` and must show that PyTorch sees
+  the GPU, has code for its architecture and calculates correctly on it, or it is not put in place. A half-made
+  environment is never where the app looks, and the old one stays until the new one works. Before the swap, an idle
+  worker is restarted (`Runner.recycle_process_lane`), so the running depth server lets go of its files.
+- **Pinned:** `geom/depth_runtime.json` pins uv 0.13.6 (checked by SHA-256), Python 3.13, PyTorch 2.14.1 for each
+  build, and the model libraries at exact versions. uv and its Python stay in `ml-runtime-base`, beside the
+  environment.
+- **Command line:** `atlas-toolkit components` lists what is found and the card, and `components install / check /
+  remove depth` do the same as the window. This works on a server or over SSH, with the same summary, stages and
+  result.
+- `scripts/setup_ml.py` now runs this installer (into `.venv-ml`, or `--user`). The pasted commands in Setup are gone
+  (on Windows they only worked in Command Prompt), and so is the duplicated package list.
+- `ml/depth_server.py` gains `--probe` (versions, device, a sanity check on the GPU, with nothing downloaded) and
+  `--fetch MODEL`.
+- **Tests:** `tests/test_depth_runtime.py` tests detection, the build table, the plan and the whole install against
+  a stand-in uv, in seconds. The real download runs only for releases: `scripts/dev/depth_install_test.py` runs on all
+  three OSes on the frozen app (`build.yml` with `depth: true`, which `release.yml` passes), and by hand on an NVIDIA
+  machine.
+
 ## 2.2.0 (2026-11-12)
 
 **Open source: Atlas Toolkit is free software under GPL-3.0-or-later**

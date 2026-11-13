@@ -60,7 +60,7 @@ Your own files stay, so a later install finds them again. To remove those too, d
 
 ## Other programs
 
-Most tools need nothing else. A few use programs Atlas Toolkit doesn't include: Melt needs Blender, and GPU depth estimation needs its own Python runtime. The app's **Setup** page shows what it found and how to add the rest.
+Most tools need nothing else. A few use programs Atlas Toolkit doesn't include: Melt needs Blender, and Photo Hatching's depth models need the depth environment. The app's **Setup › Components** page shows what it found and how to add the rest; the depth environment installs from there with one button (**Install…**), with no Python of your own, and shows the download size, disk space and time before it starts.
 
 Depth estimation runs on the CPU by default on a Mac. To try the Mac's GPU, start the app from a terminal with `ATLAS_DEPTH_DEVICE=mps`. This has not been tried on real hardware.
 

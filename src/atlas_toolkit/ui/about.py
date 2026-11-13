@@ -34,7 +34,8 @@ from PySide6.QtWidgets import (QDialog, QFrame, QGridLayout, QHBoxLayout, QLabel
 
 from ..core import runtimes
 from .keys import shown
-from ..core.paths import PORTABLE_DIR, app_home, cache_dir, config_dir, frozen, ml_runtime_dir, resource
+from ..core.paths import (PORTABLE_DIR, app_home, cache_dir, config_dir, display_path, frozen,  # noqa: F401 (re-exported)
+                          ml_runtime_dir, resource)
 from ..version import APP_NAME, COPYRIGHT, HOMEPAGE, LICENSE_ID, SOURCE_URL, SUPPORT_URL, __version__
 from .theme import icon, label_font, logo_icon, make_logo, mono, sans
 from .widgets.common import badge, hairline, hint, label
@@ -156,6 +157,7 @@ CLI_COMMANDS = [   # (command, what it does), after core/cli.build_parser
     ("describe TOOL", "a tool's settings as --flags, with ranges, choices and help; its presets and output name"),
     ("run TOOL FILES… [options]", "run a tool on files, folders or wildcards (*.svg), one file after the other"),
     ("self-test", "run every tool on a generated sample: a quick check of the installation"),
+    ("components [install|check|remove] …", "the optional components: what is found, and install, check or remove them"),
     ("--help", "help for the app, or for one tool: run TOOL --help"),
     ("--version", "the toolkit's version"),
 ]
@@ -201,47 +203,12 @@ def cli_examples(reg) -> str:
 
 
 def setup_commands(rt) -> str:
-    """A runtime's install commands for this kind of system: the Python launcher and venv Python filled in, and
-    {home} the per-user runtime folder named by its variable (%LOCALAPPDATA%\\AtlasToolkit, ~/…), never this
-    computer's path."""
-    win = sys.platform == "win32"
-    home = display_path(ml_runtime_dir().parent)
-    if not win and home.startswith("~"):          # the commands quote it, and a quoted ~ does not expand
-        home = "$HOME" + home[1:]
-    mac = sys.platform == "darwin"       # PyTorch has no CUDA builds for macOS, and PyPI's build runs on it as it is
-    return rt.commands.format(home=home, mkdir="mkdir" if win else "mkdir -p", cd="pushd" if win else "cd",
-                              py="py -3.12" if win else "python3.12",
-                              venv_py=r"ml-runtime\Scripts\python" if win else "ml-runtime/bin/python",
-                              torch="torch" if mac else "torch --index-url https://download.pytorch.org/whl/cu130",
-                              cpu="" if mac else "\n\n# CPU only: --index-url https://download.pytorch.org/whl/cpu")
+    """A runtime's command-line install, started the way this app's command line starts (see cli_program): one
+    command that works in every shell, with no path in it."""
+    return "\n".join(line.replace("atlas-toolkit", cli_program(), 1) if line.startswith("atlas-toolkit") else line
+                     for line in rt.commands.splitlines())
 
 
-def display_path(path) -> str:
-    """Where a file is, said without this computer's particulars: inside the built app as "bundled with the app",
-    under the app's folder as <app>/…, under a standard folder by its variable (%ProgramFiles%, %LOCALAPPDATA%,
-    %USERPROFILE% … on Windows, ~ elsewhere). Anywhere else only its file name shows."""
-    p = Path(path)
-    bundle = getattr(sys, "_MEIPASS", None)
-    win = sys.platform == "win32"
-    roots = []
-    if bundle:
-        roots.append(("bundled with the app", Path(bundle)))
-    roots.append(("<app>", app_home()))
-    if win:
-        for var in ("ProgramFiles", "ProgramFiles(x86)", "ProgramW6432", "ProgramData", "LOCALAPPDATA", "APPDATA",
-                    "USERPROFILE"):
-            if os.environ.get(var):
-                roots.append((f"%{var}%", Path(os.environ[var])))
-    else:
-        roots.append(("~", Path.home()))
-    sep = "\\" if win else "/"
-    for name, root in sorted(roots, key=lambda r: len(str(r[1])), reverse=True):     # the most specific first
-        try:
-            rel = p.resolve().relative_to(root.resolve())
-        except (ValueError, OSError):
-            continue
-        return name if name == "bundled with the app" else name + sep + sep.join(rel.parts)
-    return "…" + sep + p.name
 
 
 def folder_size(folder: Path) -> tuple[int, int]:

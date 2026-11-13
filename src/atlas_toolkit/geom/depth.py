@@ -2,7 +2,7 @@
 Depth maps for tools that read photos: from a DPT-family model on the GPU (through the separate runtime), from a
 depth-map file, or a rough guess from tone when neither is available.
 
-The GPU runtime (.venv-ml in the repository, or the per-user ml-runtime folder; made by scripts/setup_ml.py) runs
+The GPU runtime (.venv-ml in the repository, or the per-user ml-runtime folder; made by geom/depth_runtime.py) runs
 ml/depth_server.py as a subprocess of
 the toolkit's worker; it stays alive between runs so models load once. Results are cached by image content, model
 and detail, so changing hatching settings never re-runs the model.
@@ -38,7 +38,7 @@ class DepthError(RuntimeError):
 def runtime_candidates() -> list[Path]:
     """Where the GPU runtime's Python may be, in order: $ATLAS_TOOLKIT_ML_PYTHON, the app setting 'ml_python', a
     .venv-ml next to the exe, the repository's .venv-ml (an exe published to <repo>/dist, or running from source),
-    then the per-user runtime made by `setup_ml.py --user`."""
+    then the per-user runtime the installer makes (geom/depth_runtime.py)."""
     cands = []
     if os.environ.get(ENV_PYTHON):
         cands.append(Path(os.environ[ENV_PYTHON]))

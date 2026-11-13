@@ -1,5 +1,5 @@
 """Toolkit version. Each tool also carries its own version in its spec (tools/<folder>/__init__.py)."""
-__version__ = "2.2.0"
+__version__ = "2.3.0"
 APP_NAME = "Atlas Toolkit"
 APP_ID = "atlas-toolkit"
 # The app is free software; preset packs are separate works under their own licences (docs/PRESETS.md).

@@ -625,6 +625,60 @@ class GuiFlowTests(unittest.TestCase):
         self.assertEqual(self.ctx.history.read(), [])
         self.ctx.history.path.parent.mkdir(parents=True, exist_ok=True)
 
+    def test_component_installer_window_and_card(self):
+        """Setup › Components › Install…: the ready page, an install against the stand-in uv, the result, the card
+        after it. Nothing is downloaded (tests/test_depth_runtime.py covers the installer itself)."""
+        import os
+        import sys
+        from unittest import mock
+        from PySide6.QtWidgets import QLabel, QPushButton
+        from atlas_toolkit.core import gpu
+        from atlas_toolkit.geom import depth_runtime as dr
+        target = self.folder("installer") / "ml-runtime"
+        fake_uv = Path(__file__).parent / "fixtures" / "fake_uv.py"
+        os_key = "darwin" if sys.platform == "darwin" else "linux"
+        from atlas_toolkit.core.paths import venv_python
+        from atlas_toolkit.geom import depth
+        for p in (mock.patch.object(dr, "UV_COMMAND", [sys.executable, str(fake_uv)]),
+                  mock.patch.object(depth, "runtime_candidates", return_value=[venv_python(target)]),
+                  mock.patch.object(dr, "ml_runtime_dir", return_value=target),
+                  mock.patch.object(dr, "os_key", return_value=os_key),
+                  mock.patch.object(dr.gpus, "detect", return_value=gpu.GpuReport("none", others=["Intel graphics"])),
+                  mock.patch.object(dr, "_internet_check", return_value=dr.Check("ok", "Internet", "Reached them.")),
+                  mock.patch.dict(os.environ, {"FAKE_UV_FAIL": "", "FAKE_UV_SLOW": "", "FAKE_TORCH_CUDA": ""})):
+            p.start()
+            self.addCleanup(p.stop)
+        d = self.win.show_setup("components")
+        self.addCleanup(lambda: self.win.setup and self.win.setup.close())
+        install, check, remove = d.rt_installer["depth"]
+        self.assertTrue(install.isVisible() or not d.isVisible())
+        d.open_installer("depth")
+        from atlas_toolkit.ui import setup as setup_mod
+        dlg = setup_mod._INSTALLERS["depth"]
+        self.addCleanup(lambda: dlg.running() or dlg.close())
+        self.wait(lambda: dlg.plan is not None, 60)
+        texts = " ".join(w.text() for w in dlg.findChildren(QLabel))
+        for words in ("No NVIDIA graphics card", "Disk space", "Reached them", "minutes", "ml-runtime", "CPU only"):
+            self.assertIn(words, texts)
+        self.assertNotIn(str(Path.home()), texts, "no machine paths on screen")
+        go = next(b for b in dlg.findChildren(QPushButton) if b.text() == "Install")
+        self.assertTrue(go.isEnabled())
+        self.assertFalse(dlg.grab().isNull())
+        go.click()
+        self.wait(lambda: dlg.result is not None, 120)
+        self.assertTrue(dlg.result.ok, dlg.result.lines())
+        texts = " ".join(w.text() for w in dlg.findChildren(QLabel))
+        self.assertIn("Installed", texts)
+        self.assertTrue(any(b.text() == "Open folder" for b in dlg.findChildren(QPushButton)))
+        self.app.processEvents()
+        d._refresh_runtime("depth")
+        status = d.rt_status["depth"][1].text()
+        self.assertIn("Installed by Atlas", status)
+        self.assertEqual(install.text(), "Change build…")
+        dlg.close()
+        freed, gone = dr.remove()
+        self.assertFalse(target.exists())
+
     def assert_nothing_of_this_computer(self, d):
         """The About window is the same on every computer: no paths, user name or drives of this one."""
         import os

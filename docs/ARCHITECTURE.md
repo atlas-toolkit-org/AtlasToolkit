@@ -97,8 +97,15 @@ src/atlas_toolkit/
 
 ## The GPU runtime
 
-PyTorch with CUDA is about 4.5 GB, so it never goes into the exe. `scripts/setup_ml.py` makes `.venv-ml` in the
-checkout, or with `--user` the per-user `ml-runtime` folder (`core/paths.ml_runtime_dir`) that any exe finds. `geom/depth.py` finds its Python and starts `ml/depth_server.py` lazily, inside the worker
+PyTorch with CUDA is about 3 GB, so it never goes into the exe. The app installs it for the user instead:
+`geom/depth_runtime.py` is the installer, the module named by the depth runtime's `installer` field (core/runtimes.py,
+`INSTALLER_API`), so Setup › Components (`ui/runtime_install.py`) and `atlas-toolkit components` (`core/components.py`)
+drive it without naming it. It detects the card (`core/gpu.py`), picks a PyTorch build from the pins in
+`depth_runtime.json`, downloads uv (SHA-256 checked), lets uv fetch a Python and the packages into
+`ml-runtime.partial`, has the new environment prove itself (`depth_server.py --probe`), and only then renames it to
+the per-user `ml-runtime` folder (`core/paths.ml_runtime_dir`). An idle worker is recycled first
+(`Runner.recycle_process_lane`), so the old environment's server lets go of its files. `scripts/setup_ml.py` runs the
+same installer for developers, into `.venv-ml` in the checkout. `geom/depth.py` finds its Python and starts `ml/depth_server.py` lazily, inside the worker
 process, and keeps it alive between jobs: one model on the GPU at a time, switched on request. Requests and answers
 are JSON lines; depth comes back as an `.npy` file in the cache, so the app needs no torch at all. Without the
 runtime the tool says how to install it, and depth files or the rough depth still work.

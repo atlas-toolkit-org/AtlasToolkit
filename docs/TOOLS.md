@@ -410,20 +410,61 @@ atlas-toolkit run sketch-hatching bust.stl --preset Engraving --rotate 0 90 0 --
 
 ## Photo Hatching and the GPU runtime
 
-The depth models need PyTorch, which is far too large for the exe (about 4.5 GB with CUDA). They run in a separate
-Python environment that the tool starts in the background and keeps warm. The app looks for it, in order: the
-`ATLAS_TOOLKIT_ML_PYTHON` variable or a located one, `.venv-ml` next to the exe, `.venv-ml` in the source checkout,
-and the per-user runtime folder (`%LOCALAPPDATA%\AtlasToolkit\ml-runtime` on Windows; `~/Library/Application
-Support/AtlasToolkit/ml-runtime` on macOS; `~/.local/share/atlas-toolkit/ml-runtime` on Linux):
+The depth models need PyTorch, which is far too large for the app itself (0.5 GB for the CPU build, about 3 GB with
+CUDA). They run in a separate Python environment, the **depth environment**, that the tool starts in the background
+and keeps warm.
+
+**Installing it.** Open **Setup › Components** and press **Install…** on the Depth environment card. You need no
+Python, terminal or source of your own. Before anything is downloaded the installer shows:
+
+- **Graphics card:** what it found (the card, its memory, driver and compute capability).
+- **Build:** the PyTorch build it chose, and why.
+- **Download, disk space and time:** the download size, the disk space needed and kept, and an estimate of the time.
+- **Folder:** where it will install.
+- **Readiness:** whether this computer is ready (free space, a writable folder, the download sites reachable).
+
+During the install it shows each stage, one progress bar with the speed and the time left, and the installer's own
+output under Details. Cancel removes what was begun. At the end it says what it proved: the PyTorch version and the
+device the models run on. **Check** proves it again later, and **Remove** deletes everything it installed.
+
+| This computer has | Build installed |
+|---|---|
+| An NVIDIA card from the GTX 16 / RTX 20 series on (Turing and newer), driver 580 or newer | CUDA 13.0 |
+| An older NVIDIA card (Maxwell, Pascal, Volta), or a newer one with driver 528 to 579 (RTX 50: 580 needed) | CUDA 12.6 |
+| An NVIDIA card with no working driver | CPU, with a link to NVIDIA's drivers and **Detect again** |
+| No NVIDIA card (AMD, Intel graphics) | CPU: works everywhere, 10 to 30 times slower per drawing |
+| A Mac | PyTorch for macOS, on the CPU (`ATLAS_DEPTH_DEVICE=mps` tries Apple's GPU, untested) |
+
+The card is found with `nvidia-smi`. Without it, Windows' list of display adapters or Linux's PCI devices still tell a
+card with a missing driver from no card at all. After installing, PyTorch itself must see the GPU, list its
+architecture and compute correctly on it, or the environment is not put in place and the next build is offered.
+Every version is pinned in `src/atlas_toolkit/geom/depth_runtime.json`: uv (checked by SHA-256), Python, PyTorch and
+the model libraries.
+
+The same from a terminal, a server or over SSH:
 
 ```bat
-python scripts\setup_ml.py                      :: from a checkout: torch (CUDA 13.0) + transformers in .venv-ml
-python scripts\setup_ml.py --user               :: ... in the per-user runtime folder instead (any installed exe finds it)
-python scripts\setup_ml.py --check photo.jpg    :: every model at every detail level, timings and GPU memory
+atlas-toolkit components                         :: what is found, the card, the build it would install
+atlas-toolkit components install depth           :: shows the plan, asks, installs (--yes, --build cpu, --with-model)
+atlas-toolkit components check depth --model dpt-beit-large-512   :: run a model once: device, time, memory
+atlas-toolkit components remove depth            :: delete it (--models also deletes the downloaded models)
 ```
 
-With the exe, Setup › Components gives the same steps as commands to copy (into the per-user runtime folder), and
-**Locate** points the app at an environment made elsewhere.
+**Where it lives.** The environment is in `ml-runtime` in the per-user app-data folder
+(`%LOCALAPPDATA%\AtlasToolkit\ml-runtime` on Windows, `~/Library/Application Support/AtlasToolkit/ml-runtime` on
+macOS, `~/.local/share/atlas-toolkit/ml-runtime` on Linux). The installer's own tools, uv and its Python, are in
+`ml-runtime-base` beside it. Uninstalling the app leaves both, like your settings: use **Remove** first, or delete the
+two folders. The app looks for an environment, in order: the `ATLAS_TOOLKIT_ML_PYTHON` variable or a located one,
+`.venv-ml` next to the exe, `.venv-ml` in the source checkout, then that folder. **Locate** points the app at an
+environment you made yourself.
+
+From a checkout, developers run the same installer with `scripts/setup_ml.py` (into `.venv-ml`, or `--user` for the
+per-user folder):
+
+```bat
+.venv\Scripts\python scripts\setup_ml.py                      :: the build that suits this computer, in .venv-ml
+.venv\Scripts\python scripts\setup_ml.py --check photo.jpg    :: every model at every detail level, timings and GPU memory
+```
 
 Each model's weights (about 1.3 GB) download into the Hugging Face cache on first use. Depth is cached per photo,
 model and detail in `depth/` in the cache folder, so changing the hatching never runs the model again.
