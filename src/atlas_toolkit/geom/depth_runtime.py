@@ -1014,7 +1014,7 @@ def check(model: str | None = None, image: str | None = None, observer: Observer
     if model:
         run = Runner(observer, cancelled or threading.Event(), None)
         code, _ = run([python, "-u", server_script(), "--check", *([image] if image else []), model],
-                      child_env(folders(), HF_HUB_DISABLE_PROGRESS_BARS="1"))
+                      child_env(folders(), HF_HUB_DISABLE_PROGRESS_BARS="1", **depth.download_env()))
         ok = code == 0
         lines.append(f"{server_models()[model][3]}: " + ("works (timings above)." if ok else "FAILED (see above)."))
     return ok, p, lines

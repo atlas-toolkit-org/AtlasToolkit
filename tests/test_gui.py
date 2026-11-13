@@ -686,6 +686,39 @@ class GuiFlowTests(unittest.TestCase):
         freed, gone = dr.remove()
         self.assertFalse(target.exists())
 
+    def test_an_installer_window_outlives_the_setup_window(self):
+        """The installer window is the main window's, so closing Setup must not stop it: its progress and its end then
+        reach a Setup window that is gone (and a new one, once, when Setup opens again)."""
+        import sys
+        from unittest import mock
+        from PySide6.QtCore import QCoreApplication, QEvent
+        from atlas_toolkit.geom import depth_runtime as dr
+        from atlas_toolkit.ui import setup as setup_mod
+        with mock.patch.object(dr, "plan", side_effect=RuntimeError("no plan in this test")):
+            d = self.win.show_setup("components")
+            d.open_installer("depth")
+            dlg = setup_mod._INSTALLERS["depth"]
+            self.addCleanup(lambda: QCoreApplication.sendPostedEvents(None, QEvent.DeferredDelete))
+            self.addCleanup(lambda: dlg.running() or dlg.close())
+            errors = []
+            with mock.patch.object(sys, "excepthook", lambda *a: errors.append(a[1])):
+                d.close()
+                QCoreApplication.sendPostedEvents(None, QEvent.DeferredDelete)
+                self.app.processEvents()
+                dlg.progress_text.emit("Installing … 5%")
+                dlg.changed.emit()
+                self.app.processEvents()
+                d2 = self.win.show_setup("components")
+                d2.open_installer("depth")
+                d2.open_installer("depth")
+                calls = []
+                with mock.patch.object(d2, "_refresh_runtime", side_effect=lambda k: calls.append(k)):
+                    dlg.changed.emit()
+                self.app.processEvents()
+                d2.close()
+            self.assertEqual(errors, [])
+            self.assertEqual(calls, ["depth"], "one refresh per signal, however often the window was opened")
+
     def assert_nothing_of_this_computer(self, d):
         """The About window is the same on every computer: no paths, user name or drives of this one."""
         import os

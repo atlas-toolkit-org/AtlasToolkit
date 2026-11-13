@@ -23,6 +23,7 @@ from pathlib import Path
 
 from PySide6.QtCore import QSize, Qt, QTimer, Signal
 from PySide6.QtGui import QFont, QGuiApplication
+from shiboken6 import isValid
 from PySide6.QtWidgets import (QButtonGroup, QCheckBox, QComboBox, QDialog, QFileDialog, QFrame, QGridLayout,
                                QHBoxLayout, QLabel, QLineEdit, QMessageBox, QPlainTextEdit, QPushButton, QRadioButton,
                                QTabWidget, QVBoxLayout, QWidget)
@@ -56,6 +57,7 @@ class SetupDialog(QDialog):
         self.ctx = ctx
         self.theme = ctx.theme
         self.runtime_checked.connect(self._runtime_checked)
+        self._wired: set = set()              # installer windows whose signals reach this window
         self.setObjectName("setupDialog")
         self.setWindowTitle(f"Setup · {APP_NAME}")
         self.setWindowIcon(icon("gear", self.theme["highlight"], 32))
@@ -478,16 +480,30 @@ class SetupDialog(QDialog):
         """The installer window, one per component. Its parent is the main window, so closing Setup does not stop it."""
         from .runtime_install import RuntimeInstallDialog
         dlg = _INSTALLERS.get(key)
+        if dlg is not None and (not isValid(dlg) or not (dlg.isVisible() or dlg.running())):   # closed, not deleted yet
+            _INSTALLERS.pop(key, None)
+            dlg = None
         if dlg is None:
             dlg = RuntimeInstallDialog(self.ctx, key, self.parent() or self)
             dlg.setAttribute(Qt.WA_DeleteOnClose)
             _INSTALLERS[key] = dlg
             dlg.destroyed.connect(lambda *_a, k=key: _INSTALLERS.pop(k, None))
-        dlg.progress_text.connect(lambda text, k=key: self._installer_progress(k, text))
-        dlg.changed.connect(lambda k=key: self._refresh_runtime(k))
+        if dlg not in self._wired:          # once per pair: bound methods, so Qt drops them when Setup closes
+            self._wired.add(dlg)
+            dlg.progress_text.connect(self._installer_text)
+            dlg.changed.connect(self._installer_changed)
+            dlg.destroyed.connect(lambda *_a, d=dlg: self._wired.discard(d))
         dlg.show()
         dlg.raise_()
         dlg.activateWindow()
+
+    def _installer_text(self, text: str) -> None:
+        if isValid(self) and getattr(self.sender(), "key", None):
+            self._installer_progress(self.sender().key, text)
+
+    def _installer_changed(self) -> None:
+        if isValid(self) and getattr(self.sender(), "key", None) in self.rt_status:
+            self._refresh_runtime(self.sender().key)
 
     def _installer_progress(self, key: str, text: str) -> None:
         if self.rt_progress.get(key, "") == text:
@@ -508,7 +524,8 @@ class SetupDialog(QDialog):
                 ok, _info, lines = inst.check(None, None)
             except Exception as e:
                 ok, lines = False, [f"{type(e).__name__}: {e}"]
-            self.runtime_checked.emit(key, ok, lines)
+            if isValid(self):                 # Setup may have closed while the check ran
+                self.runtime_checked.emit(key, ok, lines)
 
         threading.Thread(target=work, daemon=True).start()
 

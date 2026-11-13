@@ -58,6 +58,7 @@
   that receives nothing for 4 minutes stops and says so.
 - Quick previews never start a download. Until the model is there they use the rough depth, with a warning, and
   Hatch downloads it.
+- The installer's **Check with a model** shows the same download's progress, a line every few seconds.
 - Models download over plain HTTPS, not Hugging Face's Xet transfer, which writes in bursts and left the bar
   standing still. The installer's "download the model now" uses the same method. A user's own `HF_HUB_DISABLE_XET`
   setting still wins.

@@ -389,7 +389,8 @@ class RuntimeInstallDialog(QDialog):
 
     def check_model(self) -> None:
         self.check_out.setVisible(True)
-        self.check_out.setPlainText("Running the default model once (it downloads on first use, about 1.3 GB) …")
+        self.check_out.setPlainText("Running the default model once. Its first use downloads it (about 1.4 GB, once): "
+                                    "the progress shows below every few seconds …")
         model = self.inst.default_model()
         news = _News()
         news.logged.connect(self.check_out.appendPlainText)

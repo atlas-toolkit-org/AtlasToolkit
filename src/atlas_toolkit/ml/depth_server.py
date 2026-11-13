@@ -430,13 +430,29 @@ def check(image: str | None, models=None) -> int:
         image = str(Path(tempfile.gettempdir()) / "atlas_depth_check.png")
         Image.fromarray((np.dstack([g, g * 0.9, g * 0.8]) * 255).astype(np.uint8)).save(image)
     ok = True
+    shown = [0.0]
+
+    def report(d: dict) -> None:            # a first-use download, as lines (the installer window shows them)
+        now = time.monotonic()
+        if d["state"] == "progress" and now - shown[0] < 5:
+            return
+        shown[0] = now
+        if d["state"] == "start":
+            print(f"   downloading {d['model']} once (about {d['total_mb'] / 1000:.2f} GB) into {d['folder']}", flush=True)
+        elif d["state"] == "done":
+            print(f"   downloaded in {d.get('seconds', 0):.0f} s; it will not download again", flush=True)
+        else:
+            eta = f", about {d['eta_s'] // 60} min {d['eta_s'] % 60:02d} s left" if d.get("eta_s") is not None else ""
+            print(f"   {d['done_mb'] / 1000:.2f} of {d['total_mb'] / 1000:.2f} GB, {d['rate_mbs']:.1f} MB/s{eta}",
+                  flush=True)
+
     for key in models or MODELS:
         for detail in ("native", "high", "boost"):
             out = str(Path(tempfile.gettempdir()) / f"atlas_depth_check_{key}_{detail}.npy")
             try:
                 t0 = time.perf_counter()
                 info = engine.depth({"image": image, "model": key, "detail": detail, "out": out},
-                                    lambda m: print("  ", m))
+                                    lambda m: print("  ", m), report)
                 d = np.load(out)
                 print(f"{key:26} {detail:7} runs {info['runs']}  total {time.perf_counter() - t0:6.2f} s  "
                       f"peak {info.get('peak_gb', 0):.2f} GB  {info['dtype']}  depth {d.shape} "
