@@ -4,7 +4,7 @@
 
 <h1 align="center">Atlas Toolkit</h1>
 
-<p align="center"><em>From models, photographs and terrain to ink on paper.</em></p>
+<p align="center"><em>From 3D models, photographs and terrain to ink on paper.</em></p>
 
 <p align="center">
   <a href="https://github.com/atlas-toolkit-org/AtlasToolkit/actions/workflows/ci.yml?query=event%3Apull_request"><img src="https://github.com/atlas-toolkit-org/AtlasToolkit/actions/workflows/ci.yml/badge.svg?event=pull_request" alt="CI status"></a>
