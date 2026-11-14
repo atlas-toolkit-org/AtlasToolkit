@@ -23,7 +23,7 @@
   <img src="docs/images/readme/hero.webp" alt="Four drawings made with Atlas Toolkit: a sketched bust, a twisted head in cross-hatching, a head peeling open like a plant, and a hatched photograph of a bridge" width="100%">
 </p>
 
-Atlas Toolkit is a desktop app for pen-plotter art. It gathers 48 tools for sculpting 3D models, turning models and
+Atlas Toolkit is a desktop app for pen-plotter art. It gathers 48 tools for transforming and sculpting 3D models, turning models and
 images into line drawings, and preparing those drawings for the plotter.
 
 **Aim.** To take a drawing from first idea to a file the plotter can draw well, without leaving one app.
@@ -33,7 +33,7 @@ window, on the command line and in visual Workflows that chain tools together. R
 can be made again. Originals are never changed, and each output records the tool that made it.
 
 **Focus.** Lines and physical paper. Drawings are measured in millimetres, hidden lines are really removed, and strokes
-are ordered to cut pen travel. Sculpting tools exist to give those lines something worth drawing, and they export real
+are ordered to cut pen travel. Transforming and sculpting tools exist to give those lines something worth drawing, and they export real
 geometry you can also print.
 
 <p align="center">
@@ -92,14 +92,14 @@ scripts/run.sh
 
 A typical drawing moves left to right, and any stage can be skipped:
 
-<p align="center"><strong>Image → Model → Sculpt → Draw → Refine → Plot</strong></p>
+<p align="center"><strong>Image → Model → Transform/Sculpt → Draw → Refine → Plot</strong></p>
 
 | Group | Tools | What it does |
 |---|---:|---|
 | [Draw from 3D](#draw-from-3d) | 6 | Turn a model into line art |
 | [Draw from photographs](#draw-from-photographs) | 1 | Turn a photo into hatching |
 | [From image to model](#from-image-to-model) | 2 | Raise images and terrain into 3D |
-| [Sculpt](#sculpt) | 33 | Transform models, in six families |
+| [Transform and sculpt](#sculpt) | 33 | Transform, modify or sculpt models, in six families |
 | [Refine for the plotter](#refine-for-the-plotter) | 5 | Clean and shape finished SVGs |
 
 Each example shows a result beside a drawing of it, made with the drawing tool that suits the effect best. The samples
@@ -180,7 +180,7 @@ and outlines mark occlusions. Also draws mosaics and depth contours. Runs on the
 
 ### From image to model
 
-These tools raise a flat source into real relief, ready to sculpt, draw or print. Both make printable solids or open
+These tools raise a flat source into real relief, ready to other transformations, drawing or printing. Both make printable solids or open
 surfaces for drawing, and share one way of sizing the result on the plate.
 
 <table>
@@ -202,7 +202,7 @@ scaling, masks and adaptive detail. No GIS software needed.
 </tr>
 </table>
 
-### Sculpt
+### Tranform and sculpt
 
 Thirty-three tools transform a model and return real geometry as STL, OBJ or PLY, in the model's own units. Many can also
 save a sequence of stages, which the drawing tools frame alike for a series of plates.
@@ -514,7 +514,7 @@ join, and the change can sweep across as a soft front.
 <img src="docs/images/readme/mesh-dual.webp" alt="David and Venus merging into one sculpture" width="100%">
 
 **Dual Fusion**<br>
-Two models become one sculpture: converging, emerging, split along a seam, interleaved, bridged by strands, crumbling,
+Two models become one fused shape or sculpture: converging, emerging, split along a seam, interleaved, bridged by strands, crumbling,
 echoed, patchworked or cocooned.
 </td>
 </tr>
