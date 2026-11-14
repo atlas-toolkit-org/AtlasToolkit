@@ -99,7 +99,7 @@ A typical drawing moves left to right, and any stage can be skipped:
 | [Draw from 3D](#draw-from-3d) | 6 | Turn a model into line art |
 | [Draw from photographs](#draw-from-photographs) | 1 | Turn a photo into hatching |
 | [From image to model](#from-image-to-model) | 2 | Raise images and terrain into 3D |
-| [Transform and sculpt](#sculpt) | 33 | Transform, modify or sculpt models, in six families |
+| [Transform and sculpt](#transform-and-sculpt) | 33 | Transform, modify or sculpt models, in six families |
 | [Refine for the plotter](#refine-for-the-plotter) | 5 | Clean and shape finished SVGs |
 
 Each example shows a result beside a drawing of it, made with the drawing tool that suits the effect best. The samples
@@ -202,7 +202,7 @@ scaling, masks and adaptive detail. No GIS software needed.
 </tr>
 </table>
 
-### Tranform and sculpt
+### Transform and sculpt
 
 Thirty-three tools transform a model and return real geometry as STL, OBJ or PLY, in the model's own units. Many can also
 save a sequence of stages, which the drawing tools frame alike for a series of plates.
