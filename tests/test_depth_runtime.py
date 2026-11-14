@@ -320,9 +320,11 @@ class Installing(unittest.TestCase):
         for output, kind in (("error: No space left on device (os error 28)", "disk"),
                              ("error: invalid peer certificate: UnknownIssuer", "tls"),
                              ("The process cannot access the file because it is being used by another process. (os error 32)", "locked"),
+                             ("error: Failed to create Python minor version link directory  cause: untrusted "
+                              "mount point. (os error 448)", "links"),
                              ("something new", "other")):
             with self.subTest(kind=kind):
-                os.environ["FAKE_UV_FAIL"] = f"python install:{output}"
+                os.environ["FAKE_UV_FAIL"] = f"venv:{output}"
                 result, _ = self.install(self.plan())
                 self.assertEqual(result.error.kind, kind)
                 self.assertTrue(result.error.hint)
@@ -351,6 +353,20 @@ class Installing(unittest.TestCase):
         self.assertTrue(result.cancelled)
         self.assertFalse((self.dir / "ml-runtime.partial").exists())
         self.assertIn("Cancelled", result.lines()[0])
+
+    def test_2_3_0s_python_folder_goes_only_once_the_new_environment_works(self):
+        """2.3.0 let uv install Python under ml-runtime-base/python, with a junction hardened Windows refuses (os error
+        448). A 2.3.0 environment runs on it: a failed install keeps it, a successful one removes it."""
+        legacy = self.dir / "ml-runtime-base" / "python" / "cpython-3.13.18-windows-x86_64-none"
+        legacy.mkdir(parents=True)
+        os.environ["FAKE_UV_FAIL"] = "torch:error: Failed to fetch: dns error"
+        failed, _ = self.install(self.plan())
+        self.assertFalse(failed.ok)
+        self.assertTrue(legacy.exists())
+        os.environ["FAKE_UV_FAIL"] = ""
+        result, _ = self.install(self.plan())
+        self.assertTrue(result.ok, result.lines())
+        self.assertFalse(legacy.parent.exists())
 
     def test_leftovers_are_tidied_and_remove_deletes_everything(self):
         (self.dir / "ml-runtime.partial").mkdir()
@@ -402,6 +418,45 @@ class DownloadingUv(unittest.TestCase):
         with self.assertRaises(dr.InstallError) as e:
             self.run_download(data, "0" * 64)
         self.assertEqual(e.exception.kind, "hash")
+
+
+class DownloadingPython(unittest.TestCase):
+    """The pinned standalone Python: checked, unpacked from its python/ folder into python-<version>, no links."""
+
+    def test_unpacks_the_interpreter_and_names_a_bad_download(self):
+        exe = "python/python.exe" if sys.platform == "win32" else "python/bin/python3"
+        buf = io.BytesIO()
+        with tarfile.open(fileobj=buf, mode="w:gz") as t:
+            for name, data in ((exe, b"fake"), ("python/Lib/os.py", b"# os")):
+                info = tarfile.TarInfo(name)
+                info.size = len(data)
+                t.addfile(info, io.BytesIO(data))
+        data = buf.getvalue()
+
+        def fetch(sha):
+            info = {"url": "https://example.invalid/python.tar.gz", "sha256": sha, "bytes": len(data)}
+            lock = dict(dr.lock(), python_files={dr.platform_key(): info})
+            d = tempfile.mkdtemp()
+            self.addCleanup(shutil.rmtree, d, ignore_errors=True)
+            with mock.patch.object(dr, "lock", return_value=lock), \
+                    mock.patch.object(dr, "open_url", return_value=io.BytesIO(data)):
+                f = dr.folders(Path(d) / "ml-runtime")
+                dr._download_python(f, dr.Runner(dr.Observer(), threading.Event(), None), dr.Meter(dr.Observer(), [1.0]), 1.0)
+                return f
+
+        f = fetch(hashlib.sha256(data).hexdigest())
+        self.assertTrue(f.python_exe.is_file())
+        self.assertEqual(f.python.name, f"python-{dr.lock()['python_full']}")
+        self.assertNotEqual(f.python, f.legacy_python)
+        with self.assertRaises(dr.InstallError) as e:
+            fetch("0" * 64)
+        self.assertEqual(e.exception.kind, "hash")
+
+    def test_every_platform_has_a_pinned_python(self):
+        for key in ("win32-x86_64", "linux-x86_64", "darwin-arm64"):
+            f = dr.lock()["python_files"][key]
+            self.assertRegex(f["sha256"], r"^[0-9a-f]{64}$")
+            self.assertIn(dr.lock()["python_full"].replace(".", r"."), f["url"])
 
 
 class Words(unittest.TestCase):

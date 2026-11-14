@@ -1,5 +1,22 @@
 # Changelog
 
+## 2.3.1 (2026-11-14)
+
+**The depth environment installs on hardened Windows machines**
+- **The fix:** on managed work computers the installer stopped at "Get Python" with *os error 448* ("untrusted mount
+  point"). `uv python install` makes a folder link (a junction) for each Python version, and a security policy there
+  refuses to follow links made by the user's account ([uv#19616](https://github.com/astral-sh/uv/issues/19616)). The
+  installer now downloads the standalone Python itself:
+  - pinned in `depth_runtime.json` and checked by SHA-256, like uv;
+  - unpacked into `ml-runtime-base/python-3.13.18`;
+  - handed to `uv venv` as an ordinary interpreter.
+
+  uv never installs Python, so no link is made, on any OS.
+- **Clean-up:** the folder that 2.3.0's uv used (`ml-runtime-base/python`, with its link) is deleted once a new
+  environment is in place. An environment made by 2.3.0 keeps working until then.
+- **The error has a name:** if Windows still refuses a link, the installer says so in plain words (a security policy
+  on this computer), instead of "See the details below".
+
 ## 2.3.0 (2026-11-13)
 
 **The depth environment installs from the app**

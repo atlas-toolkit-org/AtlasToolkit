@@ -113,6 +113,17 @@ class Folders:
 
     @property
     def python(self) -> Path:
+        """The pinned standalone Python, unpacked by us: an ordinary interpreter to uv, so uv makes no links for it."""
+        return self.base / f"python-{lock()['python_full']}"
+
+    @property
+    def python_exe(self) -> Path:
+        return self.python / ("python.exe" if sys.platform == "win32" else "bin/python3")
+
+    @property
+    def legacy_python(self) -> Path:
+        """Where 2.3.0 let `uv python install` work. Its version link is a junction, which hardened Windows refuses to
+        follow (os error 448). A 2.3.0 environment runs on it, so it goes only once a new one is in place."""
         return self.base / "python"
 
     @property
@@ -583,6 +594,10 @@ ERRORS = [   # (kind, pattern in a program's output, what to tell the user)
                 r"tcp connect|Network is unreachable|failed to lookup address|getaddrinfo",
      "The download failed. Check the internet connection, a proxy (HTTPS_PROXY) or a firewall, then Try again: what was "
      "downloaded is kept."),
+    ("links", r"os error 448|untrusted mount point|minor version link",
+     "Windows refused to follow a folder link: a security policy on this computer (common on managed work machines) "
+     "does not trust links made by your account. Atlas makes none itself; send the log to whoever looks after this "
+     "computer, or point Atlas to an environment made another way with Locate."),
     ("locked", r"os error 32|being used by another process|os error 5\b|Access is denied|PermissionError",
      "A file was locked, often by an antivirus scan or another Atlas window that is drawing. Wait a moment, close "
      "other Atlas windows, then Try again."),
@@ -600,8 +615,9 @@ def child_env(f: Folders, **extra) -> dict:
     """A clean environment for uv and the new Python: nothing from the user's own Python or uv setup leaks in."""
     env = {k: v for k, v in procs.child_env().items()
            if not k.startswith(("UV_", "PIP_", "CONDA_", "PYTHON")) and k not in ("VIRTUAL_ENV", ENV)}
-    env.update(UV_CACHE_DIR=str(f.cache), UV_PYTHON_INSTALL_DIR=str(f.python), UV_NO_PROGRESS="1", UV_NO_CONFIG="1",
-               UV_PYTHON_DOWNLOADS="automatic", PYTHONIOENCODING="utf-8", PYTHONUTF8="1",
+    env.update(UV_CACHE_DIR=str(f.cache), UV_NO_PROGRESS="1", UV_NO_CONFIG="1",
+               UV_PYTHON_DOWNLOADS="never",       # Python comes from us (Folders.python), never from uv's managed store
+               PYTHONIOENCODING="utf-8", PYTHONUTF8="1",
                UV_HTTP_TIMEOUT="300", UV_HTTP_RETRIES="6",     # uv's 30 s gives up on a slow line mid-way through a big wheel
                **extra)
     if f.tmp.is_dir():                    # during an install (install() makes it, and removes it at the end)
@@ -694,16 +710,9 @@ class Result:
         return out + self.notes + ([f"Log: {show(self.log_path)}"] if self.log_path else [])
 
 
-def _download_uv(f: Folders, run: Runner, meter: Meter, weight: float) -> None:
-    info = lock()["uv"]["files"].get(platform_key())
-    if info is None:
-        raise InstallError("other", f"There is no installer tool for {platform_key()}.")
-    marker = f.uv_dir / ".verified"
-    if f.uv.is_file() and marker.is_file() and marker.read_text(encoding="ascii").strip() == info["sha256"]:
-        run.say(f"uv {lock()['uv']['version']} is already here: {f.uv}")
-        return
-    f.uv_dir.mkdir(parents=True, exist_ok=True)
-    tmp = f.uv_dir / "download.tmp"
+def _download(info: dict, tmp: Path, run: Runner, meter: Meter, weight: float, what: str) -> None:
+    """Stream a pinned file to `tmp`, its SHA-256 checked; the meter follows the bytes."""
+    tmp.parent.mkdir(parents=True, exist_ok=True)
     run.say(f"downloading {info['url']}")
     digest = hashlib.sha256()
     try:
@@ -718,11 +727,54 @@ def _download_uv(f: Folders, run: Runner, meter: Meter, weight: float) -> None:
                 meter.fraction(got / info["bytes"], weight)
     except (urlerror.URLError, OSError, TimeoutError) as e:
         kind, hint = classify(str(e))
-        raise InstallError("network" if kind == "other" else kind, f"Downloading uv failed: {e}", hint) from None
+        raise InstallError("network" if kind == "other" else kind, f"Downloading {what} failed: {e}", hint) from None
     if digest.hexdigest() != info["sha256"]:
         tmp.unlink(missing_ok=True)
-        raise InstallError("hash", "The downloaded installer tool is not the expected file (its SHA-256 differs).",
+        raise InstallError("hash", f"The downloaded {what} is not the expected file (its SHA-256 differs).",
                            "Something between you and GitHub changed the download. Try again later or on another network.")
+
+
+def _download_python(f: Folders, run: Runner, meter: Meter, weight: float) -> None:
+    """The pinned python-build-standalone archive, unpacked into Folders.python. Nothing in it is a link uv made."""
+    info = lock()["python_files"].get(platform_key())
+    if info is None:
+        raise InstallError("other", f"There is no Python download for {platform_key()}.")
+    marker = f.python / ".verified"
+    if f.python_exe.is_file() and marker.is_file() and marker.read_text(encoding="ascii").strip() == info["sha256"]:
+        run.say(f"Python {lock()['python_full']} is already here: {f.python}")
+        return
+    shutil.rmtree(f.python, ignore_errors=True)
+    tmp = f.base / "python-download.tmp"
+    _download(info, tmp, run, meter, weight, f"Python {lock()['python_full']}")
+    unpack = f.base / "python-unpack.tmp"
+    shutil.rmtree(unpack, ignore_errors=True)
+    with tarfile.open(tmp) as t:
+        t.extractall(unpack, filter="data")          # the archive holds one folder, python/
+    (unpack / "python").rename(f.python)
+    shutil.rmtree(unpack, ignore_errors=True)
+    tmp.unlink(missing_ok=True)
+    if not f.python_exe.is_file():
+        raise InstallError("other", f"The Python archive has no {f.python_exe.name} where expected.")
+    marker.write_text(info["sha256"], encoding="ascii")
+    run.say(f"Python {lock()['python_full']} verified (SHA-256) and unpacked into {f.python}")
+
+
+def _download_uv(f: Folders, run: Runner, meter: Meter, weight: float) -> None:
+    info = lock()["uv"]["files"].get(platform_key())
+    if info is None:
+        raise InstallError("other", f"There is no installer tool for {platform_key()}.")
+    marker = f.uv_dir / ".verified"
+    if f.uv.is_file() and marker.is_file() and marker.read_text(encoding="ascii").strip() == info["sha256"]:
+        run.say(f"uv {lock()['uv']['version']} is already here: {f.uv}")
+        return
+    f.uv_dir.mkdir(parents=True, exist_ok=True)
+    tmp = f.uv_dir / "download.tmp"
+    _download(info, tmp, run, meter, weight, "installer tool")
+    _unpack_uv(f, info, tmp, run)
+
+
+def _unpack_uv(f: Folders, info: dict, tmp: Path, run: Runner) -> None:
+    marker = f.uv_dir / ".verified"
     name = f.uv.name
     if info["url"].endswith(".zip"):
         with zipfile.ZipFile(tmp) as z:
@@ -881,11 +933,14 @@ def install(p: Plan, observer: Observer | None = None, cancelled: threading.Even
                     else:
                         _download_uv(f, run, meter, w)
                 elif key == "python":
-                    py_sizes = L["sizes"]["python"]
-                    with Watch(meter, w, [f.python, f.tmp], py_sizes["installed"]):
-                        _uv(run, f, ["python", "install", L["python"]], title)
+                    if UV_COMMAND:
+                        run.say("using this Python (stand-in uv)")
+                    else:
+                        _download_python(f, run, meter, w)
                 elif key == "venv":
-                    _uv(run, f, ["venv", "--relocatable", "--managed-python", "--python", L["python"], str(f.partial)], title)
+                    base_py = Path(sys.executable) if UV_COMMAND else f.python_exe
+                    _uv(run, f, ["venv", "--relocatable", "--no-managed-python", "--python", str(base_py),
+                                 str(f.partial)], title)
                 elif key == "torch":
                     index = ["--index-url", p.info["index"]] if p.info["index"] else ["--exclude-newer", L["exclude_newer"]]
                     with Watch(meter, w, [f.cache, f.tmp], p.info["installed"][o]):
@@ -921,6 +976,7 @@ def install(p: Plan, observer: Observer | None = None, cancelled: threading.Even
                         raise
                     result.replaced = had_old
                     shutil.rmtree(f.old, ignore_errors=True)
+                    shutil.rmtree(f.legacy_python, ignore_errors=True)    # 2.3.0's, now unused (rmtree unlinks junctions)
                     _clean_downloads(f)
                     if p.clear_setting and settings is not None:
                         settings.set(SETTING, "")

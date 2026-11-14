@@ -2,6 +2,15 @@
   "_comment": "The depth environment the app installs (geom/depth_runtime.py): every version pinned, uv checked by SHA-256. Changing a pin is a deliberate edit: bump revision (installed environments then offer Update), and prove it with scripts/dev/depth_install_test.py on each OS. Sizes are measured estimates in MB, used for the disk check, the time estimate and the progress bar. Builds are tried in order; the first whose card and driver limits fit is chosen, otherwise the CPU build.",
   "revision": 1,
   "python": "3.13",
+  "python_full": "3.13.18",
+  "python_files": {
+    "win32-x86_64": {"url": "https://github.com/astral-sh/python-build-standalone/releases/download/20261026/cpython-3.13.18%2B20261026-x86_64-pc-windows-msvc-install_only_stripped.tar.gz",
+                     "sha256": "7369f7a35f261222a6ac8b3a87c1c88eeebee8af945d85346202591a64038dd3", "bytes": 22023022},
+    "linux-x86_64": {"url": "https://github.com/astral-sh/python-build-standalone/releases/download/20261026/cpython-3.13.18%2B20261026-x86_64-unknown-linux-gnu-install_only_stripped.tar.gz",
+                     "sha256": "df15fe60d3ff55bf9dcf25824b5572756bb8816ff93865a273d3301d7066a8b7", "bytes": 35395906},
+    "darwin-arm64": {"url": "https://github.com/astral-sh/python-build-standalone/releases/download/20261026/cpython-3.13.18%2B20261026-aarch64-apple-darwin-install_only_stripped.tar.gz",
+                     "sha256": "8392b6ea51d94391befb2c31ebe75463f045d0b69dfcf5e1bb3234e1f5fa3405", "bytes": 25265774}
+  },
   "torch": "2.14.1",
   "packages": ["transformers==5.22.1", "numpy==2.5.4", "pillow==13.0.0", "safetensors==0.8.0", "huggingface_hub==2.4.0"],
   "exclude_newer": "2026-11-13T00:00:00Z",
