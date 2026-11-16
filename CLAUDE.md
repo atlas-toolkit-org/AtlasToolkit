@@ -63,8 +63,9 @@ One PySide6 app for pen-plotter tools, in its own repository. `README.md` is the
   (`docs/dev/multi-os-port.md`), and `test_portability` catches on Windows what would break elsewhere.
 - **Every 3D canvas mixes in `GuardedGL`** (`ui/widgets/gl_guard.py`), so a driver that cannot draw gets a message and not an
   error for every frame (`test_gl_failure` checks). PyOpenGL must not load before `_match_opengl_to_qt` in `ui/app.py`.
-- **Keep `docs/PLATFORMS.md` true.** It says what has really been proven on each OS: macOS stays "built and tested
-  automatically, not by hand" until someone runs `docs/dev/macos-verification.md` on a real Mac.
+- **Keep `docs/PLATFORMS.md` true.** It says what has really been proven on each OS, no more: for macOS, exactly what
+  was tried by hand (a remote Mac, without the full GPU), the rest unproven until someone runs
+  `docs/dev/macos-verification.md` on a Mac used locally.
 - **Child processes start through `core/procs.py`** (`spawn`, `finish`), and web pages and files open through
   `paths.open_url`, never `QDesktopServices`. A child then gets a clean environment and dies with its job on every OS
   (`test_portability` checks, `test_procs` proves it). A new helper uses `runtimes.find_helper` and `check_helper`.
@@ -128,5 +129,5 @@ The legacy scripts these tools replaced live in the workspace's `code/Python/_ol
 
 ## History
 
-The public repository starts at 2.2.0, its first public release. The history before it, and earlier dev logs,
+The public repository starts at 2.2.0's code; its first public release is 2.3.1. The history before it, and earlier dev logs,
 agent plans and QA material, are kept privately by the maintainer (locally in `_devarchive/`, which git ignores).
