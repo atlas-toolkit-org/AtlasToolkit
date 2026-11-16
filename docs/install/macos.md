@@ -2,14 +2,32 @@
 
 Needs macOS 15 or later on Apple Silicon (M1 or newer). Intel Macs are not supported.
 
-**How far this has been tested:** the Mac build is built and tested automatically on GitHub's Mac machines, but nobody has tried it by hand on a real Mac yet. Those machines have no graphics card, so 3D previews on a real GPU, Retina scaling and trackpad gestures have not been seen working. `docs/PLATFORMS.md` lists what is proven.
+**How far this has been tested:** every release is built and tested automatically on GitHub's Mac machines, and 2.3.1 was used by hand on a remote Mac mini M4 (macOS 15): it installs, the drawing tools render, the 3D preview draws, and the depth environment installs and runs Photo Hatching on the CPU. That Mac was used remotely, without its full GPU, so 3D drawing on a Mac's own GPU, Retina scaling and trackpad gestures have not been seen working yet. [docs/PLATFORMS.md](../PLATFORMS.md) lists what is proven.
 
-Download the `.dmg` disk image from the [Releases](https://github.com/atlas-toolkit-org/AtlasToolkit/releases) page. Each release lists `SHA256SUMS.txt` to check
-the download against.
+Download the disk image from [atlas-toolkit.org/download](https://atlas-toolkit.org/download/) or from the
+[latest release](https://github.com/atlas-toolkit-org/AtlasToolkit/releases/latest) on GitHub. The current version is
+**2.3.1**:
+
+| File | Size |
+|---|---|
+| [`AtlasToolkit-2.3.1-macos-arm64.dmg`](https://github.com/atlas-toolkit-org/AtlasToolkit/releases/download/v2.3.1/AtlasToolkit-2.3.1-macos-arm64.dmg) | 92 MB |
+
+Later versions keep these names with a new number. Each release also lists `SHA256SUMS.txt`, the checksum of
+every file.
+
+## Check the download
+
+Optional, but it proves the file arrived whole and unchanged. In Terminal, in the folder of the download, with `SHA256SUMS.txt` beside it:
+
+```bash
+grep macos-arm64.dmg SHA256SUMS.txt | shasum -a 256 -c -
+```
+
+It prints `OK` when the file matches.
 
 ## Install
 
-1. Open `AtlasToolkit-<version>-macos-arm64.dmg`.
+1. Open `AtlasToolkit-2.3.1-macos-arm64.dmg`.
 2. Drag **Atlas Toolkit** onto **Applications**.
 3. Eject the disk image.
 
@@ -55,14 +73,17 @@ Your own files stay, so a later install finds them again. To remove those too, d
 
 | Folder | What it holds |
 |---|---|
-| `~/Library/Application Support/AtlasToolkit` | Settings, presets, history, plug-ins and workflows |
+| `~/Library/Application Support/AtlasToolkit` | Settings, presets, history, plug-ins and workflows, and the depth environment (`ml-runtime`, with its installer's tools in `ml-runtime-base`) |
 | `~/Library/Caches/AtlasToolkit` | Caches and previews |
+| `~/.cache/huggingface/hub` | Photo Hatching's depth models, downloaded at their first use. Other apps that use Hugging Face may share this folder: delete only the `models--` folders of the depth models |
+
+The app's **Setup › Components** page can remove the depth environment for you, and with it the downloaded models if you tick **Also delete the downloaded models**.
 
 ## Other programs
 
 Most tools need nothing else. A few use programs Atlas Toolkit doesn't include: Melt needs Blender, and Photo Hatching's depth models need the depth environment. The app's **Setup › Components** page shows what it found and how to add the rest; the depth environment installs from there with one button (**Install…**), with no Python of your own, and shows the download size, disk space and time before it starts.
 
-Depth estimation runs on the CPU by default on a Mac. To try the Mac's GPU, start the app from a terminal with `ATLAS_DEPTH_DEVICE=mps`. This has not been tried on real hardware.
+Depth estimation runs on the CPU by default on a Mac, with all three depth models; their weights download at the first render. To try the Mac's GPU, start the app from a terminal with `ATLAS_DEPTH_DEVICE=mps`. That has not been tried on real hardware yet.
 
 ## Troubleshooting
 

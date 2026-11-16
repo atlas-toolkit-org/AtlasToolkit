@@ -2,21 +2,41 @@
 
 Needs a 64-bit x86 system with glibc 2.34 or later: Ubuntu 22.04 and later, Debian 12 and later, Fedora, or RHEL, Rocky and AlmaLinux 9 and later. It works on both X11 and Wayland.
 
-Download the `.deb`, `.rpm` or `.AppImage` package from the [Releases](https://github.com/atlas-toolkit-org/AtlasToolkit/releases) page. Each release lists `SHA256SUMS.txt` to check
-the download against.
+Download the package for your system from [atlas-toolkit.org/download](https://atlas-toolkit.org/download/) or from the
+[latest release](https://github.com/atlas-toolkit-org/AtlasToolkit/releases/latest) on GitHub. The current version is
+**2.3.1**:
+
+| File | Size |
+|---|---|
+| [`atlas-toolkit_2.3.1_amd64.deb`](https://github.com/atlas-toolkit-org/AtlasToolkit/releases/download/v2.3.1/atlas-toolkit_2.3.1_amd64.deb) | 178 MB |
+| [`atlas-toolkit-2.3.1-1.x86_64.rpm`](https://github.com/atlas-toolkit-org/AtlasToolkit/releases/download/v2.3.1/atlas-toolkit-2.3.1-1.x86_64.rpm) | 179 MB |
+| [`AtlasToolkit-2.3.1-linux-x86_64.AppImage`](https://github.com/atlas-toolkit-org/AtlasToolkit/releases/download/v2.3.1/AtlasToolkit-2.3.1-linux-x86_64.AppImage) | 190 MB |
+
+Later versions keep these names with a new number. Each release also lists `SHA256SUMS.txt`, the checksum of
+every file.
+
+## Check the download
+
+Optional, but it proves the file arrived whole and unchanged. In the folder of the download, with `SHA256SUMS.txt` beside it:
+
+```bash
+sha256sum -c --ignore-missing SHA256SUMS.txt
+```
+
+It prints `OK` for each file you downloaded.
 
 ## Install
 
 Debian and Ubuntu:
 
 ```bash
-sudo apt install ./atlas-toolkit_<version>_amd64.deb
+sudo apt install ./atlas-toolkit_2.3.1_amd64.deb
 ```
 
 Fedora, RHEL, Rocky and AlmaLinux:
 
 ```bash
-sudo dnf install ./atlas-toolkit-<version>-1.x86_64.rpm
+sudo dnf install ./atlas-toolkit-2.3.1-1.x86_64.rpm
 ```
 
 Keep the `./`: it tells the package manager this is a file and not a package to search for. The package manager also installs the system libraries the app needs.
@@ -28,11 +48,11 @@ Atlas Toolkit then appears in your applications menu, and `atlas-toolkit` works 
 An AppImage is the whole app in one file, so it needs no administrator rights. Make it executable, then run it:
 
 ```bash
-chmod +x AtlasToolkit-<version>-linux-x86_64.AppImage
+chmod +x AtlasToolkit-2.3.1-linux-x86_64.AppImage
 ```
 
 ```bash
-./AtlasToolkit-<version>-linux-x86_64.AppImage
+./AtlasToolkit-2.3.1-linux-x86_64.AppImage
 ```
 
 It takes the same command-line arguments as the installed app. It does not add a menu entry or file type, and the package manager can't bring missing libraries for it. Any desktop system already has them. On a minimal system, install them yourself, or use the deb or rpm.
@@ -40,7 +60,7 @@ It takes the same command-line arguments as the installed app. It does not add a
 If it says it cannot mount and mentions FUSE, either install FUSE (`sudo apt install fuse3` or `sudo dnf install fuse3`) or run it without. Starting this way is slower, because it unpacks itself each time:
 
 ```bash
-./AtlasToolkit-<version>-linux-x86_64.AppImage --appimage-extract-and-run
+./AtlasToolkit-2.3.1-linux-x86_64.AppImage --appimage-extract-and-run
 ```
 
 A folder named `AtlasToolkit-data` next to the file keeps all its settings there, which suits a USB drive.
@@ -68,6 +88,9 @@ Your own files stay, so a later install finds them again. To remove those too, d
 | `~/.config/atlas-toolkit` | Settings, presets, plug-ins and workflows |
 | `~/.local/share/atlas-toolkit` | Run history, and the depth environment (`ml-runtime`, with its installer's tools in `ml-runtime-base`) |
 | `~/.cache/atlas-toolkit` | Caches and previews |
+| `~/.cache/huggingface/hub` | Photo Hatching's depth models, downloaded at their first use. Other apps that use Hugging Face may share this folder: delete only the `models--` folders of the depth models |
+
+The app's **Setup › Components** page can remove the depth environment for you, and with it the downloaded models if you tick **Also delete the downloaded models**.
 
 If you set `XDG_CONFIG_HOME`, `XDG_DATA_HOME` or `XDG_CACHE_HOME`, the app uses those locations instead.
 
@@ -92,7 +115,7 @@ atlas-toolkit describe svg-overlap-cleaner
 
 ## Other programs
 
-Most tools need nothing else. A few use programs Atlas Toolkit doesn't include: Melt needs Blender, and GPU depth estimation needs its own Python runtime. The app's **Setup** page shows what it found and how to add the rest.
+Most tools need nothing else. A few use programs Atlas Toolkit doesn't include: Melt needs Blender, and Photo Hatching's depth models need the depth environment. The app's **Setup › Components** page shows what it found and how to add the rest; the depth environment installs from there with one button (**Install…**), with no Python of your own, and shows the download size, disk space and time before it starts.
 
 ## Troubleshooting
 
