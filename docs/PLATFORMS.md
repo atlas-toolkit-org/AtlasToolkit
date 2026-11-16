@@ -6,7 +6,7 @@ Where Atlas Toolkit runs, what sets each limit, and how much of it has really be
 |---|---|---|---|
 | Windows | Windows 10 or 11, x64 | Setup `.exe` | **Full support.** Automated, and used by hand with a real GPU |
 | Linux | x86-64, glibc 2.34 or later, X11 or Wayland | `.deb`, `.rpm`, `.AppImage` | **Full support.** Automated on clean systems with software OpenGL; not yet tried on a real Linux desktop |
-| macOS | macOS 15 or later, Apple Silicon | `.dmg` | **Built and tested automatically, not by hand.** See below |
+| macOS | macOS 15 or later, Apple Silicon | `.dmg` | **Automated, and used by hand on a remote Mac.** A local GPU not yet proven; see below |
 
 That covers Ubuntu 22.04 and later, Debian 12 and later, Fedora, and RHEL, Rocky and AlmaLinux 9 and later.
 
@@ -37,9 +37,9 @@ The install test checks the following:
 |---|---|---|---|
 | **Windows** | `windows-2025`, with no GPU, so through Qt's software renderer | Windows 11 on an NVIDIA GPU: the app, its tools and the 3D views. The installer has been compiled but not run by hand | Other GPU makers |
 | **Linux** | Clean Ubuntu 22.04, 24.04, 26.04, Debian 12, Fedora 45, Rocky 9. X11 under Xvfb everywhere, Wayland under headless Weston where the distribution has it. Mesa's software OpenGL | Not yet | A real desktop session, its menus and file associations, real GPU drivers (NVIDIA's proprietary one especially) |
-| **macOS** | `macos-15`: Cocoa start, workers, helpers, minimum-version and architecture audit, signature, disk image cycle, command-line link | Nobody yet | A real GPU, Retina scaling, trackpad gestures, Gatekeeper on a downloaded file, Finder and Dock behaviour, GPU depth estimation (MPS) |
+| **macOS** | `macos-15`: Cocoa start, workers, helpers, minimum-version and architecture audit, signature, disk image cycle, command-line link | 2.3.1 on a remote Mac mini M4 (Scaleway, macOS 15, 16 GB), with the GPU not fully available: the `.dmg` installs, the app runs, the drawing tools render and the 3D preview draws. The depth environment installs from the app, and Photo Hatching runs on the CPU with all three models, whose weights downloaded completely at the first render | A local GPU drawing (Metal), Retina scaling, trackpad gestures, Gatekeeper on a downloaded file, Finder and Dock behaviour, GPU depth estimation (MPS) |
 
-GitHub's Mac runners have no GPU. They draw with Apple's software renderer, so a real GPU has never been seen drawing, and the 3D check there is soft: it reports a blank pane without failing. `docs/dev/macos-verification.md` is the checklist that closes this gap in a few hours on any Apple Silicon Mac, including a rented one. Until someone runs it, macOS keeps the status above.
+GitHub's Mac runners have no GPU. They draw with Apple's software renderer, and the 3D check there is soft: it reports a blank pane without failing. The remote Mac above showed the app working, but through a remote session without the full GPU, so a local GPU has still not been seen drawing. `docs/dev/macos-verification.md` is the checklist that closes this gap in a few hours on any Apple Silicon Mac used locally. Until someone runs it, the items in the last column stay unproven.
 
 GPU depth estimation on macOS stays opt-in for the same reason (`ATLAS_DEPTH_DEVICE=mps`), and it runs on the CPU by default.
 
@@ -47,7 +47,8 @@ GPU depth estimation on macOS stays opt-in for the same reason (`ATLAS_DEPTH_DEV
 
 - **CI, every release, all three OSes, on the frozen app:** the real CPU install, a model run, Photo Hatching with model depth, a reinstall and Remove (`scripts/dev/depth_install_test.py`). The runners have no GPU, so this also proves the "no NVIDIA card" path.
 - **By hand:** the CUDA 13.0 build on Windows 11 with an RTX 5070 Laptop GPU (driver 595), detected, installed and proven on the GPU.
-- **Not yet proven:** the CUDA 12.6 build on a real older card, a Linux desktop with NVIDIA's driver, and a Mac by hand.
+- **By hand on a Mac:** the CPU install on a remote Mac mini M4 (macOS 15), with Photo Hatching run on all three models; their weights downloaded completely at the first render.
+- **Not yet proven:** the CUDA 12.6 build on a real older card, a Linux desktop with NVIDIA's driver, and GPU depth on a Mac (MPS).
 
 ## Graphics
 

@@ -42,9 +42,8 @@ geometry you can also print.
 
 ## Install
 
-Installers are published on the [Releases](https://github.com/atlas-toolkit-org/AtlasToolkit/releases) page. The first release, 2.2.0, is being tested before
-it goes out. Until then, `scripts/package.py` makes the same packages from source
-([Building](docs/BUILDING.md), [Packaging](docs/PACKAGING.md)).
+Installers are published on the [Releases](https://github.com/atlas-toolkit-org/AtlasToolkit/releases/latest) page. To make
+the same packages from source, see [Building](docs/BUILDING.md) and [Packaging](docs/PACKAGING.md).
 
 | System | Package | Guide |
 |---|---|---|
