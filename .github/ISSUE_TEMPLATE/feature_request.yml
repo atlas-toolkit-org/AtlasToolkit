@@ -1,0 +1,21 @@
+name: Idea or request
+description: A new tool, a setting, or a change to how something works.
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: idea
+    attributes:
+      label: The idea
+      description: What you would like Atlas Toolkit to do.
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: What it is for
+      description: The drawing or model you are making, and where the app gets in the way today. Pictures are welcome.
+  - type: input
+    id: tool
+    attributes:
+      label: Tool or area, if it concerns one
+      placeholder: "Hatch Maker, Workflows, a new tool…"

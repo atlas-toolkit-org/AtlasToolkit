@@ -1,0 +1,45 @@
+name: Bug report
+description: Something in Atlas Toolkit doesn't work as it should.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for reporting it. Please check the [open issues](https://github.com/atlas-toolkit-org/AtlasToolkit/issues) first.
+        A security problem goes to the Security tab instead (see [SECURITY.md](https://github.com/atlas-toolkit-org/AtlasToolkit/blob/main/SECURITY.md)),
+        and a question about an order, a pass or a preset pack to the [contact page](https://atlas-toolkit.org/contact.html?topic=order).
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you did, what you expected, and what happened instead.
+    validations:
+      required: true
+  - type: input
+    id: tool
+    attributes:
+      label: Tool or area
+      placeholder: "Contour Lines, Workflows, Setup › Components, the command line…"
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: The settings or preset you used help a lot. If a file triggers it, attach it, or say what kind of file it is.
+      placeholder: |
+        1. Open …
+        2. Set …
+        3. Click …
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: Diagnostics
+      description: In the app, open About (the ⓘ icon) and press **Copy diagnostics**, then paste here. It holds the version, your system and the app's folders.
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: log
+    attributes:
+      label: Error message or log
+      description: Anything the app showed, or the tool page's Log tab.
+      render: text
