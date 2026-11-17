@@ -53,7 +53,13 @@ def notes(tag: str) -> str:
 |---|---|---|
 {table}
 
-`SHA256SUMS.txt` holds each file's checksum. These installers are not signed by a trusted certificate, so Windows may warn and macOS asks for **Open Anyway**. {document("docs/PLATFORMS.md", tag)} says how far each system has been tested.
+`SHA256SUMS.txt` holds each file's checksum.
+
+## Known limitations
+
+- **Unsigned installers:** they are not signed by a trusted certificate yet, so Windows may show a SmartScreen warning and macOS asks for **Open Anyway** the first time. The install guides show each step.
+- **macOS is a preview:** tested automatically and used by hand on a remote Mac, but not yet seen drawing on a Mac's own GPU. Intel Macs, and Linux and Windows on arm64, are not supported. {document("docs/PLATFORMS.md", tag)} says how far each system has been tested.
+- **Optional extras:** Melt and a few Remesh methods need Blender 4.2 or later, and Photo Hatching needs its depth environment, a separate download that Setup › Components installs.
 """
 
 
