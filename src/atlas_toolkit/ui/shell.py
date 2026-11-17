@@ -32,6 +32,7 @@ from .keys import shown
 from .theme import icon, label_font, logo_icon, make_logo, mono, sans
 from .theme.qss import stylesheet
 from .tool_page import ToolPage
+from .updates import UpdateBar
 from .workflow import WorkflowPage
 from .widgets.common import Toaster, apply_icon, badge, icon_button, label, set_badge
 
@@ -115,6 +116,7 @@ class MainWindow(QMainWindow):
         self._shortcuts()
         self._retheme(ctx.theme)
         self.show_home()
+        self.updatebar.start()
         geo = ctx.settings.get("geometry")
         if geo:
             try:
@@ -130,6 +132,9 @@ class MainWindow(QMainWindow):
         lay.setSpacing(0)
         self.setCentralWidget(root)
         lay.addWidget(self._topbar())
+        self.updatebar = UpdateBar(self.ctx)          # new versions: asks once, then tells (ui/updates.py)
+        self.ctx.check_updates = self.updatebar.check_now
+        lay.addWidget(self.updatebar)
 
         body = QHBoxLayout()
         body.setContentsMargins(0, 0, 0, 0)
@@ -574,7 +579,9 @@ class MainWindow(QMainWindow):
         return self.setup
 
     def _pref_changed(self, key: str) -> None:
-        if key == "workers":
+        if key == "update_check":
+            self.updatebar.pref_changed()
+        elif key == "workers":
             self.ctx.bridge.runner.process.set_workers(self.ctx.pref("workers"))
         elif key == "preview_delay_ms":
             for p in self.pages.values():
@@ -607,6 +614,7 @@ class MainWindow(QMainWindow):
             b.setIcon(icon(b._icon_name, theme["text-3"], 16, active=theme["text"]))
         self.sidebar.retheme(theme)
         apply_icon(self.btn_side, theme)
+        self.updatebar.retheme(theme)
         apply_icon(self.btn_theme, theme, "sun" if theme.dark else "moon")
         apply_icon(self.btn_art, theme, "blueprint" if self.ctx.art == "blueprint" else "paper")
         apply_icon(self.btn_setup, theme)

@@ -2,6 +2,19 @@
 
 ## 2.3.2 (2026-11-17)
 
+**The app says when a new version is out**
+- **It asks first, once:** a strip under the top bar asks *Hear about new versions?* **Check once a day** or **No
+  thanks**; Setup › General › **New versions** changes the answer later (ask me, check once a day, never check).
+- **The check** (new `core/updates.py`) asks atlas-toolkit.org for the latest public version number, at most once a
+  day, off the UI thread; GitHub's latest release is asked if the site does not answer. The request carries no
+  identifier, no version and nothing about the person; any failure is silent.
+- **When one is out:** *Atlas Toolkit X.Y.Z is out*, with **Download**, **What's new**, **Skip this version** (a later
+  version is offered again) and **×** (until the next start). An early-access build ahead of the public one is
+  never told to go back.
+- **About › Check for updates** asks at any time and says what it found, even a version that was skipped.
+- `ATLAS_TOOLKIT_NO_UPDATE_CHECK=1` turns checking off (tests, screenshots, managed computers). The check's state
+  stays on the computer: Export settings carries the choice, not the dates or versions seen.
+
 **The free Basic pack is one click away**
 - **A tool with no presets says where to get some:** the hint under its preset drop-down now links to the official
   packs' page (atlas-toolkit.org/presets/), where the free Basic pack gives every tool a preset to start from. The app

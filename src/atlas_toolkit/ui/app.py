@@ -190,6 +190,8 @@ def run_app(argv: list) -> int:
     scale = prefs.get(settings, "ui_scale")         # Setup › General: read before Qt starts
     if scale != 1.0 and "QT_SCALE_FACTOR" not in os.environ and not args.snapshot:
         os.environ["QT_SCALE_FACTOR"] = f"{scale:g}"
+    if args.snapshot:                                # a screenshot shows the app, never the update strip
+        os.environ["ATLAS_TOOLKIT_NO_UPDATE_CHECK"] = "1"
     QApplication.setHighDpiScaleFactorRoundingPolicy(Qt.HighDpiScaleFactorRoundingPolicy.PassThrough)
     app = QApplication.instance() or QApplication(sys.argv[:1])
     _match_opengl_to_qt(app)

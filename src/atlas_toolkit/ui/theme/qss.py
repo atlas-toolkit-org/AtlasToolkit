@@ -23,6 +23,8 @@ QToolTip {{ background: {c['bg-3']}; color: {c['text']}; border: 1px solid {c['l
 
 /* ---------------------------------------------------------------- top bar */
 #topbar {{ background: {c['bg-1']}; border-bottom: 1px solid {c['line']}; }}
+#updatebar {{ background: {c['accent-softer']}; border-bottom: 1px solid {c['line']}; }}
+#updatetext {{ color: {c['text-2']}; }}
 #brandName {{ color: {c['text']}; font-size: 13px; font-weight: 600; }}
 #brandSub {{ color: {c['text-3']}; }}
 QPushButton[tab="true"] {{ background: transparent; border: none; border-bottom: 2px solid transparent;

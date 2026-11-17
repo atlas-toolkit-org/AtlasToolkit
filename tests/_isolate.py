@@ -27,6 +27,8 @@ ROOT = os.environ[VAR]
 # Preset packs a developer points the app at must not leak into tests: tests that want the private packs load them
 # through tests/_presets.py, and every other test sees only what it installs itself.
 os.environ.pop("ATLAS_TOOLKIT_PRESET_DIRS", None)
+# Tests never ask the network for a new version (tests/test_updates.py turns it back on with a stand-in fetch).
+os.environ["ATLAS_TOOLKIT_NO_UPDATE_CHECK"] = "1"
 if os.environ.setdefault("QT_QPA_PLATFORM", "offscreen") == "offscreen":
     os.environ.pop("DISPLAY", None)
     os.environ.pop("WAYLAND_DISPLAY", None)

@@ -194,6 +194,15 @@ class SetupDialog(QDialog):
         cl.addLayout(g)
         lay.addWidget(card)
 
+        card, cl = _card("Updates")
+        g = self._grid()
+        self._option(g, "New versions", "Once a day the app asks atlas-toolkit.org for the latest version number, "
+                                        "and says when a newer one is out. Nothing about you or your files is "
+                                        "sent. About › Check for updates asks at any time.",
+                     self._combo("update_check", prefs.UPDATE_CHECKS))
+        cl.addLayout(g)
+        lay.addWidget(card)
+
         card, cl = _card("Preview")
         g = self._grid()
         delay = IntSpin()
