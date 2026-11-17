@@ -872,6 +872,11 @@ class GuiFlowTests(unittest.TestCase):
         d = self.win.show_setup("presets")
         self.assertEqual(d.tabs.currentIndex(), d.TABS.index("presets"))
         panel = d.presets_panel
+        from unittest import mock
+        from atlas_toolkit.version import PRESETS_URL
+        with mock.patch("atlas_toolkit.core.paths.open_url") as opened:              # "Get preset packs"
+            panel.get_packs()
+        opened.assert_called_once_with(PRESETS_URL)
         self.assertEqual(panel.import_files([str(packed)], ask=False), 1)          # installs the signed pack
         pack = lib.installed("test-presets:complete")
         self.addCleanup(lambda: lib.installed("test-presets:complete") and lib.remove_pack(
@@ -1037,6 +1042,13 @@ class GuiFlowTests(unittest.TestCase):
         self.assertTrue(pp.combo.isVisibleTo(pp) and pp.combo.currentIndex() == -1)
         self.assertTrue(pp.btn_save.isVisibleTo(pp) and pp.btn_more.isVisibleTo(pp) and pp.btn_reset.isVisibleTo(pp))
         self.assertIn("No presets yet", pp.hint.text())
+        # ... with a link to the free Basic pack, opened through paths.open_url
+        from unittest import mock
+        from atlas_toolkit.version import PRESETS_URL
+        self.assertIn(f'href="{PRESETS_URL}"', pp.hint.text())
+        with mock.patch("atlas_toolkit.core.paths.open_url") as opened:
+            pp.hint.linkActivated.emit(PRESETS_URL)
+        opened.assert_called_once_with(PRESETS_URL)
         self.win.show_home()
 
     def test_about_paths_are_relative_to_known_folders(self):

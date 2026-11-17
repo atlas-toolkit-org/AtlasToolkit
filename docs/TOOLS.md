@@ -541,7 +541,9 @@ way. All of it is remembered.
   pack or a `.zip` holding them (you see what it holds and what it would change first), see whether a pack is
   **Official** (signed by its publisher, unchanged) and who signed it, trust another publisher's key, save your presets to a file, copy a
   pack's preset to yours, rename or delete yours, hide a pack's (Show hidden brings them back), remove a pack. Each
-  tool's preset menu has **Manage presets and packs…**, which opens it on that tool. See [Presets](PRESETS.md).
+  tool's preset menu has **Manage presets and packs…**, which opens it on that tool. **Get preset packs** opens
+  [atlas-toolkit.org/presets](https://atlas-toolkit.org/presets/), where the free Basic pack gives every tool a
+  preset to start from. See [Presets](PRESETS.md).
 - **Storage:** where the app keeps its files (Open buttons, the cache's size); clear the cache or the history,
   **export / import** the options, every tool's settings and your own presets as one file (preset packs are not
   included), reset the options.

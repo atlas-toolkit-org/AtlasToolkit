@@ -14,7 +14,7 @@ import time
 from pathlib import Path
 
 from PySide6.QtCore import QEvent, QSize, Qt, QTimer
-from PySide6.QtGui import QAction, QFont, QKeySequence, QShortcut
+from PySide6.QtGui import QAction, QColor, QFont, QKeySequence, QPalette, QShortcut
 from PySide6.QtWidgets import (QApplication, QButtonGroup, QFrame, QHBoxLayout, QLabel, QLineEdit, QMainWindow,
                                QMessageBox, QPlainTextEdit, QProgressBar, QPushButton, QSplitter,
                                QStackedWidget, QVBoxLayout, QWidget)
@@ -596,7 +596,12 @@ class MainWindow(QMainWindow):
             self.ctx.refresh_runtimes()              # back from installing Blender, say: look again (cheap)
 
     def _retheme(self, theme) -> None:
-        QApplication.instance().setStyleSheet(stylesheet(theme))
+        app = QApplication.instance()
+        app.setStyleSheet(stylesheet(theme))
+        pal = app.palette()                          # links in rich text (hints) take the accent, not Qt's blue
+        for role in (QPalette.Link, QPalette.LinkVisited):
+            pal.setColor(role, QColor(theme["accent"]))
+        app.setPalette(pal)
         self.search_icon.setIcon(icon("search", theme["text-3"], 16))
         for b in self.tabs.values():
             b.setIcon(icon(b._icon_name, theme["text-3"], 16, active=theme["text"]))

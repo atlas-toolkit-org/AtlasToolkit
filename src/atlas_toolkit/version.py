@@ -1,5 +1,5 @@
 """Toolkit version. Each tool also carries its own version in its spec (tools/<folder>/__init__.py)."""
-__version__ = "2.3.1"
+__version__ = "2.3.2"
 APP_NAME = "Atlas Toolkit"
 APP_ID = "atlas-toolkit"
 # The app is free software; preset packs are separate works under their own licences (docs/PRESETS.md).
@@ -8,3 +8,4 @@ COPYRIGHT = "© 2026 João Gonçalves (sci.co.plot) and contributors"
 HOMEPAGE = "https://atlas-toolkit.org"
 SOURCE_URL = "https://github.com/atlas-toolkit-org/AtlasToolkit"
 SUPPORT_URL = "https://ko-fi.com/atlas_toolkit"   # donations, preset packs and early-access builds
+PRESETS_URL = "https://atlas-toolkit.org/presets/"   # the official packs: Basic (free), Essentials, Complete

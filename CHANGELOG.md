@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.3.2 (2026-11-17)
+
+**The free Basic pack is one click away**
+- **A tool with no presets says where to get some:** the hint under its preset drop-down now links to the official
+  packs' page (atlas-toolkit.org/presets/), where the free Basic pack gives every tool a preset to start from. The app
+  still ships no presets.
+- **Setup › Presets** gains **Get preset packs**, which opens the same page.
+- Links in hints take the theme's accent colour, not Qt's default blue.
+
 ## 2.3.1 (2026-11-14)
 
 **The depth environment installs on hardened Windows machines**

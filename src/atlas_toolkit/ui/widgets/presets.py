@@ -21,8 +21,12 @@ from PySide6.QtWidgets import (QComboBox, QFileDialog, QHBoxLayout, QInputDialog
 
 from .common import apply_icon, hint, icon_button, label
 from ...core import presets as P
+from ...version import PRESETS_URL
 
 PLACEHOLDER = "Custom settings"
+# Shown while a tool has no presets at all: the app ships none, and the free Basic pack gives every tool a start.
+EMPTY_HINT = (f'No presets yet. <a href="{PRESETS_URL}">Get the free Basic pack</a> and drop it on the window, '
+              "or save your own settings with the save icon.")
 
 
 class PresetBar(QWidget):
@@ -64,6 +68,8 @@ class PresetBar(QWidget):
         self.combo.activated.connect(self._picked)
         lay.addWidget(self.combo)
         self.hint = hint("")
+        self.hint.setTextInteractionFlags(Qt.LinksAccessibleByMouse | Qt.LinksAccessibleByKeyboard)
+        self.hint.linkActivated.connect(self._open_link)
         lay.addWidget(self.hint)
         self._presets: dict[str, P.Preset] = {}
         self._fill()
@@ -93,8 +99,9 @@ class PresetBar(QWidget):
                 self._presets[p.uid] = p
                 if p.tip:
                     c.setItemData(c.count() - 1, p.tip, Qt.ToolTipRole)
-        c.setToolTip("" if self._presets else "No presets yet: save your own with the save icon, or load a preset "
-                                              "file from the menu beside it.")
+        c.setToolTip("" if self._presets else "No presets yet: get the free Basic pack from atlas-toolkit.org, save "
+                                              "your own with the save icon, or load a preset file from the menu beside "
+                                              "it.")
         c.blockSignals(False)
         view = c.view()                                     # the open list shows the longest name in full
         if c.count():
@@ -163,10 +170,14 @@ class PresetBar(QWidget):
                 where = (f" From {chosen.pack.title}." if chosen.pack is not None else "")
                 self.hint.setText((chosen.tip or f"Preset <b>{chosen.name}</b>.") + where)
         elif not self._presets:
-            self.hint.setText("No presets yet: save your own settings with the save icon, or load a preset file "
-                              "from the menu.")
+            self.hint.setText(EMPTY_HINT)
         else:
             self.hint.setText("Pick a preset to start from it.")
+
+    @staticmethod
+    def _open_link(url: str) -> None:
+        from ...core.paths import open_url
+        open_url(url)
 
     def current_name(self) -> str:
         found = self.matching()
