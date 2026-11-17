@@ -1,0 +1,11 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Orders, early-access pass and preset packs
+    url: https://atlas-toolkit.org/contact.html?topic=order
+    about: A download, a sign-in link or a purchase. Please don't post order details in a public issue.
+  - name: Security problem
+    url: https://github.com/atlas-toolkit-org/AtlasToolkit/security/advisories/new
+    about: Report it privately, not as an issue.
+  - name: User guide
+    url: https://github.com/atlas-toolkit-org/AtlasToolkit/blob/main/docs/TOOLS.md
+    about: Every tool in depth, presets, workflows and the command line.

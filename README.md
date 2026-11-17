@@ -52,12 +52,16 @@ the same packages from source, see [Building](docs/BUILDING.md) and [Packaging](
 | **macOS** 15 or later, Apple Silicon (preview) | `.dmg` | [Install on macOS](docs/install/macos.md) |
 
 The packages aren't code-signed yet, so Windows and macOS warn on first start; the guides show how to continue. The Mac
-build passes automated tests but hasn't yet been tried by hand on a real Mac. [Platforms](docs/PLATFORMS.md) says how far
-each system has been tested.
+build passes automated tests and has been used by hand on a remote Mac, but not yet drawn on a Mac's own GPU.
+[Platforms](docs/PLATFORMS.md) says how far each system has been tested.
 
 Almost everything works out of the box. Two optional extras unlock more: [Blender](https://www.blender.org/) 4.2 or
 later for Melt and a few Remesh methods, and a [GPU depth runtime](docs/TOOLS.md#photo-hatching-and-the-gpu-runtime) for
 Photo Hatching. The app's Setup page shows what is missing and how to add it.
+
+The app ships no presets: every tool starts from its defaults. The free
+[Basic preset pack](https://atlas-toolkit.org/presets/) gives each tool a tuned starting point; drop the file on the
+window to install it.
 
 <details>
 <summary><strong>Run from source</strong></summary>
