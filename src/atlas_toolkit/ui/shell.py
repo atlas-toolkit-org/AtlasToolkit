@@ -14,7 +14,7 @@ import time
 from pathlib import Path
 
 from PySide6.QtCore import QEvent, QSize, Qt, QTimer
-from PySide6.QtGui import QAction, QFont, QKeySequence, QShortcut
+from PySide6.QtGui import QAction, QColor, QFont, QKeySequence, QPalette, QShortcut
 from PySide6.QtWidgets import (QApplication, QButtonGroup, QFrame, QHBoxLayout, QLabel, QLineEdit, QMainWindow,
                                QMessageBox, QPlainTextEdit, QProgressBar, QPushButton, QSplitter,
                                QStackedWidget, QVBoxLayout, QWidget)
@@ -32,6 +32,7 @@ from .keys import shown
 from .theme import icon, label_font, logo_icon, make_logo, mono, sans
 from .theme.qss import stylesheet
 from .tool_page import ToolPage
+from .updates import UpdateBar
 from .workflow import WorkflowPage
 from .widgets.common import Toaster, apply_icon, badge, icon_button, label, set_badge
 
@@ -115,6 +116,7 @@ class MainWindow(QMainWindow):
         self._shortcuts()
         self._retheme(ctx.theme)
         self.show_home()
+        self.updatebar.start()
         geo = ctx.settings.get("geometry")
         if geo:
             try:
@@ -130,6 +132,9 @@ class MainWindow(QMainWindow):
         lay.setSpacing(0)
         self.setCentralWidget(root)
         lay.addWidget(self._topbar())
+        self.updatebar = UpdateBar(self.ctx)          # new versions: asks once, then tells (ui/updates.py)
+        self.ctx.check_updates = self.updatebar.check_now
+        lay.addWidget(self.updatebar)
 
         body = QHBoxLayout()
         body.setContentsMargins(0, 0, 0, 0)
@@ -574,7 +579,9 @@ class MainWindow(QMainWindow):
         return self.setup
 
     def _pref_changed(self, key: str) -> None:
-        if key == "workers":
+        if key == "update_check":
+            self.updatebar.pref_changed()
+        elif key == "workers":
             self.ctx.bridge.runner.process.set_workers(self.ctx.pref("workers"))
         elif key == "preview_delay_ms":
             for p in self.pages.values():
@@ -596,12 +603,18 @@ class MainWindow(QMainWindow):
             self.ctx.refresh_runtimes()              # back from installing Blender, say: look again (cheap)
 
     def _retheme(self, theme) -> None:
-        QApplication.instance().setStyleSheet(stylesheet(theme))
+        app = QApplication.instance()
+        app.setStyleSheet(stylesheet(theme))
+        pal = app.palette()                          # links in rich text (hints) take the accent, not Qt's blue
+        for role in (QPalette.Link, QPalette.LinkVisited):
+            pal.setColor(role, QColor(theme["accent"]))
+        app.setPalette(pal)
         self.search_icon.setIcon(icon("search", theme["text-3"], 16))
         for b in self.tabs.values():
             b.setIcon(icon(b._icon_name, theme["text-3"], 16, active=theme["text"]))
         self.sidebar.retheme(theme)
         apply_icon(self.btn_side, theme)
+        self.updatebar.retheme(theme)
         apply_icon(self.btn_theme, theme, "sun" if theme.dark else "moon")
         apply_icon(self.btn_art, theme, "blueprint" if self.ctx.art == "blueprint" else "paper")
         apply_icon(self.btn_setup, theme)

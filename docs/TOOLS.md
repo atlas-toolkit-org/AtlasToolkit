@@ -528,7 +528,8 @@ way. All of it is remembered.
 
 - **General:** the theme and artwork the app opens in (the last one used, dark, light or the system's), the interface
   scale (next start), what opens at start (Home, or the tool or workflow it was closed on), asking before quitting
-  during a run, and the preview delay.
+  during a run, the preview delay, and **New versions**: ask me, check once a day, or never check (see
+  [Updates](#updates)).
 - **Outputs:** when an output file exists, for tools and workflows alike: **overwrite** without asking (the default),
   **ask** first, or **keep both**: the new file gets the run's date and time, `head_contours_20261103-142530.svg`,
   for random variations and new seeds. Where a tool's outputs go until it has its own choice, how many heavy jobs
@@ -541,13 +542,28 @@ way. All of it is remembered.
   pack or a `.zip` holding them (you see what it holds and what it would change first), see whether a pack is
   **Official** (signed by its publisher, unchanged) and who signed it, trust another publisher's key, save your presets to a file, copy a
   pack's preset to yours, rename or delete yours, hide a pack's (Show hidden brings them back), remove a pack. Each
-  tool's preset menu has **Manage presets and packs…**, which opens it on that tool. See [Presets](PRESETS.md).
+  tool's preset menu has **Manage presets and packs…**, which opens it on that tool. **Get preset packs** opens
+  [atlas-toolkit.org/presets](https://atlas-toolkit.org/presets/), where the free Basic pack gives every tool a
+  preset to start from. See [Presets](PRESETS.md).
 - **Storage:** where the app keeps its files (Open buttons, the cache's size); clear the cache or the history,
   **export / import** the options, every tool's settings and your own presets as one file (preset packs are not
   included), reset the options.
 
 **About** (ⓘ, top right): the toolkit and its version, the tools with their icons, the command line, the shortcuts,
-the changelog, credits, and **Copy diagnostics** for a bug report.
+the changelog, credits, and **Copy diagnostics** for a bug report. **Check for updates** there asks at any time.
+
+### Updates
+
+On its first start the app asks, once, in a strip under the top bar: *Hear about new versions?*
+- **Check once a day:** once a day it asks atlas-toolkit.org for the latest public version number (GitHub's latest
+  release if the site does not answer). The request carries no identifier, no version and nothing about you or your
+  files; the comparison happens on your computer.
+- When a newer version is out, the strip says so: **Download** opens the download page, **What's new** the release
+  notes, **Skip this version** stops offering that one (a later one is offered), and **×** hides it until the next start.
+- **No thanks:** it never checks. Setup › General › New versions changes the answer at any time.
+
+The app never downloads or installs anything by itself. Packagers and managed computers can turn checking off for
+everyone with the environment variable `ATLAS_TOOLKIT_NO_UPDATE_CHECK=1`.
 
 **Keyboard:**
 

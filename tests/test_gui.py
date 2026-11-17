@@ -872,6 +872,11 @@ class GuiFlowTests(unittest.TestCase):
         d = self.win.show_setup("presets")
         self.assertEqual(d.tabs.currentIndex(), d.TABS.index("presets"))
         panel = d.presets_panel
+        from unittest import mock
+        from atlas_toolkit.version import PRESETS_URL
+        with mock.patch("atlas_toolkit.core.paths.open_url") as opened:              # "Get preset packs"
+            panel.get_packs()
+        opened.assert_called_once_with(PRESETS_URL)
         self.assertEqual(panel.import_files([str(packed)], ask=False), 1)          # installs the signed pack
         pack = lib.installed("test-presets:complete")
         self.addCleanup(lambda: lib.installed("test-presets:complete") and lib.remove_pack(
@@ -1037,7 +1042,73 @@ class GuiFlowTests(unittest.TestCase):
         self.assertTrue(pp.combo.isVisibleTo(pp) and pp.combo.currentIndex() == -1)
         self.assertTrue(pp.btn_save.isVisibleTo(pp) and pp.btn_more.isVisibleTo(pp) and pp.btn_reset.isVisibleTo(pp))
         self.assertIn("No presets yet", pp.hint.text())
+        # ... with a link to the free Basic pack, opened through paths.open_url
+        from unittest import mock
+        from atlas_toolkit.version import PRESETS_URL
+        self.assertIn(f'href="{PRESETS_URL}"', pp.hint.text())
+        with mock.patch("atlas_toolkit.core.paths.open_url") as opened:
+            pp.hint.linkActivated.emit(PRESETS_URL)
+        opened.assert_called_once_with(PRESETS_URL)
         self.win.show_home()
+
+    def test_update_strip_asks_once_then_tells(self):
+        from unittest import mock
+        from PySide6.QtTest import QTest
+        from atlas_toolkit.core import updates
+        from atlas_toolkit.version import __version__
+        bar, s = self.win.updatebar, self.ctx.settings
+        self.assertTrue(bar.isHidden())                                  # tests turn checking off: nothing shows
+        site = {"version": "99.0.0"}
+        fetch = lambda url, timeout: dict(site) if url == updates.SITE_URL else {}   # noqa: E731  (no network)
+        opened = []
+
+        def wait():
+            for _ in range(200):
+                if not bar._busy:
+                    return
+                QTest.qWait(10)
+            self.fail("the check did not finish")
+
+        with mock.patch.dict(os.environ, {updates.ENV_OFF: ""}),                 mock.patch.object(updates, "_get_json", fetch),                 mock.patch("atlas_toolkit.core.paths.open_url", opened.append):
+            for k in ("update_check", "update_last", "update_latest", "update_skip"):
+                s.data.pop(k, None)
+            bar.start(delay_ms=0)
+            self.assertTrue(bar.isVisibleTo(self.win) and bar.mode == "ask")       # first start: it asks
+            bar.buttons["no"].click()
+            self.assertEqual(self.ctx.pref("update_check"), "never")
+            self.assertTrue(bar.isHidden())
+            bar.start(delay_ms=0)
+            self.assertTrue(bar.isHidden())                                       # and never asks again
+            self.ctx.set_pref("update_check", "ask")
+            bar.start(delay_ms=0)
+            bar.buttons["yes"].click()                                            # yes: daily, and checks at once
+            wait()
+            self.assertEqual(self.ctx.pref("update_check"), "daily")
+            self.assertEqual((bar.mode, bar.version), ("available", "99.0.0"))
+            self.assertIn("99.0.0", bar.text.text())
+            self.assertIn(__version__, bar.text.text())
+            bar.buttons["download"].click()
+            bar.buttons["notes"].click()
+            self.assertEqual(opened, [updates.DOWNLOAD_URL, updates.NOTES_URL.format(version="99.0.0")])
+            bar.buttons["skip"].click()                                           # skipped: not offered again
+            self.assertTrue(bar.isHidden())
+            bar.start(delay_ms=0)
+            self.assertTrue(bar.isHidden())
+            d = self.win.show_help("about")                                       # About: Check for updates
+            self.addCleanup(lambda: self.win.about and self.win.about.close())
+            d.btn_update.click()
+            wait()
+            self.assertIn("99.0.0", d.update_note.text())                         # by hand, even a skipped one
+            self.assertEqual(bar.mode, "available")
+            site.clear()                                                          # offline
+            d.btn_update.click()
+            wait()
+            self.assertIn("Could not reach", d.update_note.text())
+            bar.btn_close.click()
+            self.ctx.set_pref("update_check", "ask")
+        for k in ("update_check", "update_last", "update_latest", "update_skip"):
+            s.data.pop(k, None)
+        s.save()
 
     def test_about_paths_are_relative_to_known_folders(self):
         import os

@@ -27,6 +27,7 @@ from pathlib import Path
 
 from PySide6 import __version__ as pyside_version
 from PySide6.QtCore import QSize, Qt, qVersion
+from shiboken6 import isValid
 from PySide6.QtGui import QFont, QGuiApplication
 from PySide6.QtWidgets import (QDialog, QFrame, QGridLayout, QHBoxLayout, QLabel, QLineEdit,
                                QListWidget, QListWidgetItem, QPlainTextEdit, QPushButton, QScrollArea, QSizePolicy,
@@ -463,6 +464,27 @@ class AboutDialog(QDialog):
             self.ctx.toast("Diagnostics copied to the clipboard.", "success")
         self.btn_copy.setText("Copied")
 
+    def check_updates(self) -> None:
+        """Ask now (the main window's update strip does the work and shows a newer version)."""
+        check = getattr(self.ctx, "check_updates", None)
+        if not callable(check):
+            return
+        self.btn_update.setEnabled(False)
+        self.update_note.setText("Checking…")
+
+        def done(latest, offered):
+            if not isValid(self):
+                return
+            self.btn_update.setEnabled(True)
+            if latest is None:
+                self.update_note.setText("Could not reach atlas-toolkit.org or GitHub. Check the connection and try "
+                                         "again.")
+            elif offered:
+                self.update_note.setText(f"{APP_NAME} {offered} is out: see the strip at the top of the window.")
+            else:
+                self.update_note.setText(f"{__version__} is the latest version.")
+        check(done)
+
     # ------------------------------------------------------------------ About
     def _about_tab(self) -> QWidget:
         w, lay = _page()
@@ -489,6 +511,15 @@ class AboutDialog(QDialog):
             grid.addWidget(_text(v, "mono", select=True), r, 1)
         grid.setColumnStretch(1, 1)
         cl.addLayout(grid)
+        row = QHBoxLayout()
+        row.setSpacing(10)
+        self.btn_update = QPushButton("Check for updates")
+        self.btn_update.setToolTip("Ask atlas-toolkit.org for the latest version number (nothing about you is sent)")
+        self.btn_update.clicked.connect(self.check_updates)
+        row.addWidget(self.btn_update)
+        self.update_note = _text("", "hint")
+        row.addWidget(self.update_note, 1)
+        cl.addLayout(row)
         lay.addWidget(card)
         lay.addWidget(self._licence_card())
         lay.addStretch(1)

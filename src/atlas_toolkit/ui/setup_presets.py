@@ -139,6 +139,9 @@ class PresetsPanel(QWidget):
                                       "Trust packs signed with this publisher's key from now on, or stop.")
         row.addWidget(self.btn_trust)
         row.addWidget(self._button("Open packs folder", "folder", self.open_packs_folder))
+        row.addWidget(self._button("Get preset packs", "external", self.get_packs,
+                                   "Opens atlas-toolkit.org: the free Basic pack gives every tool a preset to start "
+                                   "from, and Essentials and Complete hold more."))
         cl.addLayout(row)
         return card
 
@@ -643,6 +646,13 @@ class PresetsPanel(QWidget):
     def open_packs_folder(self) -> None:
         self.library.packs_dir.mkdir(parents=True, exist_ok=True)
         reveal(self.library.packs_dir)
+
+    @staticmethod
+    def get_packs() -> None:
+        """The official packs' page: the free Basic pack, Essentials and Complete."""
+        from ..core.paths import open_url
+        from ..version import PRESETS_URL
+        open_url(PRESETS_URL)
 
     def open_mine_folder(self) -> None:
         self.library.mine.folder.mkdir(parents=True, exist_ok=True)
