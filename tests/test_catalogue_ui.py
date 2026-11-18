@@ -133,7 +133,8 @@ class CatalogueUiTests(unittest.TestCase):
         page = self.win.open_tool("contour-lines")
         with mock.patch("atlas_toolkit.ui.catalogue.pick_models", return_value=[path]):
             page.pick_catalogue()
-        self.assertIn(path, page.rows)
+        # the queue keys files by their resolved path (macOS: /var/folders is /private/var/folders)
+        self.assertIn(str(Path(path).resolve()), page.rows)
 
     def test_mesh_file_settings_and_workflows_offer_it(self):
         from atlas_toolkit.ui.widgets.common import QToolButton
