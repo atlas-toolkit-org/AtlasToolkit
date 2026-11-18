@@ -2,7 +2,7 @@
 
 One PySide6 app for pen-plotter tools, in its own repository. `README.md` is the front page, `docs/TOOLS.md` the user guide, `docs/BUILDING.md` covers building it,
 `docs/PACKAGING.md` the installers, `docs/PLATFORMS.md` what each OS has proven, `docs/ARCHITECTURE.md` how it fits together,
-`docs/ADDING_A_TOOL.md` adding a tool, `docs/PRESETS.md` presets and preset packs, and `native/README.md` the C++ helpers. `AGENTS.md` holds the same rules for other coding agents (Codex): keep the two in sync.
+`docs/ADDING_A_TOOL.md` adding a tool, `docs/PRESETS.md` presets and preset packs, `docs/CATALOGUE.md` the model catalogue, and `native/README.md` the C++ helpers. `AGENTS.md` holds the same rules for other coding agents (Codex): keep the two in sync.
 
 ## Rules
 
@@ -23,6 +23,14 @@ One PySide6 app for pen-plotter tools, in its own repository. `README.md` is the
 - **The README is the catalogue.** A new tool gets a card in its group in `README.md` and a recipe in
   `scripts/dev/readme_gallery.py` (`--publish` writes the image; SVG tools have none). Keep cards to 2-3 lines and put
   detail in `docs/TOOLS.md` or the tool's guide (`test_readme` checks).
+- **The model catalogue is data, built from `catalogue/recipes.toml`** (`docs/CATALOGUE.md`). A model is a recipe block,
+  then `scripts/catalogue.py all --only <id>`; never edit `catalogue/index.json`, thumbnails or
+  `licenses/catalogue-models.txt` by hand. Only CC0, CC BY 4.0, CC BY-SA 4.0 or public-domain models (no NC, ND, BY-SA
+  3.0, "research only"): Commons sources are checked against Commons' licence field, others quote their terms in
+  `license_evidence`. Only forms that suit Atlas: solid and readable, no scale bars or labels, nothing mostly
+  thin (`check` measures it). In Shapes & forms only the simple solids ship (`simple_shapes`). Model files never go
+  in git: the starter set (under 40 MB) is fetched into the package by the build, the rest live on the
+  `catalogue-<revision>` release (publishing it only when asked).
 - **Presets are data, never code.** No tool spec defines presets (`test_contract` fails if one does) and the app
   ships none: a tool starts from its parameters' defaults. Users save and load `.atlaspreset` files; official
   presets come in `.atlaspack` packs built from the private `AtlasToolkit-presets` repository, which tests reach
@@ -102,7 +110,7 @@ One PySide6 app for pen-plotter tools, in its own repository. `README.md` is the
 .venv\Scripts\python scripts\build.py            :: or --onedir, --skip-tests, --skip-native, --no-splash
 .venv\Scripts\python native\build.py             :: C++ helpers only: --only stripes,remesh  --check  --no-fetch
 .venv\Scripts\python scripts\package.py          :: the installers into dist\installers, only when asked (docs/PACKAGING.md)
-git tag vX.Y.Z && git push origin vX.Y.Z         :: only when asked: a draft release (private until published) with every installer
+python scripts\release.py check|prepare|tag|status|publish X.Y.Z   :: a public release, step by step (docs/PACKAGING.md); each step only when asked
 python scripts\install_test.py <package> --container   :: installs it for real, so containers and CI only: proves it, removes it
 .venv\Scripts\python scripts\new_tool.py <folder> --kind svg|mesh|mesh2svg
 python scripts\doctor.py                         :: is this machine ready to develop and build? (any OS)

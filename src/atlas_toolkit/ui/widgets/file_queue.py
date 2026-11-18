@@ -39,6 +39,9 @@ class FileQueue(QTreeWidget):
         self.drop.setObjectName("drop")
         self.drop.setAlignment(Qt.AlignCenter)
         self.drop.setWordWrap(True)
+        if "<a " in drop_text:                     # a link in the empty queue (the model catalogue): clickable
+            self.drop.setTextFormat(Qt.RichText)
+            self.drop.setTextInteractionFlags(Qt.LinksAccessibleByMouse)
 
     def resizeEvent(self, e):
         super().resizeEvent(e)

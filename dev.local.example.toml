@@ -13,3 +13,8 @@ workspace = "C:/path/to/studio-workspace"
 # The private preset packs repository (AtlasToolkit-presets): packs/<pack>/pack.json and presets/<tool>.json.
 # The app ships with no presets; tests and dev scripts that use real presets skip without this.
 # presets = "C:/path/to/AtlasToolkit-presets"
+
+[release]
+# scripts/release.py publish: the website's checkout (its roadmap caption) and the server (filling public/X.Y.Z/).
+# site = "C:/path/to/atlas-toolkit.org"
+# ssh = "account@ssh-account.alwaysdata.net"

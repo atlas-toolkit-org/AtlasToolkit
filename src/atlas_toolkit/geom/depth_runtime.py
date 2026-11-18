@@ -38,6 +38,8 @@ from urllib import request as urlrequest
 
 from ..core import gpu as gpus
 from ..core import procs
+from ..core.download import CA_FILES, open_url  # noqa: F401 - CA_FILES re-exported
+from ..core.download import contexts as _contexts  # noqa: F401
 from ..core.paths import cache_dir, display_path, ml_runtime_dir, resource, venv_python
 
 LOCK_PATH = Path(__file__).with_name("depth_runtime.json")
@@ -456,35 +458,7 @@ def _internet_check(p: Plan) -> Check:
 
 
 # ----------------------------------------------------------------------------- downloads
-CA_FILES = ("/etc/ssl/certs/ca-certificates.crt", "/etc/pki/tls/certs/ca-bundle.crt", "/etc/ssl/cert.pem",
-            "/etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem")
-
-
-def _contexts():
-    """The default context first; a frozen app's OpenSSL may look where the build machine kept its certificates, so then
-    certifi's, then the usual system files."""
-    yield ssl.create_default_context()
-    try:
-        import certifi
-        yield ssl.create_default_context(cafile=certifi.where())
-    except ImportError:
-        pass
-    for f in CA_FILES:
-        if Path(f).is_file():
-            yield ssl.create_default_context(cafile=f)
-
-
-def open_url(url: str, method: str = "GET", timeout: float = 30):
-    last = None
-    for ctx in _contexts():
-        try:
-            req = urlrequest.Request(url, method=method, headers={"User-Agent": "atlas-toolkit-installer"})
-            return urlrequest.urlopen(req, timeout=timeout, context=ctx)
-        except urlerror.URLError as e:
-            if not isinstance(e.reason, ssl.SSLCertVerificationError):
-                raise
-            last = e
-    raise last
+# open_url and the certificate fallbacks live in core/download.py (shared with the catalogue and the update check)
 
 
 # ----------------------------------------------------------------------------- watching progress

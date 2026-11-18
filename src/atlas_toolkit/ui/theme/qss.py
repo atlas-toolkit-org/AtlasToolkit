@@ -170,7 +170,7 @@ QTextBrowser {{ font-family: "Geist"; font-size: 13px; }}
 /* ---------------------------------------------------------------- surfaces */
 #card {{ background: {c['bg-1']}; border: 1px solid {c['line']}; border-radius: 14px; }}
 QLabel[class="h3"] {{ color: {c['text']}; font-size: 14px; font-weight: 500; }}
-QDialog#aboutDialog, QDialog#setupDialog {{ background: {c['bg']}; }}
+QDialog#aboutDialog, QDialog#setupDialog, QDialog#catalogueDialog {{ background: {c['bg']}; }}
 #aboutHead {{ background: {c['bg-1']}; border-bottom: 1px solid {c['line']}; }}
 #aboutFoot {{ background: {c['bg-1']}; border-top: 1px solid {c['line']}; }}
 #aboutTabs QTabBar {{ background: {c['bg-1']}; }}
@@ -238,6 +238,17 @@ QMenu::item:selected {{ background: {c['bg-4']}; }}
 QMenu::item:disabled {{ color: {c['text-4']}; }}
 QMenu::separator {{ height: 1px; background: {c['line-2']}; margin: 4px 6px; }}
 QMenu::icon {{ padding-left: 6px; }}
+/* ---------------------------------------------------------------- model catalogue (ui/catalogue.py) */
+#catalogueRail {{ background: {c['bg-1']}; border: none; border-right: 1px solid {c['line']}; padding: 8px 6px;
+                  outline: none; }}
+#catalogueRail::item {{ border-radius: 8px; padding: 0 8px; color: {c['text-2']}; border: none; }}
+#catalogueRail::item:hover {{ background: {c['bg-2']}; color: {c['text']}; }}
+#catalogueRail::item:selected {{ background: {c['accent-soft']}; color: {c['accent-text']}; }}
+#catalogueGrid {{ background: transparent; border: none; outline: none; }}
+#catalogueGrid::item, #catalogueGrid::item:selected, #catalogueGrid::item:hover {{ background: transparent;
+                                                                                  border: none; }}
+#catalogueDetails {{ background: {c['bg-1']}; border: none; border-left: 1px solid {c['line']}; }}
+#catalogueStage {{ background: transparent; }}
 /* ---------------------------------------------------------------- workflows */
 #library {{ background: {c['bg-1']}; border-right: 1px solid {c['line']}; }}
 #libraryTree {{ background: transparent; border: none; }}

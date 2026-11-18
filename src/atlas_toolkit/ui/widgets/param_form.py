@@ -125,6 +125,10 @@ class Field(QWidget):
             self.widgets = [le]
             self.lay.addWidget(le, 1)
             self.lay.addWidget(pick)
+            if ".ply" in p.exts:                      # a mesh: the model catalogue offers ready-made ones
+                cat = icon_button("catalogue", "Pick a model from the catalogue", self.theme, size=16)
+                cat.clicked.connect(self._pick_catalogue)
+                self.lay.addWidget(cat)
         if getattr(p, "suggest", None) is not None:
             self.auto_btn = QToolButton()
             self.auto_btn.setText("auto")
@@ -143,6 +147,13 @@ class Field(QWidget):
         f, _ = QFileDialog.getOpenFileName(self, self.param.label, "", f"Files ({exts});;All files (*.*)")
         if f:
             self.widgets[0].setText(f)
+            self._on_edit()
+
+    def _pick_catalogue(self) -> None:
+        from ..catalogue import pick_models
+        paths = pick_models(self, multiple=False, title=f"Model catalogue · {self.param.label}")
+        if paths:
+            self.widgets[0].setText(paths[0])
             self._on_edit()
 
     def _on_slider(self, pos: int) -> None:

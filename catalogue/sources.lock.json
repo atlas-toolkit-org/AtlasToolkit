@@ -1,0 +1,555 @@
+{
+ "age-of-bronze": {
+  "bytes": 94003384,
+  "file": "The_Age_Of_Bronze_(Auguste_Rodin).stl",
+  "page": "https://commons.wikimedia.org/wiki/File:The_Age_Of_Bronze_(Auguste_Rodin).stl",
+  "sha256": "83c0053f4f2001afd500ab4661ab572bcefad19e626adb20f01a0f025493c02b",
+  "url": "https://upload.wikimedia.org/wikipedia/commons/7/78/The_Age_Of_Bronze_%28Auguste_Rodin%29.stl"
+ },
+ "ammonite-cleoniceras": {
+  "bytes": 10465384,
+  "file": "Cleoniceras_besairiei_(PRI_70601).stl",
+  "page": "https://commons.wikimedia.org/wiki/File:Cleoniceras_besairiei_(PRI_70601).stl",
+  "sha256": "1f0f917a05849300677820c7bcc3beb008d96e847257ca007fbcd8dcddbf0b12",
+  "url": "https://upload.wikimedia.org/wikipedia/commons/7/76/Cleoniceras_besairiei_%28PRI_70601%29.stl"
+ },
+ "ammonite-douvilleiceras": {
+  "bytes": 12860584,
+  "file": "Douvilleiceras_g._mammillatum.stl",
+  "page": "https://commons.wikimedia.org/wiki/File:Douvilleiceras_g._mammillatum.stl",
+  "sha256": "bd9670985553c3159d4b8de05faf81c08cf8ab9d8844fa525304f8774e4330f9",
+  "url": "https://upload.wikimedia.org/wikipedia/commons/3/3f/Douvilleiceras_g._mammillatum.stl"
+ },
+ "ammonite-taramelliceras": {
+  "bytes": 6074984,
+  "file": "Taramelliceras_sp.stl",
+  "page": "https://commons.wikimedia.org/wiki/File:Taramelliceras_sp.stl",
+  "sha256": "cf636923bdbe228eba8e791fc18cbf663f53011baab43e78d243b42e5308d910",
+  "url": "https://upload.wikimedia.org/wikipedia/commons/1/19/Taramelliceras_sp.stl"
+ },
+ "apollo-belvedere": {
+  "bytes": 145267884,
+  "file": "Apollo_Belvedere_-_KAS353.stl",
+  "page": "https://commons.wikimedia.org/wiki/File:Apollo_Belvedere_-_KAS353.stl",
+  "sha256": "0204769bf0c79b0edd75d2d41db7006a32f842a267a41180d353e644ffc29b75",
+  "url": "https://upload.wikimedia.org/wikipedia/commons/6/61/Apollo_Belvedere_-_KAS353.stl"
+ },
+ "aquilops-skull": {
+  "bytes": 20000084,
+  "file": "Aquilops_cranium_scan.stl",
+  "page": "https://commons.wikimedia.org/wiki/File:Aquilops_cranium_scan.stl",
+  "sha256": "94cf8472262fcb4f526a066d4535591b9d43f0d71df3c5181bac6074d13478f9",
+  "url": "https://upload.wikimedia.org/wikipedia/commons/a/a4/Aquilops_cranium_scan.stl"
+ },
+ "artemision-bronze": {
+  "bytes": 104745384,
+  "file": "Poseidon_eller_Zeus_fra_Artemision_-_KAS2100.stl",
+  "page": "https://commons.wikimedia.org/wiki/File:Poseidon_eller_Zeus_fra_Artemision_-_KAS2100.stl",
+  "sha256": "99562c27b8bc447d2ab5069d6d5e7690510d661205e1635ff2780c30203160b9",
+  "url": "https://upload.wikimedia.org/wikipedia/commons/c/cc/Poseidon_eller_Zeus_fra_Artemision_-_KAS2100.stl"
+ },
+ "augustus": {
+  "bytes": 23847284,
+  "file": "MSR-Auguste-Ra57.stl",
+  "page": "https://commons.wikimedia.org/wiki/File:MSR-Auguste-Ra57.stl",
+  "sha256": "ae7cf113e071b6735b01f938bf15877f972cab08865ab2d3e4536ea297c85a8a",
+  "url": "https://upload.wikimedia.org/wikipedia/commons/1/1e/MSR-Auguste-Ra57.stl"
+ },
+ "belvedere-torso": {
+  "bytes": 4889884,
+  "file": "Scan_the_World_-_Belvedere_Torso.stl",
+  "page": "https://commons.wikimedia.org/wiki/File:Scan_the_World_-_Belvedere_Torso.stl",
+  "sha256": "fb1499ce2052f47d693365d04b5e92e7eb0eee88051646a82b01e1bd3450e254",
+  "url": "https://upload.wikimedia.org/wikipedia/commons/f/f4/Scan_the_World_-_Belvedere_Torso.stl"
+ },
+ "blub": {
+  "bytes": 1820603,
+  "file": "blub.zip",
+  "page": "https://www.cs.cmu.edu/~kmcrane/Projects/ModelRepository/",
+  "sha256": "0b10a303b407ef1a5ba8c406f18842cdf4e62ea411e3279232f2dbfd9bfca811",
+  "url": "https://www.cs.cmu.edu/~kmcrane/Projects/ModelRepository/blub.zip"
+ },
+ "bob": {
+  "bytes": 1596637,
+  "file": "bob.zip",
+  "page": "https://www.cs.cmu.edu/~kmcrane/Projects/ModelRepository/",
+  "sha256": "0b9a3e750ad776cf1d5721eb793cc3add31cadb79e99dbd987ce03357ac44253",
+  "url": "https://www.cs.cmu.edu/~kmcrane/Projects/ModelRepository/bob.zip"
+ },
+ "caceres-bust": {
+  "bytes": 9998384,
+  "file": "Reconstrução_facial_-_busto_-_Cáceres-MT.stl",
+  "page": "https://commons.wikimedia.org/wiki/File:Reconstru%C3%A7%C3%A3o_facial_-_busto_-_C%C3%A1ceres-MT.stl",
+  "sha256": "e28211672698c86b772d0600fb8a10bbae3b38a5aa38e8ff2132cdf54021436a",
+  "url": "https://upload.wikimedia.org/wikipedia/commons/f/f9/Reconstru%C3%A7%C3%A3o_facial_-_busto_-_C%C3%A1ceres-MT.stl"
+ },
+ "caracalla": {
+  "bytes": 9058534,
+  "file": "Bust_of_Emperor_Caracalla.stl",
+  "page": "https://commons.wikimedia.org/wiki/File:Bust_of_Emperor_Caracalla.stl",
+  "sha256": "a1a44d0b2ed7c64ebd4439ab4f8aaa8798ac8f8e77e449bdd01dbc58ee97b2a5",
+  "url": "https://upload.wikimedia.org/wikipedia/commons/c/c0/Bust_of_Emperor_Caracalla.stl"
+ },
+ "claes-lindhardt": {
+  "bytes": 10049484,
+  "file": "3D_Bust_of_Claes_Lindhardt.stl",
+  "page": "https://commons.wikimedia.org/wiki/File:3D_Bust_of_Claes_Lindhardt.stl",
+  "sha256": "5ff8f94b29ba83050d6bd3adafa75366ecbdc047fe8bb8bdbd56d821a7e97044",
+  "url": "https://upload.wikimedia.org/wikipedia/commons/c/cf/3D_Bust_of_Claes_Lindhardt.stl"
+ },
+ "constant-width": {
+  "bytes": 1471906,
+  "file": "constant-width.zip",
+  "page": "https://www.cs.cmu.edu/~kmcrane/Projects/ModelRepository/",
+  "sha256": "1972f2788baeeb209e7974bcd85c22c66f23b6fc702339b43027bc3bd05efcd0",
+  "url": "https://www.cs.cmu.edu/~kmcrane/Projects/ModelRepository/constant-width.zip"
+ },
+ "david": {
+  "bytes": 59997484,
+  "file": "David_(Michelangelo).stl",
+  "page": "https://commons.wikimedia.org/wiki/File:David_(Michelangelo).stl",
+  "sha256": "b41ad68e2b7a7377251f11201b6f9ba9569fa16422bec3719223f205d001c6f9",
+  "url": "https://upload.wikimedia.org/wikipedia/commons/4/4d/David_%28Michelangelo%29.stl"
+ },
+ "david-head": {
+  "bytes": 59997484,
+  "file": "David_(Michelangelo).stl",
+  "page": "https://commons.wikimedia.org/wiki/File:David_(Michelangelo).stl",
+  "sha256": "b41ad68e2b7a7377251f11201b6f9ba9569fa16422bec3719223f205d001c6f9",
+  "url": "https://upload.wikimedia.org/wikipedia/commons/4/4d/David_%28Michelangelo%29.stl"
+ },
+ "discobolus": {
+  "bytes": 100849784,
+  "file": "Diskoskasteren_(Discobolos)_-_KAS1549.stl",
+  "page": "https://commons.wikimedia.org/wiki/File:Diskoskasteren_(Discobolos)_-_KAS1549.stl",
+  "sha256": "f1c9457f52590725ec6159cc9646f1a4517fa3d5360694ea9f7f1c7e8561ebd8",
+  "url": "https://upload.wikimedia.org/wikipedia/commons/f/fe/Diskoskasteren_%28Discobolos%29_-_KAS1549.stl"
+ },
+ "doryphoros": {
+  "bytes": 137712784,
+  "file": "Spydbæreren_(doryforos)_-_KAS11.stl",
+  "page": "https://commons.wikimedia.org/wiki/File:Spydb%C3%A6reren_(doryforos)_-_KAS11.stl",
+  "sha256": "d39525066820284a4c48899865a80094bcb156aa7c34a8cd8e2fb95e6e8f9d30",
+  "url": "https://upload.wikimedia.org/wikipedia/commons/c/c2/Spydb%C3%A6reren_%28doryforos%29_-_KAS11.stl"
+ },
+ "elephant-skull": {
+  "bytes": 152769134,
+  "file": "Elephas_maximus_(skull)_3d_scan_Natural_History_Museum_University_of_Pisa_C_1449.stl",
+  "page": "https://commons.wikimedia.org/wiki/File:Elephas_maximus_(skull)_3d_scan_Natural_History_Museum_University_of_Pisa_C_1449.stl",
+  "sha256": "d30dfe35acf04db216d6949e8d7e1d0df136f85ce528d2c5f9b1b81c9093b394",
+  "url": "https://upload.wikimedia.org/wikipedia/commons/6/67/Elephas_maximus_%28skull%29_3d_scan_Natural_History_Museum_University_of_Pisa_C_1449.stl"
+ },
+ "fossil-whale": {
+  "bytes": 7500034,
+  "file": "Whale-mpc-677-150k_(Smithsonian_Institution).stl",
+  "page": "https://commons.wikimedia.org/wiki/File:Whale-mpc-677-150k_(Smithsonian_Institution).stl",
+  "sha256": "0375afad5436fc154fa7a57efa677c6f6ccc1320bf15338803b5db9f03e7a44e",
+  "url": "https://upload.wikimedia.org/wikipedia/commons/4/49/Whale-mpc-677-150k_%28Smithsonian_Institution%29.stl"
+ },
+ "fracastoro": {
+  "bytes": 49982084,
+  "file": "Girolamo_Fracastoro.stl",
+  "page": "https://commons.wikimedia.org/wiki/File:Girolamo_Fracastoro.stl",
+  "sha256": "43dcdcb25dc16b6df21e8ab368d3485aa879141aac284f552a7ab46eff41c7ad",
+  "url": "https://upload.wikimedia.org/wikipedia/commons/8/8f/Girolamo_Fracastoro.stl"
+ },
+ "funerary-mask": {
+  "bytes": 19049684,
+  "file": "Funerary_mask-MAHG_7059-High_poly-001.stl",
+  "page": "https://commons.wikimedia.org/wiki/File:Funerary_mask-MAHG_7059-High_poly-001.stl",
+  "sha256": "c7094f7b473d4360c3b7d63a09ac58b8f8664acb65a1cae886320ab7b402fa1a",
+  "url": "https://upload.wikimedia.org/wikipedia/commons/4/4a/Funerary_mask-MAHG_7059-High_poly-001.stl"
+ },
+ "giant-isopod": {
+  "bytes": 25001284,
+  "file": "Giant_Isopod.stl",
+  "page": "https://commons.wikimedia.org/wiki/File:Giant_Isopod.stl",
+  "sha256": "7137515b61bee9966833a945ee66878490683e74e3b6f44d406c63955aa46b3c",
+  "url": "https://upload.wikimedia.org/wikipedia/commons/e/e9/Giant_Isopod.stl"
+ },
+ "hercules-beetle": {
+  "bytes": 4186884,
+  "file": "Hercules03_(Male_hercules_beetle).stl",
+  "page": "https://commons.wikimedia.org/wiki/File:Hercules03_(Male_hercules_beetle).stl",
+  "sha256": "13286e87dece5dcbaca1a4d70128afc838cd9e514abda52ff3a76ff65d80b2af",
+  "url": "https://upload.wikimedia.org/wikipedia/commons/a/a3/Hercules03_%28Male_hercules_beetle%29.stl"
+ },
+ "hercules-msr": {
+  "bytes": 6000284,
+  "file": "MSR-Hercule-Ra28l.stl",
+  "page": "https://commons.wikimedia.org/wiki/File:MSR-Hercule-Ra28l.stl",
+  "sha256": "3d649884834ac33f71e3aac30365d868ce8ad7a240a5fc29d75b16c169a51060",
+  "url": "https://upload.wikimedia.org/wikipedia/commons/5/5d/MSR-Hercule-Ra28l.stl"
+ },
+ "homo-longi": {
+  "bytes": 2101984,
+  "file": "Homo_longi_-_bust_-_Moraes_et_al._2026.stl",
+  "page": "https://commons.wikimedia.org/wiki/File:Homo_longi_-_bust_-_Moraes_et_al._2026.stl",
+  "sha256": "28ef1f987da1c12acfbd76137b97b0a1df29cf7e562f4aa1a4b2c7d3373e953b",
+  "url": "https://upload.wikimedia.org/wikipedia/commons/3/35/Homo_longi_-_bust_-_Moraes_et_al._2026.stl"
+ },
+ "human-skull": {
+  "bytes": 43049784,
+  "file": "High_quality_skull.stl",
+  "page": "https://commons.wikimedia.org/wiki/File:High_quality_skull.stl",
+  "sha256": "c1267322f6ab5f8733e7ed287a8cf6f7a7b681793ff21251226f465207df51a2",
+  "url": "https://upload.wikimedia.org/wikipedia/commons/d/d8/High_quality_skull.stl"
+ },
+ "hyena-skull": {
+  "bytes": 90765134,
+  "file": "Crocuta_crocuta_(skull)_3d_scan_Natural_History_Museum_University_of_Pisa_C_1061.stl",
+  "page": "https://commons.wikimedia.org/wiki/File:Crocuta_crocuta_(skull)_3d_scan_Natural_History_Museum_University_of_Pisa_C_1061.stl",
+  "sha256": "2ddebdf3212a861366568e8a57944c31bfc7c19f057f2ae4af03834db8660996",
+  "url": "https://upload.wikimedia.org/wikipedia/commons/c/c4/Crocuta_crocuta_%28skull%29_3d_scan_Natural_History_Museum_University_of_Pisa_C_1061.stl"
+ },
+ "inigo-dragon": {
+  "bytes": 19731126,
+  "file": "inigo.zip",
+  "page": "https://www.cs.cmu.edu/~kmcrane/Projects/ModelRepository/",
+  "sha256": "17aa06151916857b6138f7c9d8ca05cd98c0a8c61d696a93f782a751352bd91b",
+  "url": "https://www.cs.cmu.edu/~kmcrane/Projects/ModelRepository/inigo.zip"
+ },
+ "jerry-ogre": {
+  "bytes": 9261437,
+  "file": "ogre.zip",
+  "page": "https://www.cs.cmu.edu/~kmcrane/Projects/ModelRepository/",
+  "sha256": "5a12d45f7793adac42cb6f5812396ab7dbc8095c29d84f7d6871384b94079957",
+  "url": "https://www.cs.cmu.edu/~kmcrane/Projects/ModelRepository/ogre.zip"
+ },
+ "juno-ludovisi": {
+  "bytes": 32149284,
+  "file": "Scan_the_World_-_Juno_Ludovisi.stl",
+  "page": "https://commons.wikimedia.org/wiki/File:Scan_the_World_-_Juno_Ludovisi.stl",
+  "sha256": "972537da65064893f30d0859d2cb5801fb01aeb9c4de314959ddf58bce43b347",
+  "url": "https://upload.wikimedia.org/wikipedia/commons/4/4e/Scan_the_World_-_Juno_Ludovisi.stl"
+ },
+ "jupiter-statuette": {
+  "bytes": 5001184,
+  "file": "MSR-Jupiter-2014-1-1.stl",
+  "page": "https://commons.wikimedia.org/wiki/File:MSR-Jupiter-2014-1-1.stl",
+  "sha256": "0ba4376f8496794d37ec9ad89beac215b2a9f7d5b781f748b8d6bee6af107f93",
+  "url": "https://upload.wikimedia.org/wikipedia/commons/3/35/MSR-Jupiter-2014-1-1.stl"
+ },
+ "kore": {
+  "bytes": 144384784,
+  "file": "Kore_ACR_671_iført_chiton_og_kappe_(epiblema)_-_KAS1800.stl",
+  "page": "https://commons.wikimedia.org/wiki/File:Kore_ACR_671_if%C3%B8rt_chiton_og_kappe_(epiblema)_-_KAS1800.stl",
+  "sha256": "d5d24d97562b73bb01b9f4d1e71e2728dcee7222b93940733ed23b11382b2918",
+  "url": "https://upload.wikimedia.org/wikipedia/commons/f/fe/Kore_ACR_671_if%C3%B8rt_chiton_og_kappe_%28epiblema%29_-_KAS1800.stl"
+ },
+ "lagoa-santa": {
+  "bytes": 24958084,
+  "file": "Lapa_do_Santo_-_Sepultamento_26_-_Facial_reconstruction_by_Caroline_WilkinsonNew_Face_of_Lagoa_Santa_people_by_Caroline_Wilkinson.stl",
+  "page": "https://commons.wikimedia.org/wiki/File:Lapa_do_Santo_-_Sepultamento_26_-_Facial_reconstruction_by_Caroline_WilkinsonNew_Face_of_Lagoa_Santa_people_by_Caroline_Wilkinson.stl",
+  "sha256": "42188813598a4250a5633f2ccbf8787c645a8a67d1f9e27469bc336210e7a236",
+  "url": "https://upload.wikimedia.org/wikipedia/commons/6/66/Lapa_do_Santo_-_Sepultamento_26_-_Facial_reconstruction_by_Caroline_WilkinsonNew_Face_of_Lagoa_Santa_people_by_Caroline_Wilkinson.stl"
+ },
+ "laocoon": {
+  "bytes": 30000084,
+  "file": "Scan_the_World_-_Laocoon_Group.stl",
+  "page": "https://commons.wikimedia.org/wiki/File:Scan_the_World_-_Laocoon_Group.stl",
+  "sha256": "8f962593056edf56ce0272b7c2c0c4d4fef0324a2fe90130ed6fc80fcb936700",
+  "url": "https://upload.wikimedia.org/wikipedia/commons/b/b2/Scan_the_World_-_Laocoon_Group.stl"
+ },
+ "laurana-woman": {
+  "bytes": 4993484,
+  "file": "Laurana.stl",
+  "page": "https://commons.wikimedia.org/wiki/File:Laurana.stl",
+  "sha256": "607d09913adf730fc59c815ad4b38047a87b81148a8c16da8a5fec82a8485bce",
+  "url": "https://upload.wikimedia.org/wikipedia/commons/2/20/Laurana.stl"
+ },
+ "lincoln-hands-casts": {
+  "bytes": 15000084,
+  "file": "Abraham_Lincoln_Hands_Plaster_Casts_-_3D_model_by_The_Smithsonian_Institution_-_Sketchfab.stl",
+  "page": "https://commons.wikimedia.org/wiki/File:Abraham_Lincoln_Hands_Plaster_Casts_-_3D_model_by_The_Smithsonian_Institution_-_Sketchfab.stl",
+  "sha256": "13b85de025708dfe01fde5a4395348ed983886f1db765ac3f51e6573b36a2b69",
+  "url": "https://upload.wikimedia.org/wikipedia/commons/8/83/Abraham_Lincoln_Hands_Plaster_Casts_-_3D_model_by_The_Smithsonian_Institution_-_Sketchfab.stl"
+ },
+ "lincoln-left-hand": {
+  "bytes": 7500084,
+  "file": "Npg_71_6_left-hires_unwrapped-150k-unwrapped_(Smithsonian_Institution).stl",
+  "page": "https://commons.wikimedia.org/wiki/File:Npg_71_6_left-hires_unwrapped-150k-unwrapped_(Smithsonian_Institution).stl",
+  "sha256": "9dabbec9dcf180f50a2adb027a129d34cf1c4f426605abcb7855f21d43ac8d52",
+  "url": "https://upload.wikimedia.org/wikipedia/commons/f/f5/Npg_71_6_left-hires_unwrapped-150k-unwrapped_%28Smithsonian_Institution%29.stl"
+ },
+ "lincoln-mask-mills": {
+  "bytes": 7500084,
+  "file": "Abraham_Lincoln_Mills_Life_Mask_-_3D_model_by_The_Smithsonian_Institution_-_Sketchfab.stl",
+  "page": "https://commons.wikimedia.org/wiki/File:Abraham_Lincoln_Mills_Life_Mask_-_3D_model_by_The_Smithsonian_Institution_-_Sketchfab.stl",
+  "sha256": "2b07260e94e5512f7da06ca011e88ee92916f97c50b95f3d34eb582bd9e483c2",
+  "url": "https://upload.wikimedia.org/wikipedia/commons/5/5c/Abraham_Lincoln_Mills_Life_Mask_-_3D_model_by_The_Smithsonian_Institution_-_Sketchfab.stl"
+ },
+ "lincoln-mask-volk": {
+  "bytes": 4997284,
+  "file": "Abraham_Lincoln_Life_Volks_Mask_-_3D_model_by_The_Smithsonian_Institution_-_Sketchfab.stl",
+  "page": "https://commons.wikimedia.org/wiki/File:Abraham_Lincoln_Life_Volks_Mask_-_3D_model_by_The_Smithsonian_Institution_-_Sketchfab.stl",
+  "sha256": "c683203beb3487b67ed3b9b88ba99e78ace80dd5484fbd4612fe24375e6706c0",
+  "url": "https://upload.wikimedia.org/wikipedia/commons/4/41/Abraham_Lincoln_Life_Volks_Mask_-_3D_model_by_The_Smithsonian_Institution_-_Sketchfab.stl"
+ },
+ "lincoln-right-hand": {
+  "bytes": 7500084,
+  "file": "Npg_71_6_right-hires_unwrapped-150k-unwrapped_(Smithsonian_Institution).stl",
+  "page": "https://commons.wikimedia.org/wiki/File:Npg_71_6_right-hires_unwrapped-150k-unwrapped_(Smithsonian_Institution).stl",
+  "sha256": "32f0ec76e5b312b9cb136f414e9bd8e5ed52754b4903d6b57cbd55de0fd16b35",
+  "url": "https://upload.wikimedia.org/wikipedia/commons/f/f5/Npg_71_6_right-hires_unwrapped-150k-unwrapped_%28Smithsonian_Institution%29.stl"
+ },
+ "lion-al-lat": {
+  "bytes": 1470284,
+  "file": "Asad_Al-Lat.stl",
+  "page": "https://commons.wikimedia.org/wiki/File:Asad_Al-Lat.stl",
+  "sha256": "5748e4d150a370f34328ea768ced85ccafcaae6dd3c3891f2c0e80fb0a7a4ac8",
+  "url": "https://upload.wikimedia.org/wikipedia/commons/a/af/Asad_Al-Lat.stl"
+ },
+ "macaque-skull": {
+  "bytes": 45596034,
+  "file": "Macaca_nigra_3d_scan_Natural_History_Museum_University_of_Pisa_C_1750.stl",
+  "page": "https://commons.wikimedia.org/wiki/File:Macaca_nigra_3d_scan_Natural_History_Museum_University_of_Pisa_C_1750.stl",
+  "sha256": "b8cc961c79e5e733ff545d81f9ce19edd9211b8fdd17058104c5161a113e273e",
+  "url": "https://upload.wikimedia.org/wikipedia/commons/4/46/Macaca_nigra_3d_scan_Natural_History_Museum_University_of_Pisa_C_1750.stl"
+ },
+ "marcus-aurelius": {
+  "bytes": 24496084,
+  "file": "MSR-Marc_Aurèle-Ra61b.stl",
+  "page": "https://commons.wikimedia.org/wiki/File:MSR-Marc_Aur%C3%A8le-Ra61b.stl",
+  "sha256": "24866b3104c26098fae4e41aa94a83e10b5b4ae8d58d7bdb4c004985f3ef7660",
+  "url": "https://upload.wikimedia.org/wikipedia/commons/d/d1/MSR-Marc_Aur%C3%A8le-Ra61b.stl"
+ },
+ "mask-of-thuya": {
+  "bytes": 6309384,
+  "file": "Mask_of_Thuya,_3D_photogrammetry_scan_(STL).stl",
+  "page": "https://commons.wikimedia.org/wiki/File:Mask_of_Thuya,_3D_photogrammetry_scan_(STL).stl",
+  "sha256": "7753bf432b6b647aefc9cd7cf8eff8c0cc2ed83d2f009fc1e0869b3e5b4b04af",
+  "url": "https://upload.wikimedia.org/wikipedia/commons/4/45/Mask_of_Thuya%2C_3D_photogrammetry_scan_%28STL%29.stl"
+ },
+ "maximian": {
+  "bytes": 7495684,
+  "file": "MSR-Maximien_Hercule-Ra34b.stl",
+  "page": "https://commons.wikimedia.org/wiki/File:MSR-Maximien_Hercule-Ra34b.stl",
+  "sha256": "1220a851a8fdc59507cb326f80152587809cf63aa2d7d74bcbd82f4b827243de",
+  "url": "https://upload.wikimedia.org/wikipedia/commons/5/50/MSR-Maximien_Hercule-Ra34b.stl"
+ },
+ "memnon": {
+  "bytes": 253627784,
+  "file": "Memnon_fra_Etiopien_-_KAS969.stl",
+  "page": "https://commons.wikimedia.org/wiki/File:Memnon_fra_Etiopien_-_KAS969.stl",
+  "sha256": "46d6b1036f3ff79321248f2a0b7839a81c935bcf64c33941d6f6da4eeb5dcc56",
+  "url": "https://upload.wikimedia.org/wikipedia/commons/4/4e/Memnon_fra_Etiopien_-_KAS969.stl"
+ },
+ "nefertiti": {
+  "bytes": 24833284,
+  "file": "Bust_of_Nefertiti_at_the_Neues_Museum,_Berlin.stl",
+  "page": "https://commons.wikimedia.org/wiki/File:Bust_of_Nefertiti_at_the_Neues_Museum,_Berlin.stl",
+  "sha256": "189ea62c4f99aebb1b2f3882e4758a40f3eb37aff2f1089d8521127ec7e23974",
+  "url": "https://upload.wikimedia.org/wikipedia/commons/9/9c/Bust_of_Nefertiti_at_the_Neues_Museum%2C_Berlin.stl"
+ },
+ "oloid": {
+  "bytes": 138998,
+  "file": "oloid.zip",
+  "page": "https://www.cs.cmu.edu/~kmcrane/Projects/ModelRepository/",
+  "sha256": "39e4d879848ed7d57cff16f43cde877b9f7d26170583b39286127a3bd53a86d2",
+  "url": "https://www.cs.cmu.edu/~kmcrane/Projects/ModelRepository/oloid.zip"
+ },
+ "phineas-gage": {
+  "bytes": 83894884,
+  "file": "Phineas_Gage_life_mask.stl",
+  "page": "https://commons.wikimedia.org/wiki/File:Phineas_Gage_life_mask.stl",
+  "sha256": "dee1246f71af385c24ee3881e085275659c5268c93805b200768d8d55b293422",
+  "url": "https://upload.wikimedia.org/wikipedia/commons/6/62/Phineas_Gage_life_mask.stl"
+ },
+ "pierre-de-wissant": {
+  "bytes": 31168384,
+  "file": "1917.722_Heroic_Head_of_Pierre_de_Wissant_-_3D_model.stl",
+  "page": "https://commons.wikimedia.org/wiki/File:1917.722_Heroic_Head_of_Pierre_de_Wissant_-_3D_model.stl",
+  "sha256": "e3fdcd7ff67f0400bb0517619998a0272e1b100858e1e4f8ad9ea88c622a571c",
+  "url": "https://upload.wikimedia.org/wikipedia/commons/1/1c/1917.722_Heroic_Head_of_Pierre_de_Wissant_-_3D_model.stl"
+ },
+ "pieta": {
+  "bytes": 40786984,
+  "file": "Scan_the_World_-_Pietà_(Michelangelo).stl",
+  "page": "https://commons.wikimedia.org/wiki/File:Scan_the_World_-_Piet%C3%A0_(Michelangelo).stl",
+  "sha256": "f77f638262a0e0fc7f3dc763bfeee228faad21057659de75c6c6697f420f60b4",
+  "url": "https://upload.wikimedia.org/wikipedia/commons/7/77/Scan_the_World_-_Piet%C3%A0_%28Michelangelo%29.stl"
+ },
+ "pig": {
+  "bytes": 225275,
+  "file": "pig.zip",
+  "page": "https://www.cs.cmu.edu/~kmcrane/Projects/ModelRepository/",
+  "sha256": "49b1ff3f5449d2918fc285b2691b725050513c8c4733e710ff3a5cf26350e67c",
+  "url": "https://www.cs.cmu.edu/~kmcrane/Projects/ModelRepository/pig.zip"
+ },
+ "ramon-y-cajal": {
+  "bytes": 8569084,
+  "file": "Modelo_3D_del_busto_de_Santiago_Ramon_y_Cajal.stl",
+  "page": "https://commons.wikimedia.org/wiki/File:Modelo_3D_del_busto_de_Santiago_Ramon_y_Cajal.stl",
+  "sha256": "10efa0f251f9910d692a00a5c52376f67bd227aaaded8e6f82a6768d670710e4",
+  "url": "https://upload.wikimedia.org/wikipedia/commons/4/4b/Modelo_3D_del_busto_de_Santiago_Ramon_y_Cajal.stl"
+ },
+ "satyr-head": {
+  "bytes": 2499984,
+  "file": "MSR-Tete-de-Satyre-Ra131.stl",
+  "page": "https://commons.wikimedia.org/wiki/File:MSR-Tete-de-Satyre-Ra131.stl",
+  "sha256": "aa1f754044f155469211b8383074433ffcd64cefcd013211026bbc55a9a4ac56",
+  "url": "https://upload.wikimedia.org/wikipedia/commons/1/1c/MSR-Tete-de-Satyre-Ra131.stl"
+ },
+ "sculpted-head": {
+  "bytes": 84544084,
+  "file": "Head_(Sculpting)_-_Realistic_by_Dan_Ulrich_(CC0).stl",
+  "page": "https://commons.wikimedia.org/wiki/File:Head_(Sculpting)_-_Realistic_by_Dan_Ulrich_(CC0).stl",
+  "sha256": "63cdcac1722ea6bf5d8f6758aafc7c8adee962d7b2e505c79f39eb4ea7e6c86b",
+  "url": "https://upload.wikimedia.org/wikipedia/commons/8/84/Head_%28Sculpting%29_-_Realistic_by_Dan_Ulrich_%28CC0%29.stl"
+ },
+ "septimius-severus": {
+  "bytes": 12500184,
+  "file": "MSR-Septime_Sévère-Ra66a.stl",
+  "page": "https://commons.wikimedia.org/wiki/File:MSR-Septime_S%C3%A9v%C3%A8re-Ra66a.stl",
+  "sha256": "adbf9f9d9a783a7145adf057cbed90f00bb7df453ce011614387ee70e3753c84",
+  "url": "https://upload.wikimedia.org/wikipedia/commons/a/ad/MSR-Septime_S%C3%A9v%C3%A8re-Ra66a.stl"
+ },
+ "singing-woman": {
+  "bytes": 10913584,
+  "file": "Bust_Of_A_Singing_Woman_-_3D_model_by_Limerick3D_-_Sketchfab.stl",
+  "page": "https://commons.wikimedia.org/wiki/File:Bust_Of_A_Singing_Woman_-_3D_model_by_Limerick3D_-_Sketchfab.stl",
+  "sha256": "3ca41f7a60c2d31b34b1d5a4c6bd82c3a11bb6152dcf242d5c5067faa2ba367d",
+  "url": "https://upload.wikimedia.org/wikipedia/commons/0/0a/Bust_Of_A_Singing_Woman_-_3D_model_by_Limerick3D_-_Sketchfab.stl"
+ },
+ "spot": {
+  "bytes": 328982,
+  "file": "spot.zip",
+  "page": "https://www.cs.cmu.edu/~kmcrane/Projects/ModelRepository/",
+  "sha256": "1d4082da4e940f6a4cfdf648fd77e1647ac613c618dbff933f1ba23fad254608",
+  "url": "https://www.cs.cmu.edu/~kmcrane/Projects/ModelRepository/spot.zip"
+ },
+ "st-valentine": {
+  "bytes": 12282784,
+  "file": "St._Valentine_3D_-_forensic_facial_reconstruction.stl",
+  "page": "https://commons.wikimedia.org/wiki/File:St._Valentine_3D_-_forensic_facial_reconstruction.stl",
+  "sha256": "f1a8298e86b15b4d999ef19b34988e4e55747ffed09bff5dbda542e43ae14fc7",
+  "url": "https://upload.wikimedia.org/wikipedia/commons/9/99/St._Valentine_3D_-_forensic_facial_reconstruction.stl"
+ },
+ "street-rat": {
+  "bytes": 2860884,
+  "file": "Street_rat_8k_(Sean_Buckley_via_Poly_Haven).stl",
+  "page": "https://commons.wikimedia.org/wiki/File:Street_rat_8k_(Sean_Buckley_via_Poly_Haven).stl",
+  "sha256": "2d4530ab26087623dd7d76de669871bd4aa0d2c90b441b7fb86d433bf5e2a124",
+  "url": "https://upload.wikimedia.org/wikipedia/commons/6/6e/Street_rat_8k_%28Sean_Buckley_via_Poly_Haven%29.stl"
+ },
+ "thinker": {
+  "bytes": 41874184,
+  "file": "Scan_the_World_-_The_Thinker_(Auguste_Rodin).stl",
+  "page": "https://commons.wikimedia.org/wiki/File:Scan_the_World_-_The_Thinker_(Auguste_Rodin).stl",
+  "sha256": "ae9427b19c0b5cc0c680a01793b361766cc6175be8ba6f1c9a0f0b30e2b3c5e7",
+  "url": "https://upload.wikimedia.org/wikipedia/commons/e/e2/Scan_the_World_-_The_Thinker_%28Auguste_Rodin%29.stl"
+ },
+ "tortoise-shell": {
+  "bytes": 10000084,
+  "file": "Brazilian_tortoise_shell.stl",
+  "page": "https://commons.wikimedia.org/wiki/File:Brazilian_tortoise_shell.stl",
+  "sha256": "3bdff148207d0204aeddda0dbd59c42e9e6694aa03630a025638ebc21ac4e3c1",
+  "url": "https://upload.wikimedia.org/wikipedia/commons/b/b8/Brazilian_tortoise_shell.stl"
+ },
+ "tortoise-skeleton": {
+  "bytes": 223774934,
+  "file": "Astrochelys_radiata_3d_scan_Natural_History_Museum_University_of_Pisa_B_51.stl",
+  "page": "https://commons.wikimedia.org/wiki/File:Astrochelys_radiata_3d_scan_Natural_History_Museum_University_of_Pisa_B_51.stl",
+  "sha256": "73b323a31dd0ae96783256400bb1838ec97e76ac658a21a88fb61832cb340d7a",
+  "url": "https://upload.wikimedia.org/wikipedia/commons/e/e5/Astrochelys_radiata_3d_scan_Natural_History_Museum_University_of_Pisa_B_51.stl"
+ },
+ "trajan": {
+  "bytes": 14574484,
+  "file": "MSR-Trajan-Ra_117.stl",
+  "page": "https://commons.wikimedia.org/wiki/File:MSR-Trajan-Ra_117.stl",
+  "sha256": "d7eddf36ab29e32dbbf338e2803d29dd6e8cdc310761e8a9956621baf3876c8e",
+  "url": "https://upload.wikimedia.org/wikipedia/commons/e/e5/MSR-Trajan-Ra_117.stl"
+ },
+ "tranquillina": {
+  "bytes": 3981734,
+  "file": "MSR-Tranquillina-Ra166.stl",
+  "page": "https://commons.wikimedia.org/wiki/File:MSR-Tranquillina-Ra166.stl",
+  "sha256": "8aa67e520eaf4ce14ea5d737f5cc8e9398004bba4b9570ed7851f4665ed180d2",
+  "url": "https://upload.wikimedia.org/wikipedia/commons/d/d8/MSR-Tranquillina-Ra166.stl"
+ },
+ "turtle-skull": {
+  "bytes": 50000684,
+  "file": "Caretta_caretta_skull_3d_scan_Natural_History_Museum_University_of_Pisa_B_32.stl",
+  "page": "https://commons.wikimedia.org/wiki/File:Caretta_caretta_skull_3d_scan_Natural_History_Museum_University_of_Pisa_B_32.stl",
+  "sha256": "69ea8f612a0b00c129ebbec1cf1f071417dae89a1485bf626e301385b8d0943f",
+  "url": "https://upload.wikimedia.org/wikipedia/commons/4/43/Caretta_caretta_skull_3d_scan_Natural_History_Museum_University_of_Pisa_B_32.stl"
+ },
+ "ugolino": {
+  "bytes": 67268984,
+  "file": "Scan_the_World_-_Ugolino_and_His_Sons.stl",
+  "page": "https://commons.wikimedia.org/wiki/File:Scan_the_World_-_Ugolino_and_His_Sons.stl",
+  "sha256": "a181243c7f5c143f8b22fe6d1d0df09ea2d4a9375a59c6b686718c4ebe754ade",
+  "url": "https://upload.wikimedia.org/wikipedia/commons/8/85/Scan_the_World_-_Ugolino_and_His_Sons.stl"
+ },
+ "utah-teapot": {
+  "bytes": 471984,
+  "file": "Utah_teapot_(solid).stl",
+  "page": "https://commons.wikimedia.org/wiki/File:Utah_teapot_(solid).stl",
+  "sha256": "0ba068b3ffd2a927b72d5037a163fcc17860bc474c06f0e85a78ad34faccce15",
+  "url": "https://upload.wikimedia.org/wikipedia/commons/9/93/Utah_teapot_%28solid%29.stl"
+ },
+ "venus-de-milo": {
+  "bytes": 137129384,
+  "file": "Venus_(Afrodite)_fra_Milo_-_KAS434_1.stl",
+  "page": "https://commons.wikimedia.org/wiki/File:Venus_(Afrodite)_fra_Milo_-_KAS434_1.stl",
+  "sha256": "3b2fdc98971894812a24ff7d3675bb352ccd113a7f0609b2c8cfed6bacfab177",
+  "url": "https://upload.wikimedia.org/wikipedia/commons/0/0e/Venus_%28Afrodite%29_fra_Milo_-_KAS434_1.stl"
+ },
+ "venus-de-milo-bust": {
+  "bytes": 137129384,
+  "file": "Venus_(Afrodite)_fra_Milo_-_KAS434_1.stl",
+  "page": "https://commons.wikimedia.org/wiki/File:Venus_(Afrodite)_fra_Milo_-_KAS434_1.stl",
+  "sha256": "3b2fdc98971894812a24ff7d3675bb352ccd113a7f0609b2c8cfed6bacfab177",
+  "url": "https://upload.wikimedia.org/wikipedia/commons/0/0e/Venus_%28Afrodite%29_fra_Milo_-_KAS434_1.stl"
+ },
+ "venus-of-martres": {
+  "bytes": 49999784,
+  "file": "MSR-Ra52-VenusMartres.stl",
+  "page": "https://commons.wikimedia.org/wiki/File:MSR-Ra52-VenusMartres.stl",
+  "sha256": "b227359b4acd48c0f8f0727dad9bd6466876ad52fa55bfca7792ea02c88fd7e0",
+  "url": "https://upload.wikimedia.org/wikipedia/commons/a/a3/MSR-Ra52-VenusMartres.stl"
+ },
+ "venus-of-willendorf": {
+  "bytes": 34999884,
+  "file": "Scan_the_World_-_Venus_of_Willendorf.stl",
+  "page": "https://commons.wikimedia.org/wiki/File:Scan_the_World_-_Venus_of_Willendorf.stl",
+  "sha256": "cafeab179c536661df227a1828f011080ae6c9704fd6021764e9fb53268a3029",
+  "url": "https://upload.wikimedia.org/wikipedia/commons/c/c0/Scan_the_World_-_Venus_of_Willendorf.stl"
+ },
+ "venus-with-apple": {
+  "bytes": 150000484,
+  "file": "Venus_med_apple_(SMK_KMS6004,_Scan_the_World).stl",
+  "page": "https://commons.wikimedia.org/wiki/File:Venus_med_apple_(SMK_KMS6004,_Scan_the_World).stl",
+  "sha256": "aa4e6505b8ee12f73b2b351a9388cca87f108d13ed8c9d8a7e03714de47009bd",
+  "url": "https://upload.wikimedia.org/wikipedia/commons/d/d6/Venus_med_apple_%28SMK_KMS6004%2C_Scan_the_World%29.stl"
+ },
+ "voltaire": {
+  "bytes": 11924684,
+  "file": "Bust_of_Voltaire-MAHG_1967-108-High_poly-001.stl",
+  "page": "https://commons.wikimedia.org/wiki/File:Bust_of_Voltaire-MAHG_1967-108-High_poly-001.stl",
+  "sha256": "d3b3ef1c584eb3989d63f0de86b511711805cafb644fdd3025b6a98fbc4b4e26",
+  "url": "https://upload.wikimedia.org/wikipedia/commons/f/f4/Bust_of_Voltaire-MAHG_1967-108-High_poly-001.stl"
+ },
+ "walking-man": {
+  "bytes": 18119205,
+  "file": "Auguste_Rodin_-_L'Homme_qui_marche_-_3D_model_Thingiverse.stl",
+  "page": "https://commons.wikimedia.org/wiki/File:Auguste_Rodin_-_L%27Homme_qui_marche_-_3D_model_Thingiverse.stl",
+  "sha256": "838d1c6d18b61b56b6b5251968f0da0c45e91e6d23d09adb8e688b85c9d78d44",
+  "url": "https://upload.wikimedia.org/wikipedia/commons/e/e4/Auguste_Rodin_-_L%27Homme_qui_marche_-_3D_model_Thingiverse.stl"
+ },
+ "walrus-skull": {
+  "bytes": 40378884,
+  "file": "Odobenus_rosmarus_3d_scan_Natural_History_Museum_University_of_Pisa_C_1215.stl",
+  "page": "https://commons.wikimedia.org/wiki/File:Odobenus_rosmarus_3d_scan_Natural_History_Museum_University_of_Pisa_C_1215.stl",
+  "sha256": "3b020ab22467df7d474dae8dbbf0f1d700f45b6d898092124c35ba975a7452de",
+  "url": "https://upload.wikimedia.org/wikipedia/commons/a/a1/Odobenus_rosmarus_3d_scan_Natural_History_Museum_University_of_Pisa_C_1215.stl"
+ },
+ "weeping-lady": {
+  "bytes": 1478384,
+  "file": "Weeping_Lady,_marble_head,_3D_photogrammetry_scan_(STL).stl",
+  "page": "https://commons.wikimedia.org/wiki/File:Weeping_Lady,_marble_head,_3D_photogrammetry_scan_(STL).stl",
+  "sha256": "c04d1ad5f219ec27c848650c85479a6e9d0c1bb80abb1d06df18bdcf8438e0a3",
+  "url": "https://upload.wikimedia.org/wikipedia/commons/3/30/Weeping_Lady%2C_marble_head%2C_3D_photogrammetry_scan_%28STL%29.stl"
+ }
+}

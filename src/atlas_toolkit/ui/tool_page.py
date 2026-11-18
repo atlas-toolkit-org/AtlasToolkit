@@ -110,8 +110,14 @@ class ToolPage(QWidget):
         self.btn_remove.clicked.connect(self.remove_selected)
         self.btn_clear = QPushButton("Clear")
         self.btn_clear.clicked.connect(self.clear)
-        for b in (self.btn_add, self.btn_add_dir, self.btn_remove, self.btn_clear):
-            bar.addWidget(b)
+        self.btn_catalogue = None
+        if self.tool.inputs.kind == "mesh" and ".ply" in self.tool.inputs.exts:
+            from .catalogue import catalogue_button
+            self.btn_catalogue = catalogue_button(self.theme)
+            self.btn_catalogue.clicked.connect(self.pick_catalogue)
+        for b in (self.btn_add, self.btn_add_dir, self.btn_catalogue, self.btn_remove, self.btn_clear):
+            if b is not None:
+                bar.addWidget(b)
         ml.addLayout(bar)
 
         # left: queue over report/log; right: the preview, as tall as the window allows
@@ -124,7 +130,14 @@ class ToolPage(QWidget):
         kind = KINDS[self.tool.inputs.kind][1]
         exts = " ".join(self.tool.inputs.exts)
         cols = [(k, k.replace("_", " ").capitalize()) for k in self.tool.columns]
-        self.queue = FileQueue(self.theme, cols, f"Drop {kind} files or folders here\n{exts}\n\nor use  Add files…")
+        drop = f"Drop {kind} files or folders here\n{exts}\n\nor use  Add files…"
+        if self.btn_catalogue is not None:          # rich text, so the catalogue is a link
+            drop = (f"Drop {kind} files or folders here<br>{exts}<br><br>or use&nbsp; Add files…<br><br>No model at "
+                    f"hand? Try one from the <a href='catalogue' style='color:{self.theme['accent-text']}'>model "
+                    "catalogue</a>")
+        self.queue = FileQueue(self.theme, cols, drop)
+        if self.btn_catalogue is not None:
+            self.queue.drop.linkActivated.connect(lambda _href: self.pick_catalogue())
         self.queue.itemSelectionChanged.connect(self.show_selected)
         self.queue.itemDoubleClicked.connect(lambda it, _c: self._open_row(it.data(0, Qt.UserRole)))
         self.queue.customContextMenuRequested.connect(self._context_menu)
@@ -522,6 +535,14 @@ class ToolPage(QWidget):
         files, _ = QFileDialog.getOpenFileNames(self, f"Add {kind} files", self.store.get("last_dir", ""),
                                                 f"{kind} files ({exts});;All files (*.*)")
         self.add_paths(files)
+
+    def pick_catalogue(self) -> None:
+        """Ready-made models from the model catalogue (ui/catalogue.py), added like any file."""
+        from .catalogue import pick_models
+        paths = pick_models(self, multiple=self.tool.inputs.multiple, ctx=self.ctx,
+                            title=f"Model catalogue · {self.tool.name}")
+        if paths:
+            self.add_paths(paths)
 
     def pick_folder(self) -> None:
         folder = QFileDialog.getExistingDirectory(self, "Add every file in a folder", self.store.get("last_dir", ""))

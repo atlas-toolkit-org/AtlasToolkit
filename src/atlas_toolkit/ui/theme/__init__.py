@@ -96,7 +96,29 @@ EXTRA_ICONS = {
               '<path d="M12 8V2m-2 2 2-2 2 2M12 16v6m-2-2 2 2 2-2M8 12H2m2-2-2 2 2 2M16 12h6m-2-2 2 2-2 2"/>',
     "press": '<path d="M3 4.5h18M3 19.5h18M12 1.5v3"/><path d="M6 8.5c-2.5 1.5-2.5 5.5 0 7h12c2.5-1.5 2.5-5.5 0-7z"/>'
              '<path d="M8.5 12c1.2-1 2.3 1 3.5 0s2.3 1 3.5 0"/>',
+    # the model catalogue (ui/catalogue.py): its button, downloads and categories; no tool may use these
+    "catalogue": '<circle cx="7.5" cy="7.5" r="4"/><path d="M14 3.5h6.5V10H14zM3 21h18M4.5 21v-5h6v5M13.5 21l3.5-6 3.5 6"/>',
+    "download": '<path d="M12 3v12m-5-5 5 5 5-5M4 17v3.5h16V17"/>',
+    "cat_bust": '<path d="M12 3a4 4 0 0 1 4 4v1.5a4 4 0 0 1-8 0V7a4 4 0 0 1 4-4zM10 12.8v1.7c-2.8.6-5 2.6-5 5.5h14'
+                'c0-2.9-2.2-4.9-5-5.5v-1.7M7 20v1.5h10V20"/>',
+    "cat_statue": '<circle cx="12" cy="4" r="2"/><path d="M12 6.5v6.5l-2.2 6.5M12 13l2.2 6.5M8.5 9.5 12 8l3.5 2.5 1-2'
+                  'M6 21.5h12"/>',
+    "cat_animal": '<path d="M9.5 10C7.5 7 7.5 2.5 9 2.5s2.5 4 2.5 7.5M14.5 10c2-3 2-7.5.5-7.5s-2.5 4-2.5 7.5"/>'
+                  '<ellipse cx="12" cy="15.5" rx="6.5" ry="5.5"/><path d="M9.5 14.5h.01M14.5 14.5h.01M11 18h2"/>',
+    "cat_hand": '<path d="M8 13V5.5a1.5 1.5 0 0 1 3 0V11m0-1V4a1.5 1.5 0 0 1 3 0v7m0-1V6a1.5 1.5 0 0 1 3 0v8'
+                'a7 7 0 0 1-7 7c-2.4 0-4-1.2-5.5-3.5L3.3 13a1.5 1.5 0 0 1 2.5-1.7L8 14"/>',
+    "cat_shell": '<path d="M12 21a9 9 0 1 1 9-9c0 3.3-2.4 6-5.5 6S10 15.8 10 13s1.9-4 3.8-4 3.2 1.4 3.2 3-1.2 2.6-2.6 2.6"/>',
+    "cat_teapot": '<path d="M5 10h12v5a5 5 0 0 1-5 5h-2a5 5 0 0 1-5-5zM17 11.5h1.5a2.5 2.5 0 0 1 0 5H16.5M5 12.5 2.5 9'
+                  'M9.5 10V8.5a1.5 1.5 0 0 1 3 0V10M8 20.5h6"/>',
+    "cat_head": '<path d="M12 2.5c-3.6 0-6 2.7-6 6.3 0 1.5.4 2.7 1 3.8l-.8 2.4h1.6c.4 1.9 1.8 3 3.7 3h.8v3.5M14 21.5'
+                'v-3.5c2.6-.9 4-3.4 4-6.4v-2.8c0-3.6-2.4-6.3-6-6.3"/><path d="M14.5 9.5h.01"/>',
+    "cat_light": '<path d="M20.5 3.5C11 3.5 5 9.5 5 18.5M5 18.5c6.5 0 12-3.5 14-9.5M8.5 14.5h6.5M11.5 10.5h6'
+                 'M3.5 20.5 5 18.5"/>',
+    "cat_shapes": '<circle cx="7" cy="7" r="4"/><path d="M13.5 13.5h7.5V21h-7.5zM16.5 2.5l4.5 8h-9z"/>'
+                  '<ellipse cx="7" cy="17" rx="4.5" ry="2.5"/><ellipse cx="7" cy="17" rx="1.5" ry=".7"/>',
 }
+CATALOGUE_ICONS = ("catalogue", "download", "cat_bust", "cat_statue", "cat_animal", "cat_hand", "cat_shell",
+                   "cat_teapot", "cat_shapes", "cat_light", "cat_head")
 
 
 @lru_cache(maxsize=None)

@@ -24,7 +24,7 @@ GLIBC_FLOOR = (2, 34)
 MACOS_FLOOR = (15, 0)
 HELPERS = ("texture", "stripes", "remesh", "developable")
 NOTICES = ("surface-texture.txt", "surface-stripes.txt", "remesh-decimate.txt", "developable-surfaces.txt",
-           "developable-source.zip", "THIRD_PARTY_NOTICES.md")
+           "developable-source.zip", "catalogue-models.txt", "THIRD_PARTY_NOTICES.md")
 LEFT_OUT = ("/igl/copyleft/", "/igl/triangle/")    # CGAL (GPL-3.0), TetGen (AGPL-3.0), Triangle (not open source)
 FROM_THE_SYSTEM = ("libstdc++.so", "libgcc_s.so", "libz.so", "libzstd.so", "libexpat.so", "liblzma.so")
 ROOT = Path(__file__).resolve().parents[1]

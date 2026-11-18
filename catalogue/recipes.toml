@@ -1,0 +1,1583 @@
+# The model catalogue's contents (core/catalogue.py), built by scripts/catalogue.py; see docs/CATALOGUE.md.
+#
+# One [[model]] block per model. Sources:
+#   commons = "File name.stl"     a Wikimedia Commons file; its licence is read from Commons and must equal `license`
+#   url = ... + source_url + license_evidence      anything else; quote the source's licence words
+#   generator = "name" (+ params)  made in code (geom/shapes.py) at build time, then shipped or downloaded like a scan
+# Licences allowed: CC0-1.0, CC-BY-4.0, CC-BY-SA-4.0, LicenseRef-public-domain (marked public domain at the source).
+# What suits Atlas: solid, readable forms. No scale bars, labels or stands in the scan; nothing mostly thin (wires,
+# skeletons, fine branches, hollow vessels: `check` measures it); no clutter of hundreds of loose pieces.
+# Never NC (non-commercial), ND (no derivatives) or CC-BY-SA 3.0: the app is GPL-3.0 and may be sold.
+#
+# Preparing: up/front name the source's axes (default: guessed as the tools do), rotate turns it further (degrees,
+# X then Y then Z), crop keeps a share of the bounding box along an axis (after turning: z is up, -y the front),
+# triangles is the most it keeps (quadric decimation), keep = "largest" drops every other piece, subdivide = "flat" or
+# "smooth" refines a light model up to `triangles`. bundled = true ships it inside the app (keep that set under 40 MB).
+# view = {azimuth, elevation} turns the thumbnail's camera.
+# from = "<id>" makes a lighter copy of another model: same source, licence, credits, turns and crop; give its own id,
+# name, category and triangles (Light & quick holds them: every tool runs on them in seconds).
+
+[catalogue]
+revision = 1
+base_url = "https://github.com/atlas-toolkit-org/AtlasToolkit/releases/download/catalogue-1/"
+# Shapes & forms: these simple solids ship in the app (bundled = true); the more complex shapes download
+simple_shapes = ["sphere", "cube", "tetrahedron", "octahedron", "dodecahedron", "icosahedron", "pyramid", "cylinder",
+                 "cone", "capsule", "torus", "rounded-cube"]
+
+[[category]]
+id = "light"
+name = "Light & quick"
+icon = "cat_light"
+blurb = "Heads, busts and statues of 5,000 to 50,000 triangles, all in the app: every tool runs on them in seconds."
+
+[[category]]
+id = "people"
+name = "Natural heads"
+icon = "cat_head"
+blurb = "Realistic heads and busts: a sculpted head, forensic facial reconstructions and portraits from life."
+
+[[category]]
+id = "busts"
+name = "Busts & heads"
+icon = "cat_bust"
+blurb = "Portrait heads and busts, from Egypt to Rodin: faces are what contour lines and hatching love most."
+
+[[category]]
+id = "statues"
+name = "Statues & figures"
+icon = "cat_statue"
+blurb = "Full figures standing, striding, throwing, thinking: classical casts and modern masters."
+
+[[category]]
+id = "animals"
+name = "Animals"
+icon = "cat_animal"
+blurb = "Creatures whole: graphics-research classics, sculptures and scanned specimens."
+
+[[category]]
+id = "hands"
+name = "Hands, faces & masks"
+icon = "cat_hand"
+blurb = "Life masks, hand casts and masks: shallow, detailed surfaces that read well as drawings."
+
+[[category]]
+id = "nature"
+name = "Natural history"
+icon = "cat_shell"
+blurb = "Skulls, skeletons, fossils, shells and corals from museum collections."
+
+[[category]]
+id = "objects"
+name = "Objects & test classics"
+icon = "cat_teapot"
+blurb = "Vessels, machines and the test models of computer graphics."
+
+[[category]]
+id = "shapes"
+name = "Shapes & forms"
+icon = "cat_shapes"
+blurb = "Generated in the app: from the cube to knots, one-sided surfaces, minimal surfaces and fractals."
+
+# ============================================================================ Busts & heads
+[[model]]
+id = "david-head"
+name = "Head of Michelangelo's David"
+category = "busts"
+commons = "David (Michelangelo).stl"
+license = "CC-BY-SA-4.0"
+author = "Michelangelo"
+made = "1501–1504"
+credit = "Scan the World"
+description = "The head and neck of David, cut from Scan the World's scan of the whole statue."
+changes = "cropped to the head and neck, the cut closed"
+tags = ["renaissance", "marble", "face", "michelangelo"]
+crop = { z = [0.855, 1.0] }
+triangles = 300000
+bundled = true
+
+[[model]]
+id = "venus-de-milo-bust"
+name = "Venus de Milo, bust"
+category = "busts"
+upright = "base"
+commons = "Venus (Afrodite) fra Milo - KAS434 1.stl"
+license = "CC0-1.0"
+author = "Attributed to Alexandros of Antioch"
+made = "c. 150–125 BC"
+credit = "SMK – National Gallery of Denmark, The Royal Cast Collection (KAS434/1)"
+description = "Head and shoulders of the Aphrodite of Milos, from a plaster cast."
+changes = "cropped to the head and shoulders, the cut closed"
+tags = ["greek", "hellenistic", "face", "woman"]
+crop = { z = [0.70, 1.0] }
+triangles = 260000
+bundled = true
+
+[[model]]
+id = "nefertiti"
+name = "Bust of Nefertiti"
+category = "busts"
+commons = "Bust of Nefertiti at the Neues Museum, Berlin.stl"
+license = "CC0-1.0"
+author = "Thutmose (attributed)"
+made = "c. 1345 BC"
+credit = "Scan via MyMiniFactory"
+description = "The painted limestone bust of the Egyptian queen, in the Neues Museum, Berlin."
+tags = ["egypt", "queen", "face", "woman"]
+triangles = 260000
+bundled = true
+
+[[model]]
+id = "memnon"
+name = "Memnon of Ethiopia"
+category = "busts"
+rotate = [-90, 0, 0]
+commons = "Memnon fra Etiopien - KAS969.stl"
+license = "CC0-1.0"
+made = "c. AD 160–170"
+credit = "SMK – National Gallery of Denmark, The Royal Cast Collection (KAS969)"
+description = "Portrait bust of Memnon, a pupil of Herodes Atticus."
+tags = ["roman", "portrait", "face", "man"]
+triangles = 1000000
+
+[[model]]
+id = "juno-ludovisi"
+name = "Juno Ludovisi"
+category = "busts"
+commons = "Scan the World - Juno Ludovisi.stl"
+license = "CC-BY-SA-4.0"
+made = "1st century AD"
+credit = "Scan the World"
+description = "Colossal head, thought to portray Antonia Minor as a goddess."
+tags = ["roman", "colossal", "face", "woman"]
+triangles = 500000
+
+[[model]]
+id = "marcus-aurelius"
+name = "Marcus Aurelius"
+category = "busts"
+commons = "MSR-Marc Aurèle-Ra61b.stl"
+license = "CC0-1.0"
+made = "2nd century AD"
+credit = "Musée Saint-Raymond, Toulouse / IMA Solutions"
+description = "Portrait of the philosopher emperor, from the Villa of Chiragan."
+tags = ["roman", "emperor", "portrait", "beard"]
+triangles = 450000
+
+[[model]]
+id = "augustus"
+name = "Augustus"
+category = "busts"
+commons = "MSR-Auguste-Ra57.stl"
+license = "CC0-1.0"
+made = "1st century BC – 1st century AD"
+credit = "Musée Saint-Raymond, Toulouse / IMA Solutions"
+description = "Portrait head of the first Roman emperor."
+tags = ["roman", "emperor", "portrait"]
+triangles = 450000
+
+[[model]]
+id = "trajan"
+name = "Trajan"
+category = "busts"
+commons = "MSR-Trajan-Ra 117.stl"
+license = "CC0-1.0"
+made = "2nd century AD"
+credit = "Musée Saint-Raymond, Toulouse / IMA Solutions"
+description = "Portrait of the emperor Trajan."
+tags = ["roman", "emperor", "portrait"]
+triangles = 400000
+
+[[model]]
+id = "septimius-severus"
+name = "Septimius Severus"
+category = "busts"
+commons = "MSR-Septime Sévère-Ra66a.stl"
+license = "CC0-1.0"
+made = "c. AD 200"
+credit = "Musée Saint-Raymond, Toulouse / IMA Solutions"
+description = "Portrait of the emperor, with his curled beard."
+tags = ["roman", "emperor", "portrait", "beard"]
+triangles = 400000
+
+[[model]]
+id = "tranquillina"
+name = "Tranquillina"
+category = "busts"
+commons = "MSR-Tranquillina-Ra166.stl"
+license = "CC0-1.0"
+made = "3rd century AD"
+credit = "Musée Saint-Raymond, Toulouse / IMA Solutions"
+description = "Portrait of the empress, wife of Gordian III."
+tags = ["roman", "empress", "portrait", "woman"]
+triangles = 300000
+
+[[model]]
+id = "maximian"
+name = "Maximian Herculius"
+category = "busts"
+rotate = [90, 0, 0]
+commons = "MSR-Maximien Hercule-Ra34b.stl"
+license = "CC0-1.0"
+made = "c. AD 300"
+credit = "Musée Saint-Raymond, Toulouse / IMA Solutions"
+description = "Portrait of the tetrarch emperor Maximian."
+tags = ["roman", "emperor", "portrait"]
+triangles = 300000
+
+[[model]]
+id = "satyr-head"
+name = "Head of a satyr"
+category = "busts"
+rotate = [90, 0, 0]
+commons = "MSR-Tete-de-Satyre-Ra131.stl"
+license = "CC0-1.0"
+credit = "Musée Saint-Raymond, Toulouse / IMA Solutions"
+description = "A grinning satyr, Roman marble."
+tags = ["roman", "mythology", "face"]
+triangles = 200000
+
+[[model]]
+id = "caracalla"
+name = "Caracalla"
+category = "busts"
+rotate = [90, 0, 0]
+commons = "Bust of Emperor Caracalla.stl"
+license = "CC0-1.0"
+made = "c. AD 212–217"
+credit = "AsPJT"
+description = "Bust of the scowling emperor."
+tags = ["roman", "emperor", "portrait"]
+triangles = 300000
+
+[[model]]
+id = "voltaire"
+name = "Bust of Voltaire"
+category = "busts"
+commons = "Bust of Voltaire-MAHG 1967-108-High poly-001.stl"
+license = "LicenseRef-public-domain"
+credit = "Rama (scan), Musée d'art et d'histoire de Genève (1967-108)"
+description = "The writer in old age."
+tags = ["enlightenment", "portrait", "man"]
+triangles = 350000
+
+[[model]]
+id = "pierre-de-wissant"
+name = "Head of Pierre de Wissant"
+category = "busts"
+rotate = [-90, 0, 0]
+commons = "1917.722 Heroic Head of Pierre de Wissant - 3D model.stl"
+license = "CC0-1.0"
+author = "Auguste Rodin"
+made = "c. 1909"
+credit = "Scan via Sketchfab"
+description = "Heroic head of one of the Burghers of Calais, in bronze."
+tags = ["rodin", "bronze", "modern", "face"]
+triangles = 450000
+
+[[model]]
+id = "weeping-lady"
+name = "Weeping Lady"
+category = "busts"
+commons = "Weeping Lady, marble head, 3D photogrammetry scan (STL).stl"
+license = "CC-BY-SA-4.0"
+credit = "Omar El Atabany"
+description = "A marble head resting on one hand, weary or mourning; photogrammetry of Egyptian heritage."
+tags = ["marble", "face", "woman", "hand"]
+triangles = 200000
+
+[[model]]
+id = "venus-of-martres"
+name = "Head of Venus (Martres)"
+category = "busts"
+rotate = [90, 0, 0]
+commons = "MSR-Ra52-VenusMartres.stl"
+license = "CC0-1.0"
+made = "Roman"
+credit = "Musée Saint-Raymond, Toulouse / IMA Solutions"
+description = "A Roman head of Venus from the villa of Chiragan, Martres-Tolosane."
+tags = ["roman", "woman"]
+triangles = 600000
+
+
+# ============================================================================ Statues & figures
+[[model]]
+id = "venus-de-milo"
+name = "Venus de Milo"
+category = "statues"
+upright = "base"
+commons = "Venus (Afrodite) fra Milo - KAS434 1.stl"
+license = "CC0-1.0"
+author = "Attributed to Alexandros of Antioch"
+made = "c. 150–125 BC"
+credit = "SMK – National Gallery of Denmark, The Royal Cast Collection (KAS434/1)"
+description = "The Aphrodite of Milos, whole, from a plaster cast."
+tags = ["greek", "hellenistic", "woman"]
+triangles = 1000000
+
+[[model]]
+id = "david"
+name = "David"
+category = "statues"
+commons = "David (Michelangelo).stl"
+license = "CC-BY-SA-4.0"
+author = "Michelangelo"
+made = "1501–1504"
+credit = "Scan the World"
+description = "Michelangelo's David, the whole figure."
+tags = ["renaissance", "marble", "man", "michelangelo"]
+triangles = 1000000
+
+[[model]]
+id = "doryphoros"
+name = "Doryphoros (Spear Bearer)"
+category = "statues"
+upright = "base"
+commons = "Spydbæreren (doryforos) - KAS11.stl"
+license = "CC0-1.0"
+author = "After Polykleitos"
+made = "c. 440 BC"
+credit = "SMK – National Gallery of Denmark, The Royal Cast Collection (KAS11)"
+description = "The canon of male proportion, in contrapposto, from a plaster cast."
+tags = ["greek", "classical", "man", "contrapposto"]
+triangles = 240000
+bundled = true
+
+[[model]]
+id = "apollo-belvedere"
+name = "Apollo Belvedere"
+category = "statues"
+upright = "base"
+commons = "Apollo Belvedere - KAS353.stl"
+license = "CC0-1.0"
+author = "After Leochares"
+made = "Roman copy, c. AD 120–140"
+credit = "SMK – National Gallery of Denmark, The Royal Cast Collection (KAS353)"
+description = "Apollo striding, mid-gesture, from a plaster cast."
+tags = ["greek", "roman", "man", "motion"]
+triangles = 1000000
+
+[[model]]
+id = "discobolus"
+name = "Discobolus (Discus Thrower)"
+category = "statues"
+rotate = [0, 0, 180]
+upright = "base"
+commons = "Diskoskasteren (Discobolos) - KAS1549.stl"
+license = "CC0-1.0"
+author = "After Myron"
+made = "c. 460–450 BC"
+credit = "SMK – National Gallery of Denmark, The Royal Cast Collection (KAS1549)"
+description = "An athlete coiled at the top of his swing, from a plaster cast."
+tags = ["greek", "classical", "man", "motion", "athlete"]
+triangles = 1000000
+
+[[model]]
+id = "kore"
+name = "Kore in chiton and cape"
+category = "statues"
+upright = "base"
+commons = "Kore ACR 671 iført chiton og kappe (epiblema) - KAS1800.stl"
+license = "CC0-1.0"
+made = "c. 520 BC"
+credit = "SMK – National Gallery of Denmark, The Royal Cast Collection (KAS1800)"
+description = "Archaic maiden from the Athenian Acropolis (Acr. 671), from a plaster cast."
+tags = ["greek", "archaic", "woman", "drapery"]
+triangles = 1000000
+
+[[model]]
+id = "artemision-bronze"
+name = "Zeus or Poseidon of Artemision"
+category = "statues"
+rotate = [0, 0, 180]
+upright = "base"
+commons = "Poseidon eller Zeus fra Artemision - KAS2100.stl"
+license = "CC0-1.0"
+made = "c. 460 BC"
+credit = "SMK – National Gallery of Denmark, The Royal Cast Collection (KAS2100)"
+description = "A god with arms outstretched, about to throw, from a cast of the bronze."
+tags = ["greek", "bronze", "man", "motion"]
+triangles = 1000000
+
+[[model]]
+id = "thinker"
+name = "The Thinker"
+category = "statues"
+commons = "Scan the World - The Thinker (Auguste Rodin).stl"
+license = "CC-BY-SA-4.0"
+author = "Auguste Rodin"
+made = "1880–1904"
+credit = "Scan the World"
+description = "Rodin's seated figure, lost in thought."
+tags = ["rodin", "bronze", "modern", "man", "seated"]
+triangles = 600000
+
+[[model]]
+id = "age-of-bronze"
+name = "The Age of Bronze"
+category = "statues"
+commons = "The Age Of Bronze (Auguste Rodin).stl"
+license = "CC0-1.0"
+author = "Auguste Rodin"
+made = "1875–1877"
+credit = "Scan via Wikimedia Commons"
+description = "A young man waking, one arm raised: Rodin's first life-size figure."
+tags = ["rodin", "bronze", "modern", "man"]
+triangles = 1000000
+
+[[model]]
+id = "walking-man"
+name = "The Walking Man"
+category = "statues"
+commons = "Auguste Rodin - L'Homme qui marche - 3D model Thingiverse.stl"
+license = "CC-BY-4.0"
+author = "Auguste Rodin"
+made = "1877–1907"
+credit = "Scan via Thingiverse"
+description = "Striding, headless and armless: motion and nothing else."
+tags = ["rodin", "bronze", "modern", "man", "motion"]
+triangles = 500000
+
+[[model]]
+id = "laocoon"
+name = "Laocoön and His Sons"
+category = "statues"
+commons = "Scan the World - Laocoon Group.stl"
+license = "CC-BY-SA-4.0"
+author = "Hagesandros, Athenodoros and Polydoros of Rhodes"
+made = "c. 40–20 BC"
+credit = "Scan the World"
+description = "The priest and his sons in the coils of the sea serpents."
+tags = ["greek", "hellenistic", "group", "motion", "drama"]
+triangles = 1000000
+
+[[model]]
+id = "pieta"
+name = "Pietà"
+category = "statues"
+commons = "Scan the World - Pietà (Michelangelo).stl"
+license = "CC-BY-SA-4.0"
+author = "Michelangelo"
+made = "1498–1499"
+credit = "Scan the World"
+description = "Mary holding the body of Christ."
+tags = ["renaissance", "marble", "group", "michelangelo", "drapery"]
+triangles = 1000000
+
+[[model]]
+id = "ugolino"
+name = "Ugolino and His Sons"
+category = "statues"
+commons = "Scan the World - Ugolino and His Sons.stl"
+license = "CC-BY-SA-4.0"
+author = "Jean-Baptiste Carpeaux"
+made = "1865–1867"
+credit = "Scan the World"
+description = "Dante's starving count among his children."
+tags = ["romantic", "group", "drama"]
+triangles = 1000000
+
+[[model]]
+id = "venus-with-apple"
+name = "Venus with the Apple"
+category = "statues"
+commons = "Venus med apple (SMK KMS6004, Scan the World).stl"
+license = "CC0-1.0"
+author = "Bertel Thorvaldsen"
+made = "1813–1816"
+credit = "Scan the World, SMK – National Gallery of Denmark (KMS6004)"
+description = "Venus holding the golden apple, the prize of the judgement of Paris."
+tags = ["neoclassical", "marble", "woman"]
+triangles = 1000000
+
+[[model]]
+id = "belvedere-torso"
+name = "Belvedere Torso"
+category = "statues"
+commons = "Scan the World - Belvedere Torso.stl"
+license = "CC-BY-SA-4.0"
+author = "Apollonios, son of Nestor"
+made = "1st century BC"
+credit = "Scan the World"
+description = "The fragment that Michelangelo studied: a seated, twisting torso."
+tags = ["greek", "fragment", "man"]
+triangles = 300000
+
+[[model]]
+id = "venus-of-willendorf"
+name = "Venus of Willendorf"
+category = "statues"
+commons = "Scan the World - Venus of Willendorf.stl"
+license = "CC-BY-SA-4.0"
+made = "c. 25,000 BC"
+credit = "Scan the World"
+description = "The palaeolithic figurine, round and faceless."
+tags = ["prehistoric", "woman", "small"]
+triangles = 400000
+
+[[model]]
+id = "jupiter-statuette"
+name = "Jupiter, statuette"
+category = "statues"
+commons = "MSR-Jupiter-2014-1-1.stl"
+license = "CC0-1.0"
+credit = "Musée Saint-Raymond, Toulouse / IMA Solutions"
+description = "A small Roman figure of the king of the gods."
+tags = ["roman", "man", "small"]
+triangles = 250000
+
+[[model]]
+id = "hercules-msr"
+name = "Hercules"
+category = "statues"
+commons = "MSR-Hercule-Ra28l.stl"
+license = "CC0-1.0"
+credit = "Musée Saint-Raymond, Toulouse / IMA Solutions"
+description = "Hercules, from the reliefs of the Villa of Chiragan."
+tags = ["roman", "relief", "man", "mythology"]
+triangles = 300000
+
+# ============================================================================ Animals
+[[model]]
+id = "spot"
+name = "Spot"
+category = "animals"
+url = "https://www.cs.cmu.edu/~kmcrane/Projects/ModelRepository/spot.zip"
+member = "*spot_triangulated.obj"
+source_url = "https://www.cs.cmu.edu/~kmcrane/Projects/ModelRepository/"
+license = "CC0-1.0"
+license_evidence = "Spot: \"Model and associated data is dedicated under CC0 1.0 Universal.\""
+author = "Keenan Crane"
+made = "2013"
+credit = "Keenan Crane's 3D Model Repository"
+description = "A spotted cow made for computer-graphics research: smooth, clean and friendly."
+tags = ["cow", "graphics", "test", "smooth"]
+rotate = [0, 0, 150]
+subdivide = "smooth"
+triangles = 95000
+bundled = true
+
+[[model]]
+id = "bob"
+name = "Bob"
+category = "animals"
+url = "https://www.cs.cmu.edu/~kmcrane/Projects/ModelRepository/bob.zip"
+member = "*bob_tri.obj"
+source_url = "https://www.cs.cmu.edu/~kmcrane/Projects/ModelRepository/"
+license = "CC0-1.0"
+license_evidence = "Bob: \"Model and associated data is dedicated under CC0 1.0 Universal.\""
+author = "Keenan Crane"
+credit = "Keenan Crane's 3D Model Repository"
+description = "\"An animal that would never survive in the wild.\" A torus-shaped duck."
+tags = ["duck", "graphics", "test", "smooth"]
+subdivide = "smooth"
+triangles = 90000
+
+[[model]]
+id = "blub"
+name = "Blub"
+category = "animals"
+url = "https://www.cs.cmu.edu/~kmcrane/Projects/ModelRepository/blub.zip"
+member = "*blub_triangulated.obj"
+source_url = "https://www.cs.cmu.edu/~kmcrane/Projects/ModelRepository/"
+license = "CC0-1.0"
+license_evidence = "Blub: \"Model and associated data is dedicated under CC0 1.0 Universal.\""
+author = "Keenan Crane"
+credit = "Keenan Crane's 3D Model Repository"
+description = "A friendly fish from a paper on stripe patterns."
+tags = ["fish", "graphics", "test", "smooth"]
+subdivide = "smooth"
+triangles = 90000
+
+[[model]]
+id = "pig"
+name = "Origins of the Pig"
+category = "animals"
+url = "https://www.cs.cmu.edu/~kmcrane/Projects/ModelRepository/pig.zip"
+member = "pig/pig_triangulated.obj"
+source_url = "https://www.cs.cmu.edu/~kmcrane/Projects/ModelRepository/"
+license = "CC0-1.0"
+license_evidence = "Origins of the Pig: \"Model and associated data is dedicated under CC0 1.0 Universal.\""
+author = "Keenan Crane"
+credit = "Keenan Crane's 3D Model Repository"
+description = "A pig, inspired by a classic demoscene thread."
+tags = ["pig", "graphics", "test"]
+subdivide = "smooth"
+triangles = 90000
+
+[[model]]
+id = "inigo-dragon"
+name = "Inigo the Dragon"
+category = "animals"
+url = "https://www.cs.cmu.edu/~kmcrane/Projects/ModelRepository/inigo.zip"
+member = "inigo-the-dragon/dragon-meshed.obj"
+source_url = "https://www.cs.cmu.edu/~kmcrane/Projects/ModelRepository/"
+license = "CC0-1.0"
+license_evidence = "Inigo the Dragon: \"Model and associated data is dedicated under CC0 1.0 Universal.\""
+author = "Keenan Crane"
+credit = "Keenan Crane's 3D Model Repository"
+description = "A dragon built from signed distance functions, here as its triangle mesh."
+tags = ["dragon", "graphics", "fantasy"]
+triangles = 500000
+
+[[model]]
+id = "lion-al-lat"
+name = "Lion of Al-lāt"
+category = "animals"
+commons = "Asad Al-Lat.stl"
+license = "CC0-1.0"
+made = "1st century AD (original)"
+credit = "Georges Dahdouh, Re-Sculpting Syrian Statues Digitally"
+description = "Digital reconstruction of the lion of Palmyra, destroyed in 2015."
+tags = ["lion", "sculpture", "palmyra"]
+subdivide = "flat"
+triangles = 120000
+
+[[model]]
+id = "street-rat"
+name = "Street rat"
+category = "animals"
+rotate = [0, 90, 0]
+commons = "Street rat 8k (Sean Buckley via Poly Haven).stl"
+license = "CC0-1.0"
+credit = "Sean Buckley via Poly Haven"
+description = "A rat sitting up."
+tags = ["rat", "mammal"]
+triangles = 200000
+
+[[model]]
+id = "hercules-beetle"
+name = "Hercules beetle"
+category = "animals"
+rotate = [-90, 0, 180]
+commons = "Hercules03 (Male hercules beetle).stl"
+license = "CC-BY-4.0"
+credit = "Wikimedia Commons scan series of beetles"
+description = "A male Hercules beetle, with its long horns."
+tags = ["insect", "beetle", "horns"]
+triangles = 200000
+
+[[model]]
+id = "giant-isopod"
+name = "Giant isopod"
+category = "animals"
+rotate = [90, 0, 180]
+commons = "Giant Isopod.stl"
+license = "CC-BY-4.0"
+credit = "Wikimedia Commons"
+description = "A deep-sea isopod, armoured in overlapping plates."
+tags = ["crustacean", "sea"]
+triangles = 400000
+
+[[model]]
+id = "lincoln-right-hand"
+name = "Lincoln's right hand"
+category = "hands"
+commons = "Npg 71 6 right-hires unwrapped-150k-unwrapped (Smithsonian Institution).stl"
+license = "CC0-1.0"
+author = "Leonard Volk"
+made = "1860"
+credit = "Smithsonian Institution, National Portrait Gallery (NPG.71.6)"
+description = "Cast of Abraham Lincoln's right hand, swollen from shaking hands after his nomination."
+tags = ["hand", "cast", "lincoln"]
+bundled = true
+triangles = 150000
+
+[[model]]
+id = "lincoln-left-hand"
+name = "Lincoln's left hand"
+category = "hands"
+commons = "Npg 71 6 left-hires unwrapped-150k-unwrapped (Smithsonian Institution).stl"
+license = "CC0-1.0"
+author = "Leonard Volk"
+made = "1860"
+credit = "Smithsonian Institution, National Portrait Gallery (NPG.71.6)"
+description = "Cast of Abraham Lincoln's left hand."
+tags = ["hand", "cast", "lincoln"]
+triangles = 150000
+
+[[model]]
+id = "lincoln-mask-mills"
+name = "Lincoln life mask (1865)"
+category = "hands"
+rotate = [0, -25, 90]
+commons = "Abraham Lincoln Mills Life Mask - 3D model by The Smithsonian Institution - Sketchfab.stl"
+license = "CC0-1.0"
+author = "Clark Mills"
+made = "1865"
+credit = "Smithsonian Institution"
+description = "Life mask taken two months before Lincoln's death: the war in his face."
+tags = ["face", "mask", "cast", "lincoln"]
+bundled = true
+triangles = 160000
+
+[[model]]
+id = "lincoln-mask-volk"
+name = "Lincoln life mask (1860)"
+category = "hands"
+commons = "Abraham Lincoln Life Volks Mask - 3D model by The Smithsonian Institution - Sketchfab.stl"
+license = "CC0-1.0"
+author = "Leonard Volk"
+made = "1860"
+credit = "Smithsonian Institution"
+description = "Life mask of the beardless Lincoln, before his presidency."
+tags = ["face", "mask", "cast", "lincoln"]
+triangles = 160000
+
+[[model]]
+id = "lincoln-hands-casts"
+name = "Lincoln's hands, plaster casts"
+category = "hands"
+commons = "Abraham Lincoln Hands Plaster Casts - 3D model by The Smithsonian Institution - Sketchfab.stl"
+license = "CC0-1.0"
+author = "Leonard Volk"
+made = "1860"
+credit = "Smithsonian Institution"
+description = "Both hands, as cast, side by side."
+tags = ["hand", "cast", "lincoln"]
+triangles = 300000
+
+[[model]]
+id = "phineas-gage"
+name = "Phineas Gage life mask"
+category = "hands"
+rotate = [0, 0, 180]
+commons = "Phineas Gage life mask.stl"
+license = "LicenseRef-public-domain"
+made = "c. 1850"
+credit = "Cast by Henry Jacob Bigelow's circle; scan via Thingiverse"
+description = "Life mask of the railway foreman who survived an iron rod through his skull."
+tags = ["face", "mask", "cast", "medicine"]
+triangles = 400000
+
+[[model]]
+id = "funerary-mask"
+name = "Funerary mask"
+category = "hands"
+commons = "Funerary mask-MAHG 7059-High poly-001.stl"
+license = "LicenseRef-public-domain"
+credit = "Rama (scan), Musée d'art et d'histoire de Genève (7059)"
+description = "A funerary mask from the Geneva museum of art and history."
+tags = ["face", "mask", "egypt"]
+triangles = 350000
+
+[[model]]
+id = "mask-of-thuya"
+name = "Mask of Thuya"
+category = "hands"
+rotate = [0, 0, 180]
+commons = "Mask of Thuya, 3D photogrammetry scan (STL).stl"
+license = "CC-BY-SA-4.0"
+made = "c. 1375 BC"
+credit = "Omar El Atabany"
+description = "The gilded funerary mask of Thuya, mother of Queen Tiye."
+tags = ["face", "mask", "egypt", "gold"]
+triangles = 250000
+
+# ============================================================================ Natural history
+[[model]]
+id = "human-skull"
+name = "Human skull"
+category = "nature"
+commons = "High quality skull.stl"
+license = "CC-BY-SA-4.0"
+credit = "Mariano Coretti"
+description = "A human skull with its jaw, in detail."
+tags = ["skull", "human", "anatomy"]
+triangles = 260000
+bundled = false
+
+[[model]]
+id = "ammonite-cleoniceras"
+name = "Ammonite (Cleoniceras)"
+category = "nature"
+commons = "Cleoniceras besairiei (PRI 70601).stl"
+license = "CC0-1.0"
+credit = "Emily Hauf, Paleontological Research Institution (PRI 70601)"
+description = "A Cretaceous ammonite from Madagascar."
+tags = ["fossil", "ammonite", "spiral"]
+triangles = 300000
+
+[[model]]
+id = "ammonite-taramelliceras"
+name = "Ammonite (Taramelliceras)"
+category = "nature"
+commons = "Taramelliceras sp.stl"
+license = "LicenseRef-public-domain"
+credit = "Wikimedia Commons"
+description = "A Jurassic ammonite."
+tags = ["fossil", "ammonite", "spiral"]
+triangles = 250000
+
+[[model]]
+id = "ammonite-douvilleiceras"
+name = "Ammonite (Douvilleiceras)"
+category = "nature"
+bundled = true
+commons = "Douvilleiceras g. mammillatum.stl"
+license = "CC-BY-4.0"
+credit = "Wikimedia Commons"
+description = "A ribbed, knobbly Cretaceous ammonite."
+tags = ["fossil", "ammonite", "spiral"]
+triangles = 300000
+
+[[model]]
+id = "fossil-whale"
+name = "Fossil whale excavation"
+category = "nature"
+view = { azimuth = -28, elevation = 55 }
+rotate = [-90, 0, 180]
+commons = "Whale-mpc-677-150k (Smithsonian Institution).stl"
+license = "CC0-1.0"
+credit = "Smithsonian Institution"
+description = "A fossil whale skeleton as it lay when dug up, Cerro Ballena, Chile."
+tags = ["fossil", "whale", "skeleton"]
+triangles = 150000
+
+[[model]]
+id = "aquilops-skull"
+name = "Aquilops skull"
+category = "nature"
+rotate = [0, 90, 0]
+commons = "Aquilops cranium scan.stl"
+license = "CC-BY-4.0"
+credit = "Andrew A. Farke, W. Desmond Maxwell, Richard L. Cifelli and Mathew J. Wedel (PLOS ONE)"
+description = "Skull of a small early horned dinosaur from Montana."
+tags = ["fossil", "dinosaur", "skull"]
+triangles = 300000
+
+[[model]]
+id = "tortoise-skeleton"
+name = "Radiated tortoise skeleton"
+category = "nature"
+commons = "Astrochelys radiata 3d scan Natural History Museum University of Pisa B 51.stl"
+license = "CC-BY-SA-4.0"
+credit = "Natural History Museum of the University of Pisa (B 51)"
+description = "Skeleton and shell of a radiated tortoise."
+tags = ["skeleton", "reptile", "shell"]
+triangles = 700000
+
+[[model]]
+id = "elephant-skull"
+name = "Asian elephant skull"
+category = "nature"
+commons = "Elephas maximus (skull) 3d scan Natural History Museum University of Pisa C 1449.stl"
+license = "CC-BY-SA-4.0"
+credit = "Natural History Museum of the University of Pisa (C 1449)"
+description = "The skull of an Asian elephant, honeycombed with air spaces."
+tags = ["skull", "mammal"]
+triangles = 1000000
+
+[[model]]
+id = "hyena-skull"
+name = "Spotted hyena skull"
+category = "nature"
+commons = "Crocuta crocuta (skull) 3d scan Natural History Museum University of Pisa C 1061.stl"
+license = "CC-BY-SA-4.0"
+credit = "Natural History Museum of the University of Pisa (C 1061)"
+description = "A spotted hyena's heavy skull."
+tags = ["skull", "mammal"]
+triangles = 500000
+
+[[model]]
+id = "walrus-skull"
+name = "Walrus skull"
+category = "nature"
+commons = "Odobenus rosmarus 3d scan Natural History Museum University of Pisa C 1215.stl"
+license = "CC-BY-SA-4.0"
+credit = "Natural History Museum of the University of Pisa (C 1215)"
+description = "A walrus skull with its tusks."
+tags = ["skull", "mammal", "sea"]
+triangles = 500000
+
+[[model]]
+id = "turtle-skull"
+name = "Loggerhead turtle skull"
+category = "nature"
+commons = "Caretta caretta skull 3d scan Natural History Museum University of Pisa B 32.stl"
+license = "CC-BY-SA-4.0"
+credit = "Natural History Museum of the University of Pisa (B 32)"
+description = "Skull of a loggerhead sea turtle."
+tags = ["skull", "reptile", "sea"]
+triangles = 500000
+
+[[model]]
+id = "macaque-skull"
+name = "Crested macaque skull"
+category = "nature"
+commons = "Macaca nigra 3d scan Natural History Museum University of Pisa C 1750.stl"
+license = "CC-BY-SA-4.0"
+credit = "Natural History Museum of the University of Pisa (C 1750)"
+description = "Skull of a Celebes crested macaque."
+tags = ["skull", "primate", "mammal"]
+triangles = 500000
+
+[[model]]
+id = "tortoise-shell"
+name = "Tortoise shell"
+category = "nature"
+commons = "Brazilian tortoise shell.stl"
+license = "CC-BY-SA-4.0"
+credit = "Cicero Moraes"
+description = "The domed, plated shell of a Brazilian tortoise."
+tags = ["shell", "reptile"]
+triangles = 300000
+
+# ============================================================================ Objects & test classics
+[[model]]
+id = "utah-teapot"
+name = "Utah teapot"
+category = "objects"
+rotate = [-90, 0, 180]
+commons = "Utah teapot (solid).stl"
+license = "CC0-1.0"
+author = "Martin Newell (shape)"
+made = "1975"
+credit = "Nik Clark (zzubnik), solid model via Thingiverse"
+description = "The teapot of computer graphics, made solid for printing."
+tags = ["teapot", "graphics", "test", "classic"]
+subdivide = "flat"
+triangles = 120000
+bundled = true
+
+[[model]]
+id = "jerry-ogre"
+name = "Jerry the Ogre"
+category = "objects"
+url = "https://www.cs.cmu.edu/~kmcrane/Projects/ModelRepository/ogre.zip"
+member = "bs_rest.obj"
+source_url = "https://www.cs.cmu.edu/~kmcrane/Projects/ModelRepository/"
+license = "CC0-1.0"
+license_evidence = "Jerry the Ogre: \"Model and associated data is dedicated under CC0 1.0 Universal.\""
+author = "Keenan Crane"
+credit = "Keenan Crane's 3D Model Repository"
+description = "The ogre from a ray-tracing paper: a character test model."
+tags = ["character", "graphics", "test", "face"]
+subdivide = "smooth"
+triangles = 200000
+
+[[model]]
+id = "vase"
+name = "Vase"
+category = "objects"
+generator = "vase"
+description = "A turned vase with a swelling body and a flared lip."
+tags = ["vessel", "turned", "generated"]
+
+[[model]]
+id = "goblet"
+name = "Goblet"
+category = "objects"
+generator = "goblet"
+description = "A turned goblet on a thin stem."
+tags = ["vessel", "turned", "generated"]
+
+[[model]]
+id = "chess-pawn"
+name = "Chess pawn"
+category = "objects"
+generator = "chess_pawn"
+description = "A turned pawn: base, collar and ball."
+tags = ["chess", "turned", "generated"]
+
+[[model]]
+id = "chess-rook"
+name = "Chess rook"
+category = "objects"
+generator = "chess_rook"
+description = "A turned rook with a notched crown."
+tags = ["chess", "turned", "generated"]
+
+# ============================================================================ Shapes & forms (generated)
+[[model]]
+id = "sphere"
+name = "Sphere"
+category = "shapes"
+bundled = true
+generator = "sphere"
+description = "Evenly triangulated (an icosphere)."
+tags = ["primitive", "round"]
+
+[[model]]
+id = "cube"
+name = "Cube"
+category = "shapes"
+bundled = true
+generator = "cube"
+description = "Six faces, finely and evenly triangulated."
+tags = ["primitive", "platonic", "flat"]
+
+[[model]]
+id = "tetrahedron"
+name = "Tetrahedron"
+category = "shapes"
+bundled = true
+generator = "tetrahedron"
+description = "Four triangles; the simplest solid."
+tags = ["primitive", "platonic", "flat"]
+
+[[model]]
+id = "octahedron"
+name = "Octahedron"
+category = "shapes"
+bundled = true
+generator = "octahedron"
+description = "Eight triangles, two pyramids base to base."
+tags = ["primitive", "platonic", "flat"]
+
+[[model]]
+id = "dodecahedron"
+name = "Dodecahedron"
+category = "shapes"
+bundled = true
+generator = "dodecahedron"
+description = "Twelve pentagons."
+tags = ["primitive", "platonic", "flat"]
+
+[[model]]
+id = "icosahedron"
+name = "Icosahedron"
+category = "shapes"
+bundled = true
+generator = "icosahedron"
+description = "Twenty triangles."
+tags = ["primitive", "platonic", "flat"]
+
+[[model]]
+id = "pyramid"
+name = "Pyramid"
+category = "shapes"
+bundled = true
+generator = "pyramid"
+description = "A square pyramid."
+tags = ["primitive", "flat"]
+
+[[model]]
+id = "cylinder"
+name = "Cylinder"
+category = "shapes"
+bundled = true
+generator = "cylinder"
+description = "A drum with flat ends."
+tags = ["primitive", "round"]
+
+[[model]]
+id = "cone"
+name = "Cone"
+category = "shapes"
+bundled = true
+generator = "cone"
+description = "A cone on a flat base."
+tags = ["primitive", "round"]
+
+[[model]]
+id = "capsule"
+name = "Capsule"
+category = "shapes"
+bundled = true
+generator = "capsule"
+description = "A cylinder with round ends."
+tags = ["primitive", "round"]
+
+[[model]]
+id = "torus"
+name = "Torus"
+category = "shapes"
+bundled = true
+generator = "torus"
+description = "The ring: one hole."
+tags = ["primitive", "round", "ring"]
+
+[[model]]
+id = "rounded-cube"
+name = "Rounded cube"
+category = "shapes"
+bundled = true
+generator = "rounded_cube"
+description = "A superellipsoid, halfway between a sphere and a cube."
+tags = ["primitive", "superquadric"]
+
+[[model]]
+id = "stella-octangula"
+name = "Stella octangula"
+category = "shapes"
+generator = "stella_octangula"
+description = "Kepler's star: two tetrahedra through each other."
+tags = ["star", "polyhedron", "flat"]
+
+[[model]]
+id = "steinmetz"
+name = "Steinmetz tricylinder"
+category = "shapes"
+generator = "steinmetz"
+description = "What three crossing cylinders share."
+tags = ["intersection", "round"]
+
+[[model]]
+id = "trefoil-knot"
+name = "Trefoil knot"
+category = "shapes"
+generator = "torus_knot"
+params = { p = 2, q = 3 }
+description = "The simplest knot, as a tube."
+tags = ["knot", "tube"]
+
+[[model]]
+id = "torus-knot-3-5"
+name = "Torus knot (3, 5)"
+category = "shapes"
+generator = "torus_knot"
+params = { p = 3, q = 5, radius = 0.22, n = 1600 }
+description = "Three times round, five times through."
+tags = ["knot", "tube"]
+
+[[model]]
+id = "figure-eight-knot"
+name = "Figure-eight knot"
+category = "shapes"
+generator = "figure_eight_knot"
+description = "The knot with four crossings."
+tags = ["knot", "tube"]
+
+[[model]]
+id = "mobius-band"
+name = "Möbius band"
+category = "shapes"
+params = { thickness = 0.2 }
+generator = "mobius_band"
+description = "A band with a half twist: one side, one edge (here given a thickness)."
+tags = ["one-sided", "twist", "topology"]
+
+[[model]]
+id = "twisted-torus"
+name = "Twisted torus"
+category = "shapes"
+generator = "twisted_torus"
+description = "A square ring that turns three quarter turns on its way round."
+tags = ["twist", "ring"]
+
+[[model]]
+id = "klein-bottle"
+name = "Klein bottle"
+category = "shapes"
+generator = "klein_bottle"
+description = "A bottle with no inside: one surface that passes through itself."
+tags = ["one-sided", "topology", "surface"]
+
+[[model]]
+id = "boys-surface"
+name = "Boy's surface"
+category = "shapes"
+generator = "boys_surface"
+description = "The projective plane in space, with threefold symmetry."
+tags = ["one-sided", "topology", "surface"]
+
+[[model]]
+id = "seashell"
+name = "Seashell spiral"
+category = "shapes"
+generator = "seashell"
+description = "A tube that grows as it winds down a cone, as shells do."
+tags = ["spiral", "growth", "tube"]
+
+[[model]]
+id = "gyroid"
+name = "Gyroid"
+category = "shapes"
+params = { res = 120 }
+generator = "gyroid"
+description = "A minimal surface without straight lines, thickened and cut to a cube."
+tags = ["minimal surface", "lattice", "periodic"]
+
+[[model]]
+id = "schwarz-p"
+name = "Schwarz P surface"
+category = "shapes"
+params = { res = 120 }
+generator = "schwarz_p"
+description = "Schwarz's primitive minimal surface, thickened and cut to a cube."
+tags = ["minimal surface", "lattice", "periodic"]
+
+[[model]]
+id = "menger-sponge"
+name = "Menger sponge"
+category = "shapes"
+generator = "menger_sponge"
+description = "A cube punched through and through, three levels deep."
+tags = ["fractal", "cube"]
+
+[[model]]
+id = "bumpy-sphere"
+name = "Rippled sphere"
+category = "shapes"
+generator = "bumpy_sphere"
+description = "A sphere rippled by spherical harmonics: organic and even."
+tags = ["round", "organic"]
+
+[[model]]
+id = "oloid"
+name = "Oloid"
+category = "shapes"
+url = "https://www.cs.cmu.edu/~kmcrane/Projects/ModelRepository/oloid.zip"
+member = "oloid4096_tri.obj"
+source_url = "https://www.cs.cmu.edu/~kmcrane/Projects/ModelRepository/"
+license = "CC0-1.0"
+license_evidence = "Oloid: \"Model and associated data is dedicated under CC0 1.0 Universal.\""
+author = "Paul Schatz (shape)"
+credit = "Keenan Crane's 3D Model Repository"
+description = "A developable solid whose whole surface touches the ground as it rolls."
+tags = ["developable", "rolling"]
+subdivide = "flat"
+triangles = 60000
+
+[[model]]
+id = "constant-width"
+name = "Body of constant width"
+category = "shapes"
+url = "https://www.cs.cmu.edu/~kmcrane/Projects/ModelRepository/constant-width.zip"
+member = "constant-width/constant-width-triangulated.obj"
+source_url = "https://www.cs.cmu.edu/~kmcrane/Projects/ModelRepository/"
+license = "CC0-1.0"
+license_evidence = "Small Volume Surface of Constant Width: \"Model and associated data is dedicated under CC0 1.0 Universal.\""
+author = "Arman, Bondarenko, Nazarov, Prymak and Radchenko (shape)"
+credit = "Keenan Crane's 3D Model Repository, after Andriy Prymak"
+description = "As wide in every direction as a sphere, but smaller in volume."
+tags = ["convex", "geometry"]
+triangles = 200000
+
+# ============================================================================ Natural heads
+[[model]]
+id = "sculpted-head"
+name = "Sculpted head"
+category = "people"
+commons = "Head (Sculpting) - Realistic by Dan Ulrich (CC0).stl"
+license = "CC0-1.0"
+made = "2022"
+credit = "Dan Ulrich, Blender Studio"
+description = "A realistic human head sculpted in Blender: smooth, natural, without hair."
+tags = ["realistic", "sculpt", "face", "modern"]
+triangles = 500000
+
+[[model]]
+id = "st-valentine"
+name = "St. Valentine, facial reconstruction"
+category = "people"
+commons = "St. Valentine 3D - forensic facial reconstruction.stl"
+license = "CC-BY-SA-4.0"
+credit = "Cícero Moraes"
+description = "A bust sculpted from the forensic facial reconstruction of the saint."
+tags = ["realistic", "forensic", "face", "man"]
+triangles = 250000
+
+[[model]]
+id = "caceres-bust"
+name = "Man of Cáceres, facial reconstruction"
+category = "people"
+commons = "Reconstrução facial - busto - Cáceres-MT.stl"
+license = "CC-BY-SA-4.0"
+made = "10th century (the person)"
+credit = "Cícero Moraes"
+description = "Facial reconstruction of a man of the Xarayes people who lived near Cáceres, Brazil."
+tags = ["realistic", "forensic", "face", "man"]
+triangles = 200000
+
+[[model]]
+id = "lagoa-santa"
+name = "Lagoa Santa woman, facial reconstruction"
+category = "people"
+commons = "Lapa do Santo - Sepultamento 26 - Facial reconstruction by Caroline WilkinsonNew Face of Lagoa Santa people by Caroline Wilkinson.stl"
+license = "CC-BY-SA-4.0"
+credit = "Caroline Wilkinson; model by MAE-USP (Strauss)"
+description = "Forensic facial reconstruction of an early inhabitant of Lagoa Santa, Brazil."
+tags = ["realistic", "forensic", "face"]
+triangles = 400000
+
+[[model]]
+id = "fracastoro"
+name = "Girolamo Fracastoro, facial reconstruction"
+category = "people"
+commons = "Girolamo Fracastoro.stl"
+license = "CC-BY-SA-4.0"
+made = "1478–1553 (the person)"
+credit = "Cícero Moraes, Thiago Petra and Mauro Romero Leal Passos"
+description = "The Renaissance physician, from his portraits and his skull."
+tags = ["realistic", "forensic", "face", "man", "renaissance"]
+triangles = 500000
+
+[[model]]
+id = "homo-longi"
+name = "Homo longi, facial approximation"
+category = "people"
+commons = "Homo longi - bust - Moraes et al. 2026.stl"
+license = "CC-BY-SA-4.0"
+credit = "Cícero Moraes et al."
+description = "A facial approximation of the archaic human known from the Harbin skull."
+tags = ["realistic", "forensic", "face", "prehistoric"]
+triangles = 60000
+
+[[model]]
+id = "claes-lindhardt"
+name = "Bust of Claes Lindhardt"
+category = "people"
+commons = "3D Bust of Claes Lindhardt.stl"
+license = "CC0-1.0"
+credit = "CuraCurl"
+description = "A portrait bust of the Danish children's author."
+tags = ["portrait", "face", "man", "modern"]
+triangles = 200000
+
+[[model]]
+id = "ramon-y-cajal"
+name = "Santiago Ramón y Cajal"
+category = "people"
+rotate = [90, 0, 0]
+commons = "Modelo 3D del busto de Santiago Ramon y Cajal.stl"
+license = "CC-BY-4.0"
+credit = "Markus Bastir and colleagues (digitisation)"
+description = "A portrait bust of the neuroscientist."
+tags = ["portrait", "face", "man", "modern"]
+triangles = 170000
+
+[[model]]
+id = "laurana-woman"
+name = "Bust of a woman (Laurana)"
+category = "people"
+rotate = [90, 0, 0]
+commons = "Laurana.stl"
+license = "CC-BY-SA-4.0"
+author = "Francesco Laurana"
+made = "c. 1472"
+credit = "ALoopingIcon (scan of a cast in Berlin)"
+description = "Laurana's serene portrait of a young woman, smooth and natural."
+tags = ["renaissance", "portrait", "face", "woman"]
+triangles = 100000
+
+[[model]]
+id = "singing-woman"
+name = "Bust of a singing woman"
+category = "people"
+commons = "Bust Of A Singing Woman - 3D model by Limerick3D - Sketchfab.stl"
+license = "CC0-1.0"
+made = "18th century"
+credit = "Limerick3D"
+description = "A woman in a turban, mouth open in song: a small ivory bust."
+tags = ["portrait", "face", "woman"]
+triangles = 200000
+
+# ============================================================================ Light & quick (5k-50k triangles)
+# Lighter copies of the scans above (their licences allow it); add light scans here as they are found.
+
+[[model]]
+id = "david-head-light"
+from = "david-head"
+name = "Head of Michelangelo's David · light"
+category = "light"
+tags = ["light"]
+triangles = 30000
+bundled = true
+
+[[model]]
+id = "venus-de-milo-bust-light"
+from = "venus-de-milo-bust"
+name = "Venus de Milo, bust · light"
+category = "light"
+tags = ["light"]
+triangles = 30000
+bundled = true
+
+[[model]]
+id = "nefertiti-light"
+from = "nefertiti"
+name = "Bust of Nefertiti · light"
+category = "light"
+tags = ["light"]
+triangles = 25000
+bundled = true
+
+[[model]]
+id = "juno-ludovisi-light"
+from = "juno-ludovisi"
+name = "Juno Ludovisi · light"
+category = "light"
+tags = ["light"]
+triangles = 30000
+bundled = true
+
+[[model]]
+id = "memnon-light"
+from = "memnon"
+name = "Memnon of Ethiopia · light"
+category = "light"
+tags = ["light"]
+triangles = 35000
+bundled = true
+
+[[model]]
+id = "marcus-aurelius-light"
+from = "marcus-aurelius"
+name = "Marcus Aurelius · light"
+category = "light"
+tags = ["light"]
+triangles = 40000
+bundled = true
+
+[[model]]
+id = "augustus-light"
+from = "augustus"
+name = "Augustus · light"
+category = "light"
+tags = ["light"]
+triangles = 30000
+bundled = true
+
+[[model]]
+id = "maximian-light"
+from = "maximian"
+name = "Maximian Herculius · light"
+category = "light"
+tags = ["light"]
+triangles = 30000
+bundled = true
+
+[[model]]
+id = "voltaire-light"
+from = "voltaire"
+name = "Bust of Voltaire · light"
+category = "light"
+tags = ["light"]
+triangles = 30000
+bundled = true
+
+[[model]]
+id = "pierre-de-wissant-light"
+from = "pierre-de-wissant"
+name = "Head of Pierre de Wissant · light"
+category = "light"
+tags = ["light"]
+triangles = 30000
+bundled = true
+
+[[model]]
+id = "venus-de-milo-light"
+from = "venus-de-milo"
+name = "Venus de Milo · light"
+category = "light"
+tags = ["light"]
+triangles = 40000
+bundled = true
+
+[[model]]
+id = "david-light"
+from = "david"
+name = "David · light"
+category = "light"
+tags = ["light"]
+triangles = 40000
+bundled = true
+
+[[model]]
+id = "doryphoros-light"
+from = "doryphoros"
+name = "Doryphoros · light"
+category = "light"
+tags = ["light"]
+triangles = 30000
+bundled = true
+
+[[model]]
+id = "discobolus-light"
+from = "discobolus"
+name = "Discobolus · light"
+category = "light"
+tags = ["light"]
+triangles = 40000
+bundled = true
+
+[[model]]
+id = "apollo-belvedere-light"
+from = "apollo-belvedere"
+name = "Apollo Belvedere · light"
+category = "light"
+tags = ["light"]
+triangles = 50000
+bundled = true
+
+[[model]]
+id = "artemision-bronze-light"
+from = "artemision-bronze"
+name = "Zeus or Poseidon of Artemision · light"
+category = "light"
+tags = ["light"]
+triangles = 40000
+bundled = true
+
+[[model]]
+id = "thinker-light"
+from = "thinker"
+name = "The Thinker · light"
+category = "light"
+tags = ["light"]
+triangles = 40000
+bundled = true
+
+[[model]]
+id = "age-of-bronze-light"
+from = "age-of-bronze"
+name = "The Age of Bronze · light"
+category = "light"
+tags = ["light"]
+triangles = 40000
+bundled = true
+
+[[model]]
+id = "belvedere-torso-light"
+from = "belvedere-torso"
+name = "Belvedere Torso · light"
+category = "light"
+tags = ["light"]
+triangles = 25000
+bundled = true
+
+[[model]]
+id = "venus-of-willendorf-light"
+from = "venus-of-willendorf"
+name = "Venus of Willendorf · light"
+category = "light"
+tags = ["light"]
+triangles = 15000
+bundled = true
+
+[[model]]
+id = "sculpted-head-light"
+from = "sculpted-head"
+name = "Sculpted head · light"
+category = "light"
+tags = ["light"]
+triangles = 40000
+bundled = true
+
+[[model]]
+id = "st-valentine-light"
+from = "st-valentine"
+name = "St. Valentine, facial reconstruction · light"
+category = "light"
+tags = ["light"]
+triangles = 40000
+bundled = true
+
+[[model]]
+id = "fracastoro-light"
+from = "fracastoro"
+name = "Girolamo Fracastoro · light"
+category = "light"
+tags = ["light"]
+triangles = 40000
+bundled = true
+
+[[model]]
+id = "lagoa-santa-light"
+from = "lagoa-santa"
+name = "Lagoa Santa woman · light"
+category = "light"
+tags = ["light"]
+triangles = 40000
+bundled = true

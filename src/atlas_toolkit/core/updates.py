@@ -52,7 +52,7 @@ def disabled() -> bool:
 def _get_json(url: str, timeout: float):
     from urllib import error as urlerror
     from urllib import request as urlrequest
-    from ..geom.depth_runtime import _contexts            # the default store, then certifi's, then the system files
+    from .download import contexts as _contexts           # the default store, then certifi's, then the system files
     import ssl
     last = None
     for ctx in _contexts():

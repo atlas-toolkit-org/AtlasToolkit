@@ -623,6 +623,7 @@ class SetupDialog(QDialog):
         grid.setColumnStretch(1, 1)
         cl.addLayout(grid)
         lay.addWidget(card)
+        lay.addWidget(self._catalogue_card())
 
         card, cl = _card("Housekeeping")
         g = self._grid()
@@ -647,6 +648,78 @@ class SetupDialog(QDialog):
         lay.addWidget(card)
         lay.addStretch(1)
         return _scroll(w)
+
+    def _catalogue_card(self) -> QWidget:
+        """The model catalogue's folder (where its models go, and the outputs written beside them)."""
+        from ..core import catalogue
+        card, cl = _card("Model catalogue")
+        cl.addWidget(hint("Models you take from the catalogue go here, in a folder per category, each with a text "
+                          "file of its credits. Tools write their outputs beside them unless you choose an output "
+                          "folder."))
+        row = QHBoxLayout()
+        self.cat_path = QLineEdit(readOnly=True, objectName="pathField")
+        self.cat_path.setFont(mono(11.5))
+        row.addWidget(self.cat_path, 1)
+        self.cat_size = _text("", "mono", wrap=False)
+        row.addWidget(self.cat_size)
+        for text, ic, fn in (("Change…", "folder", self._choose_catalogue_dir), ("Default", "reset",
+                             lambda: self._set_catalogue_dir("")), ("Open", "folder", self._open_catalogue_dir)):
+            b = QPushButton(text)
+            b.setProperty("variant", "ghost")
+            b.setIcon(icon(ic, self.theme["text-2"], 14))
+            b.clicked.connect(lambda _=False, fn=fn: fn())
+            row.addWidget(b)
+        cl.addLayout(row)
+        g = self._grid()
+        b = QPushButton("Remove downloaded models")
+        b.setIcon(icon("trash", self.theme["text-2"], 14))
+        b.setMinimumWidth(150)
+        b.clicked.connect(lambda: self.clear_catalogue())
+        self._option(g, "Downloads", "Every catalogue model in the folder goes; outputs beside them stay. A model "
+                                     "comes back the next time you use it.", b)
+        cl.addLayout(g)
+        self._catalogue = lambda: catalogue.Catalogue.load(settings=self.ctx.settings)
+        self._refresh_catalogue_card()
+        return card
+
+    def _refresh_catalogue_card(self) -> None:
+        try:
+            cat = self._catalogue()
+        except (OSError, ValueError):
+            self.cat_path.setText("the catalogue's index is missing: reinstall Atlas Toolkit")
+            return
+        self.cat_path.setText(display_path(cat.folder))      # as the other folders: nothing of this computer shown
+        self.cat_path.setCursorPosition(0)
+        n = len(cat.local_models())
+        self.cat_size.setText(f"{n} model{'s' if n != 1 else ''} · {human_size(cat.disk_usage())}" if n else "empty")
+
+    def _choose_catalogue_dir(self) -> None:
+        start = str(self._catalogue().folder)
+        folder = QFileDialog.getExistingDirectory(self, "Put catalogue models in", start)
+        if folder:
+            self._set_catalogue_dir(folder)
+
+    def _set_catalogue_dir(self, folder: str) -> None:
+        self.ctx.set_pref("catalogue_dir", folder)
+        self._refresh_catalogue_card()
+
+    def _open_catalogue_dir(self) -> None:
+        folder = self._catalogue().folder
+        folder.mkdir(parents=True, exist_ok=True)
+        reveal(folder)
+
+    def clear_catalogue(self, ask: bool = True) -> bool:
+        cat = self._catalogue()
+        if not cat.local_models():
+            self.ctx.toast("No catalogue models on this computer.", "")
+            return False
+        if not self._confirm("Remove every catalogue model from its folder? Outputs written beside them stay, and a "
+                             "model downloads again the next time you use it.", ask):
+            return False
+        n = cat.remove_all()
+        self._refresh_catalogue_card()
+        self.ctx.toast(f"Removed {n} catalogue model{'s' if n != 1 else ''}.", "success")
+        return True
 
     def _presets_tab(self) -> QWidget:
         from .setup_presets import PresetsPanel

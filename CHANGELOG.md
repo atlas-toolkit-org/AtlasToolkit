@@ -1,6 +1,49 @@
 # Changelog
 
-## 2.3.2 (2026-11-17)
+## 2.4.0 (2026-11-18)
+
+**The model catalogue: models to try every 3D tool with**
+- **No model at hand?** A new **Model catalogue** window offers about 130 ready-made models in nine categories:
+  Light & quick, Natural heads, Busts & heads, Statues & figures, Animals, Hands, faces & masks, Natural history, Objects & test
+  classics, and Shapes & forms. It opens from **Catalogue…** beside a mesh tool's inputs (and the link in its empty queue), the
+  catalogue icon beside a mesh file setting, a workflow's Inputs tab and fixed-input steps, and Home's **Open the model
+  catalogue…**.
+- **Fluid browsing:** categories on the left, cards with clear clay previews in the middle (search, a filter for *In the app*,
+  *To download* or *Local*, card size), and the chosen model's picture on the right, large, with its maker,
+  date, scanner, licence and source. Ctrl or Shift picks several. **Use model** adds them like dropped files.
+- **Natural heads:** realistic, modern-looking heads: Blender Studio's sculpted head, forensic facial
+  reconstructions (St. Valentine, Girolamo Fracastoro, a Lagoa Santa woman, a man of Cáceres, Homo longi) and portrait
+  busts (Ramón y Cajal, Claes Lindhardt, Laurana's young woman, an 18th-century singing woman).
+- **Light & quick:** 24 heads, busts and statues of 15,000 to 50,000 triangles (David, the Venus de Milo,
+  Nefertiti, the Thinker, the Discobolus…), lighter copies of the full scans, all in the app: every tool runs on them
+  in seconds.
+- **Chosen for Atlas:** solid, readable forms that draw and sculpt well; no scale bars or labels, nothing mostly
+  thin (skeletons, wires, hollow vessels), no fractal clutter. The build measures thinness and refuses what fails.
+- **In the app or a download away:** the simple shapes (sphere, cube, the Platonic solids, pyramid, cylinder, cone,
+  capsule, torus, rounded cube) and a few favourites (David's head, a Venus de Milo bust, Nefertiti, the Doryphoros,
+  Lincoln's hand and life mask, an ammonite, Spot, the Utah teapot) come inside the app, about 27 MB. The rest, the
+  knots, Möbius band, Klein bottle, Boy's surface, gyroid and Menger sponge among them, download on first use from the
+  catalogue's release, checked against their SHA-256, with progress on the card, Stop, and a plain message offline.
+- **Where they go:** `Documents/Atlas Toolkit/Catalogue/<category>`, each model with a text file of its credits, so
+  tools write their outputs beside them. Setup › Storage › **Model catalogue** changes the folder, opens it and removes
+  the downloads. The command line has `atlas-toolkit catalogue list | get | remove`.
+- **Licences:** only models free to use, share and change ship: CC0 / public domain, CC BY 4.0 and CC BY-SA 4.0, each
+  credited in the window, beside the file and in `licenses/catalogue-models.txt` (CC BY and CC BY-SA texts added).
+  Museum scans come from SMK's Royal Cast Collection, the Musée Saint-Raymond, the Smithsonian, the University of
+  Pisa's natural history museum and Scan the World, via Wikimedia Commons; graphics classics from Keenan Crane's
+  repository.
+- **Hosting:** the downloadable models live on the public repository's `catalogue-1` GitHub release (133 files,
+  369 MB), never in git.
+- **Releasing in five checked steps:** `scripts/release.py check | prepare | tag | status | publish` takes a version
+  from the changelog entry to the published GitHub release, the server's download folder and the website's roadmap,
+  asking before each outward step (docs/PACKAGING.md, "Releasing"). The install guides no longer list file sizes,
+  which went stale between releases.
+- **For developers:** `catalogue/recipes.toml` + `scripts/catalogue.py` build it all (fetch, prepare, thumbnails,
+  index, starter set, checks); [docs/CATALOGUE.md](docs/CATALOGUE.md) shows how to add a model. Downloads now share
+  `core/download.py` with the depth environment's installer and the update check.
+
+**Also in this release** (prepared as 2.3.2, never published)
+
 
 **The app says when a new version is out**
 - **It asks first, once:** a strip under the top bar asks *Hear about new versions?* **Check once a day** or **No

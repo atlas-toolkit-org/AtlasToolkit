@@ -16,6 +16,7 @@ outputs that already exist. No Qt: the CLI and the tests use it too.
     preview_delay_ms   the pause after a change before the preview updates
     ui_scale           interface scale, applied at the next start
     update_check       ask | daily | never                     look for a new version (core/updates.py)
+    catalogue_dir      where model catalogue models go; empty: Documents/Atlas Toolkit/Catalogue (core/catalogue.py)
 
 export_settings / import_settings move the options and every tool's settings and presets as one JSON file (the
 computer's own entries, such as located programs and the window layout, stay behind).
@@ -51,6 +52,7 @@ DEFAULTS = {
     "preview_delay_ms": 450,
     "ui_scale": 1.0,
     "update_check": "ask",
+    "catalogue_dir": "",
 }
 CHOICES = {"on_existing": ON_EXISTING, "theme_start": THEMES, "art_start": ARTS, "start_page": START_PAGES,
            "update_check": UPDATE_CHECKS,
@@ -58,7 +60,8 @@ CHOICES = {"on_existing": ON_EXISTING, "theme_start": THEMES, "art_start": ARTS,
 RANGES = {"workers": (1, MAX_WORKERS), "preview_delay_ms": (100, 3000), "ui_scale": (UI_SCALES[0], UI_SCALES[-1])}
 # keys of app.json that are not options: what "Reset options" keeps (window layout, recent files, located programs)
 STATE_KEYS = ("theme", "art", "geometry", "sidebar_on", "last_tool", "last_page", "last_workflow", "recent",
-              "workflow_dir", "library_collapsed", "update_last", "update_latest", "update_skip")
+              "workflow_dir", "library_collapsed", "update_last", "update_latest", "update_skip",
+              "catalogue_recent", "catalogue_view")
 
 
 def max_workers() -> int:
@@ -117,7 +120,8 @@ def plan(paths: dict, policy: str, mark: str | None = None) -> tuple[dict, list]
 # ---------------------------------------------------------------------- export / import
 BUNDLE = "atlas-toolkit-settings"
 # app.json keys that belong to this computer or this session: never exported, never imported
-LOCAL_KEYS = ("geometry", "recent", "last_workflow", "workflow_dir", "update_last", "update_latest", "update_skip")
+LOCAL_KEYS = ("geometry", "recent", "last_workflow", "workflow_dir", "update_last", "update_latest", "update_skip",
+              "catalogue_dir", "catalogue_recent", "catalogue_view")
 
 
 def _local_keys() -> set:
