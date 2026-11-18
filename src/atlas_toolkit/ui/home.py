@@ -211,6 +211,17 @@ class HomePage(QScrollArea):
         self.drop = DropZone()
         self.drop.dropped.connect(self.route)
         lay.addWidget(self.drop)
+        try_row = QHBoxLayout()
+        try_row.setSpacing(10)
+        self.try_hint = QLabel("No model at hand? Busts, statues, animals, skulls and shapes are ready to try.")
+        self.try_hint.setProperty("class", "hint")
+        try_row.addWidget(self.try_hint)
+        from .catalogue import catalogue_button
+        self.try_btn = catalogue_button(self.theme, "Open the model catalogue…")
+        self.try_btn.clicked.connect(self.pick_catalogue)
+        try_row.addWidget(self.try_btn)
+        try_row.addStretch(1)
+        lay.addLayout(try_row)
         lay.addSpacing(6)
 
         bar = QHBoxLayout()
@@ -383,6 +394,13 @@ class HomePage(QScrollArea):
         page = self.ctx.open_workflow()
         if page is not None:
             page.new_workflow()
+
+    def pick_catalogue(self) -> None:
+        """Models from the catalogue, then the tools that take them, as when they are dropped here."""
+        from .catalogue import pick_models
+        paths = pick_models(self, multiple=True, ctx=self.ctx)
+        if paths:
+            self.route(paths)
 
     def route(self, paths: list) -> None:
         """Open the one tool that takes these files, or ask which."""

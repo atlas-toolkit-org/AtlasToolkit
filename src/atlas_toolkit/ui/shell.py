@@ -101,6 +101,8 @@ class MainWindow(QMainWindow):
         ctx.open_workflow = self.open_workflow
         ctx.show_help = self.show_help
         ctx.show_setup = self.show_setup
+        from . import catalogue as _catalogue
+        _catalogue.set_context(ctx)          # the model catalogue window, from any place a mesh is chosen
         ctx.run_finished = self.run_finished
         ctx.status = self.set_status
         ctx.log = self.log

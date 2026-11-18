@@ -552,6 +552,40 @@ way. All of it is remembered.
 **About** (ⓘ, top right): the toolkit and its version, the tools with their icons, the command line, the shortcuts,
 the changelog, credits, and **Copy diagnostics** for a bug report. **Check for updates** there asks at any time.
 
+### The model catalogue
+
+No model at hand? The **Model catalogue** has ready-made ones to try every 3D tool with. Open it with **Catalogue…**
+beside a mesh tool's inputs (or the link in its empty queue), the catalogue icon next to a mesh file setting (Mesh
+Fusion's target, Dual's second mesh, a reference model), **Catalogue…** in a workflow's Inputs tab or on a fixed-input
+step, or **Open the model catalogue…** on Home.
+
+- **Categories** on the left: Light & quick, Natural heads, Busts & heads, Statues & figures, Animals, Hands,
+  faces & masks, Natural history, Objects & test classics, Shapes & forms; also All models and Recently used. **Light & quick** has
+  heads, busts and statues of 15,000 to 50,000 triangles, all in the app: the place to start, since every tool runs on
+  them in seconds (the same works at full detail are in their own categories). **Natural heads** has realistic,
+  modern-looking heads: a sculpted head, forensic facial reconstructions and portrait busts. **Search** finds names, artists and
+  tags; **Show** picks **All**, **In the app** (ready at once), **To download** (fetched on first use) or **Local**
+  (already in your catalogue folder). The slider sizes the cards.
+- **The cards** say how many triangles a model has and what using it takes: *in the app* (ready at once), a download
+  size, or *on this computer*.
+- **The right side** shows the chosen model's picture, large, with who made it, when, who scanned it, its licence
+  and a link to its source.
+- **Use model** (or a double-click) gets it ready and adds it, like a file you dropped. Ctrl or Shift picks several
+  for a tool's queue or a workflow's run. Downloads show on their cards, can be stopped, and say plainly when there is
+  no connection. **Download** fetches a model for later; **Remove from this computer** deletes a downloaded one.
+- **Where they go:** `Documents/Atlas Toolkit/Catalogue/<category>/<name>.ply`, each with a `.txt` of its credits.
+  Tools write their outputs beside them unless you chose an output folder. Setup › Storage › **Model catalogue**
+  changes the folder, opens it, and removes the downloaded models (outputs stay). In portable mode the folder is
+  `AtlasToolkit-data/catalogue`.
+- **Licences:** every model is free to use, share and change: public domain (CC0) or Creative Commons Attribution
+  (CC BY, CC BY-SA 4.0). Attribution licences ask you to credit the author when you publish what you make; the
+  `.txt` beside each model says how. The full list is in `licenses/catalogue-models.txt`.
+- About 130 models, chosen for drawing and sculpting: solid, readable forms, nothing mostly made of thin wires or
+  bones. The simple shapes (sphere, cube, Platonic solids, cylinder, cone, torus…) and a few favourites (David's head,
+  the Venus de Milo bust, Nefertiti, Spot, the Utah teapot…) and all of Light & quick come with the app; the rest
+  (about 310 MB in all)
+  download one at a time, only when you use them.
+
 ### Updates
 
 On its first start the app asks, once, in a strip under the top bar: *Hear about new versions?*
@@ -613,6 +647,8 @@ atlas-toolkit run svg-overlap-cleaner drawings/*.svg --preset-file clean.atlaspr
 atlas-toolkit presets list svg-overlap-cleaner
 atlas-toolkit run voxelizer head.stl --across 80 --shape sphere --out-dir out
 atlas-toolkit self-test
+atlas-toolkit catalogue list shapes
+atlas-toolkit run contour-lines "$(atlas-toolkit catalogue get venus-de-milo-bust)"
 ```
 
 The output streams as it comes, and the exit code comes back: 0 done, 1 a file failed, 2 a mistake in the command. An output that exists is skipped unless you add `--force` (overwrite it) or `--suffix` (keep it; the new one gets a date-time suffix). About › Command line lists the commands.
@@ -630,6 +666,8 @@ The app keeps these in its settings folder:
 - plug-ins (`plugins/`);
 - workflows (`workflows/*.atlasflow`);
 - the run history (`history.jsonl`), which on Linux is in the data folder.
+
+Models from the model catalogue go to `Documents/Atlas Toolkit/Catalogue` (Setup › Storage changes it).
 
 Preview files, depth maps and workflow intermediates (`workflows/` in the cache folder, at most 5 GB) go in the cache folder.
 

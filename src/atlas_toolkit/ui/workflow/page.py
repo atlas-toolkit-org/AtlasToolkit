@@ -255,13 +255,18 @@ class WorkflowPage(QWidget):
         self.btn_add.clicked.connect(self.pick_files)
         self.btn_add_dir = QPushButton("Add folder…")
         self.btn_add_dir.clicked.connect(self.pick_folder)
+        from ..catalogue import catalogue_button
+        self.btn_catalogue = catalogue_button(self.theme, tip="Run the workflow on ready-made models: busts, "
+                                                              "statues, animals, shapes and more.")
+        self.btn_catalogue.clicked.connect(self.pick_catalogue)
         self.btn_remove = QPushButton("Remove")
         self.btn_remove.clicked.connect(self.remove_selected)
-        for b in (self.btn_add, self.btn_add_dir, self.btn_remove):
+        for b in (self.btn_add, self.btn_add_dir, self.btn_catalogue, self.btn_remove):
             bar.addWidget(b)
         lay.addLayout(bar)
         self.queue = FileQueue(self.theme, [("saved", "Saved")],
-                               "Drop the files to run the workflow on here\n\nor use  Add files…")
+                               "Drop the files to run the workflow on here\n\nor use  Add files…\n\n"
+                               "(for 3D models, the  Catalogue… has ready-made ones)")
         self.queue.itemSelectionChanged.connect(self._file_selected)
         self.queue.itemDoubleClicked.connect(lambda it, _c: self._reveal_saved(it.data(0, Qt.UserRole)))
         lay.addWidget(self.queue, 1)
@@ -932,6 +937,17 @@ class WorkflowPage(QWidget):
         if files:
             self.ctx.settings.set("workflow_last_dir", str(Path(files[0]).parent))
             self.add_paths(files)
+
+    def pick_catalogue(self) -> None:
+        """Ready-made models from the model catalogue (ui/catalogue.py) as files of the run."""
+        if self.batch_kind() not in (None, "mesh"):
+            self.ctx.toast("This workflow runs on " + KINDS[self.batch_kind()][1] + " files; the catalogue has 3D "
+                           "models.", "warning")
+            return
+        from ..catalogue import pick_models
+        paths = pick_models(self, multiple=True, ctx=self.ctx, title="Model catalogue · workflow inputs")
+        if paths:
+            self.add_paths(paths)
 
     def pick_folder(self) -> None:
         folder = QFileDialog.getExistingDirectory(self, "Run on every file in a folder",

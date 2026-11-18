@@ -44,3 +44,4 @@ installers/
 _private-presets/
 
 docs/WEBSITE_RESEARCH.md
+src/atlas_toolkit/catalogue/models/*.ply.gz

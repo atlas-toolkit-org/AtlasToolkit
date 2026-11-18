@@ -392,6 +392,14 @@ def native_helpers(skip: bool) -> None:
         sys.exit(f"native helper(s) missing: {', '.join(missing)}; run python native/build.py before packaging")
 
 
+def catalogue_starter_set() -> None:
+    """The model catalogue's starter models into the package (scripts/catalogue.py bundle: from build/catalogue/out,
+    else the catalogue release; each checked against index.json). Without them the app downloads those too."""
+    r = subprocess.run([sys.executable, str(ROOT / "scripts" / "catalogue.py"), "bundle"], cwd=ROOT)
+    if r.returncode:
+        sys.exit("the catalogue's starter models could not be put in the package (see above)")
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--onedir", action="store_true", help="Windows: a folder instead of one file (macOS and Linux always are)")
@@ -408,6 +416,7 @@ def main() -> int:
             stream.reconfigure(errors="backslashreplace")
     print(f"Atlas Toolkit {__version__} - Python {platform.python_version()} - {sys.platform}")
     native_helpers(a.skip_native)
+    catalogue_starter_set()
     if not a.skip_tests:
         run_tests()
     STAGING.mkdir(parents=True, exist_ok=True)

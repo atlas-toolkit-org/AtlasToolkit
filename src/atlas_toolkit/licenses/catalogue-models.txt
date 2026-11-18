@@ -1,0 +1,599 @@
+Atlas Toolkit model catalogue: credits and licences
+====================================================
+
+The model catalogue (Model catalogue… beside a mesh tool's inputs) offers the models below. Scanned and
+modelled works are the property of their authors and are redistributed under the licences named; each
+was decimated, re-oriented (Z up, front toward -Y), centred and scaled, and saved as binary PLY, and some
+were cropped (see Changes). Generated shapes are built by the app (geom/shapes.py) and dedicated to the
+public domain (CC0 1.0). Licence texts: CC0-1.0.txt, CC-BY-4.0.txt, CC-BY-SA-4.0.txt in this folder.
+Public domain: the source marks the work as free of copyright.
+
+Light & quick
+-------------
+* Head of Michelangelo's David · light
+    Original: Michelangelo (1501–1504)
+    Scan or model: Scan the World
+    Source: https://commons.wikimedia.org/wiki/File:David_(Michelangelo).stl
+    Licence: CC-BY-SA-4.0 (https://creativecommons.org/licenses/by-sa/4.0/)
+    Changes: decimated, re-oriented, scaled; cropped to the head and neck, the cut closed; a lighter version (at most 30 000 triangles)
+* Venus de Milo, bust · light
+    Original: Attributed to Alexandros of Antioch (c. 150–125 BC)
+    Scan or model: SMK – National Gallery of Denmark, The Royal Cast Collection (KAS434/1)
+    Source: https://commons.wikimedia.org/wiki/File:Venus_(Afrodite)_fra_Milo_-_KAS434_1.stl
+    Licence: CC0-1.0 (https://creativecommons.org/publicdomain/zero/1.0/)
+    Changes: decimated, re-oriented, scaled; cropped to the head and shoulders, the cut closed; a lighter version (at most 30 000 triangles)
+* Bust of Nefertiti · light
+    Original: Thutmose (attributed) (c. 1345 BC)
+    Scan or model: Scan via MyMiniFactory
+    Source: https://commons.wikimedia.org/wiki/File:Bust_of_Nefertiti_at_the_Neues_Museum,_Berlin.stl
+    Licence: CC0-1.0 (https://creativecommons.org/publicdomain/zero/1.0/)
+    Changes: decimated, re-oriented, scaled; a lighter version (at most 25 000 triangles)
+* Juno Ludovisi · light
+    Scan or model: Scan the World
+    Source: https://commons.wikimedia.org/wiki/File:Scan_the_World_-_Juno_Ludovisi.stl
+    Licence: CC-BY-SA-4.0 (https://creativecommons.org/licenses/by-sa/4.0/)
+    Changes: decimated, re-oriented, scaled; a lighter version (at most 30 000 triangles)
+* Memnon of Ethiopia · light
+    Scan or model: SMK – National Gallery of Denmark, The Royal Cast Collection (KAS969)
+    Source: https://commons.wikimedia.org/wiki/File:Memnon_fra_Etiopien_-_KAS969.stl
+    Licence: CC0-1.0 (https://creativecommons.org/publicdomain/zero/1.0/)
+    Changes: decimated, re-oriented, scaled; a lighter version (at most 35 000 triangles)
+* Marcus Aurelius · light
+    Scan or model: Musée Saint-Raymond, Toulouse / IMA Solutions
+    Source: https://commons.wikimedia.org/wiki/File:MSR-Marc_Aur%C3%A8le-Ra61b.stl
+    Licence: CC0-1.0 (https://creativecommons.org/publicdomain/zero/1.0/)
+    Changes: decimated, re-oriented, scaled; a lighter version (at most 40 000 triangles)
+* Augustus · light
+    Scan or model: Musée Saint-Raymond, Toulouse / IMA Solutions
+    Source: https://commons.wikimedia.org/wiki/File:MSR-Auguste-Ra57.stl
+    Licence: CC0-1.0 (https://creativecommons.org/publicdomain/zero/1.0/)
+    Changes: decimated, re-oriented, scaled; a lighter version (at most 30 000 triangles)
+* Maximian Herculius · light
+    Scan or model: Musée Saint-Raymond, Toulouse / IMA Solutions
+    Source: https://commons.wikimedia.org/wiki/File:MSR-Maximien_Hercule-Ra34b.stl
+    Licence: CC0-1.0 (https://creativecommons.org/publicdomain/zero/1.0/)
+    Changes: decimated, re-oriented, scaled; a lighter version (at most 30 000 triangles)
+* Bust of Voltaire · light
+    Scan or model: Rama (scan), Musée d'art et d'histoire de Genève (1967-108)
+    Source: https://commons.wikimedia.org/wiki/File:Bust_of_Voltaire-MAHG_1967-108-High_poly-001.stl
+    Licence: LicenseRef-public-domain
+    Changes: decimated, re-oriented, scaled; a lighter version (at most 30 000 triangles)
+* Head of Pierre de Wissant · light
+    Original: Auguste Rodin (c. 1909)
+    Scan or model: Scan via Sketchfab
+    Source: https://commons.wikimedia.org/wiki/File:1917.722_Heroic_Head_of_Pierre_de_Wissant_-_3D_model.stl
+    Licence: CC0-1.0 (https://creativecommons.org/publicdomain/zero/1.0/)
+    Changes: decimated, re-oriented, scaled; a lighter version (at most 30 000 triangles)
+* Venus de Milo · light
+    Original: Attributed to Alexandros of Antioch (c. 150–125 BC)
+    Scan or model: SMK – National Gallery of Denmark, The Royal Cast Collection (KAS434/1)
+    Source: https://commons.wikimedia.org/wiki/File:Venus_(Afrodite)_fra_Milo_-_KAS434_1.stl
+    Licence: CC0-1.0 (https://creativecommons.org/publicdomain/zero/1.0/)
+    Changes: decimated, re-oriented, scaled; a lighter version (at most 40 000 triangles)
+* David · light
+    Original: Michelangelo (1501–1504)
+    Scan or model: Scan the World
+    Source: https://commons.wikimedia.org/wiki/File:David_(Michelangelo).stl
+    Licence: CC-BY-SA-4.0 (https://creativecommons.org/licenses/by-sa/4.0/)
+    Changes: decimated, re-oriented, scaled; a lighter version (at most 40 000 triangles)
+* Doryphoros · light
+    Original: After Polykleitos (c. 440 BC)
+    Scan or model: SMK – National Gallery of Denmark, The Royal Cast Collection (KAS11)
+    Source: https://commons.wikimedia.org/wiki/File:Spydb%C3%A6reren_(doryforos)_-_KAS11.stl
+    Licence: CC0-1.0 (https://creativecommons.org/publicdomain/zero/1.0/)
+    Changes: decimated, re-oriented, scaled; a lighter version (at most 30 000 triangles)
+* Discobolus · light
+    Original: After Myron (c. 460–450 BC)
+    Scan or model: SMK – National Gallery of Denmark, The Royal Cast Collection (KAS1549)
+    Source: https://commons.wikimedia.org/wiki/File:Diskoskasteren_(Discobolos)_-_KAS1549.stl
+    Licence: CC0-1.0 (https://creativecommons.org/publicdomain/zero/1.0/)
+    Changes: decimated, re-oriented, scaled; a lighter version (at most 40 000 triangles)
+* Apollo Belvedere · light
+    Original: After Leochares (Roman copy, c. AD 120–140)
+    Scan or model: SMK – National Gallery of Denmark, The Royal Cast Collection (KAS353)
+    Source: https://commons.wikimedia.org/wiki/File:Apollo_Belvedere_-_KAS353.stl
+    Licence: CC0-1.0 (https://creativecommons.org/publicdomain/zero/1.0/)
+    Changes: decimated, re-oriented, scaled; a lighter version (at most 50 000 triangles)
+* Zeus or Poseidon of Artemision · light
+    Scan or model: SMK – National Gallery of Denmark, The Royal Cast Collection (KAS2100)
+    Source: https://commons.wikimedia.org/wiki/File:Poseidon_eller_Zeus_fra_Artemision_-_KAS2100.stl
+    Licence: CC0-1.0 (https://creativecommons.org/publicdomain/zero/1.0/)
+    Changes: decimated, re-oriented, scaled; a lighter version (at most 40 000 triangles)
+* The Thinker · light
+    Original: Auguste Rodin (1880–1904)
+    Scan or model: Scan the World
+    Source: https://commons.wikimedia.org/wiki/File:Scan_the_World_-_The_Thinker_(Auguste_Rodin).stl
+    Licence: CC-BY-SA-4.0 (https://creativecommons.org/licenses/by-sa/4.0/)
+    Changes: decimated, re-oriented, scaled; a lighter version (at most 40 000 triangles)
+* The Age of Bronze · light
+    Original: Auguste Rodin (1875–1877)
+    Scan or model: Scan via Wikimedia Commons
+    Source: https://commons.wikimedia.org/wiki/File:The_Age_Of_Bronze_(Auguste_Rodin).stl
+    Licence: CC0-1.0 (https://creativecommons.org/publicdomain/zero/1.0/)
+    Changes: decimated, re-oriented, scaled; a lighter version (at most 40 000 triangles)
+* Belvedere Torso · light
+    Original: Apollonios, son of Nestor (1st century BC)
+    Scan or model: Scan the World
+    Source: https://commons.wikimedia.org/wiki/File:Scan_the_World_-_Belvedere_Torso.stl
+    Licence: CC-BY-SA-4.0 (https://creativecommons.org/licenses/by-sa/4.0/)
+    Changes: decimated, re-oriented, scaled; a lighter version (at most 25 000 triangles)
+* Venus of Willendorf · light
+    Scan or model: Scan the World
+    Source: https://commons.wikimedia.org/wiki/File:Scan_the_World_-_Venus_of_Willendorf.stl
+    Licence: CC-BY-SA-4.0 (https://creativecommons.org/licenses/by-sa/4.0/)
+    Changes: decimated, re-oriented, scaled; a lighter version (at most 15 000 triangles)
+* Sculpted head · light
+    Scan or model: Dan Ulrich, Blender Studio
+    Source: https://commons.wikimedia.org/wiki/File:Head_(Sculpting)_-_Realistic_by_Dan_Ulrich_(CC0).stl
+    Licence: CC0-1.0 (https://creativecommons.org/publicdomain/zero/1.0/)
+    Changes: decimated, re-oriented, scaled; a lighter version (at most 40 000 triangles)
+* St. Valentine, facial reconstruction · light
+    Scan or model: Cícero Moraes
+    Source: https://commons.wikimedia.org/wiki/File:St._Valentine_3D_-_forensic_facial_reconstruction.stl
+    Licence: CC-BY-SA-4.0 (https://creativecommons.org/licenses/by-sa/4.0/)
+    Changes: decimated, re-oriented, scaled; a lighter version (at most 40 000 triangles)
+* Girolamo Fracastoro · light
+    Scan or model: Cícero Moraes, Thiago Petra and Mauro Romero Leal Passos
+    Source: https://commons.wikimedia.org/wiki/File:Girolamo_Fracastoro.stl
+    Licence: CC-BY-SA-4.0 (https://creativecommons.org/licenses/by-sa/4.0/)
+    Changes: decimated, re-oriented, scaled; a lighter version (at most 40 000 triangles)
+* Lagoa Santa woman · light
+    Scan or model: Caroline Wilkinson; model by MAE-USP (Strauss)
+    Source: https://commons.wikimedia.org/wiki/File:Lapa_do_Santo_-_Sepultamento_26_-_Facial_reconstruction_by_Caroline_WilkinsonNew_Face_of_Lagoa_Santa_people_by_Caroline_Wilkinson.stl
+    Licence: CC-BY-SA-4.0 (https://creativecommons.org/licenses/by-sa/4.0/)
+    Changes: decimated, re-oriented, scaled; a lighter version (at most 40 000 triangles)
+
+Natural heads
+-------------
+* Sculpted head
+    Scan or model: Dan Ulrich, Blender Studio
+    Source: https://commons.wikimedia.org/wiki/File:Head_(Sculpting)_-_Realistic_by_Dan_Ulrich_(CC0).stl
+    Licence: CC0-1.0 (https://creativecommons.org/publicdomain/zero/1.0/)
+    Changes: decimated, re-oriented, scaled
+* St. Valentine, facial reconstruction
+    Scan or model: Cícero Moraes
+    Source: https://commons.wikimedia.org/wiki/File:St._Valentine_3D_-_forensic_facial_reconstruction.stl
+    Licence: CC-BY-SA-4.0 (https://creativecommons.org/licenses/by-sa/4.0/)
+    Changes: decimated, re-oriented, scaled
+* Man of Cáceres, facial reconstruction
+    Scan or model: Cícero Moraes
+    Source: https://commons.wikimedia.org/wiki/File:Reconstru%C3%A7%C3%A3o_facial_-_busto_-_C%C3%A1ceres-MT.stl
+    Licence: CC-BY-SA-4.0 (https://creativecommons.org/licenses/by-sa/4.0/)
+    Changes: decimated, re-oriented, scaled
+* Lagoa Santa woman, facial reconstruction
+    Scan or model: Caroline Wilkinson; model by MAE-USP (Strauss)
+    Source: https://commons.wikimedia.org/wiki/File:Lapa_do_Santo_-_Sepultamento_26_-_Facial_reconstruction_by_Caroline_WilkinsonNew_Face_of_Lagoa_Santa_people_by_Caroline_Wilkinson.stl
+    Licence: CC-BY-SA-4.0 (https://creativecommons.org/licenses/by-sa/4.0/)
+    Changes: decimated, re-oriented, scaled
+* Girolamo Fracastoro, facial reconstruction
+    Scan or model: Cícero Moraes, Thiago Petra and Mauro Romero Leal Passos
+    Source: https://commons.wikimedia.org/wiki/File:Girolamo_Fracastoro.stl
+    Licence: CC-BY-SA-4.0 (https://creativecommons.org/licenses/by-sa/4.0/)
+    Changes: decimated, re-oriented, scaled
+* Homo longi, facial approximation
+    Scan or model: Cícero Moraes et al.
+    Source: https://commons.wikimedia.org/wiki/File:Homo_longi_-_bust_-_Moraes_et_al._2026.stl
+    Licence: CC-BY-SA-4.0 (https://creativecommons.org/licenses/by-sa/4.0/)
+    Changes: decimated, re-oriented, scaled
+* Bust of Claes Lindhardt
+    Scan or model: CuraCurl
+    Source: https://commons.wikimedia.org/wiki/File:3D_Bust_of_Claes_Lindhardt.stl
+    Licence: CC0-1.0 (https://creativecommons.org/publicdomain/zero/1.0/)
+    Changes: decimated, re-oriented, scaled
+* Santiago Ramón y Cajal
+    Scan or model: Markus Bastir and colleagues (digitisation)
+    Source: https://commons.wikimedia.org/wiki/File:Modelo_3D_del_busto_de_Santiago_Ramon_y_Cajal.stl
+    Licence: CC-BY-4.0 (https://creativecommons.org/licenses/by/4.0/)
+    Changes: decimated, re-oriented, scaled
+* Bust of a woman (Laurana)
+    Original: Francesco Laurana (c. 1472)
+    Scan or model: ALoopingIcon (scan of a cast in Berlin)
+    Source: https://commons.wikimedia.org/wiki/File:Laurana.stl
+    Licence: CC-BY-SA-4.0 (https://creativecommons.org/licenses/by-sa/4.0/)
+    Changes: decimated, re-oriented, scaled
+* Bust of a singing woman
+    Scan or model: Limerick3D
+    Source: https://commons.wikimedia.org/wiki/File:Bust_Of_A_Singing_Woman_-_3D_model_by_Limerick3D_-_Sketchfab.stl
+    Licence: CC0-1.0 (https://creativecommons.org/publicdomain/zero/1.0/)
+    Changes: decimated, re-oriented, scaled
+
+Busts & heads
+-------------
+* Head of Michelangelo's David
+    Original: Michelangelo (1501–1504)
+    Scan or model: Scan the World
+    Source: https://commons.wikimedia.org/wiki/File:David_(Michelangelo).stl
+    Licence: CC-BY-SA-4.0 (https://creativecommons.org/licenses/by-sa/4.0/)
+    Changes: decimated, re-oriented, scaled; cropped to the head and neck, the cut closed
+* Venus de Milo, bust
+    Original: Attributed to Alexandros of Antioch (c. 150–125 BC)
+    Scan or model: SMK – National Gallery of Denmark, The Royal Cast Collection (KAS434/1)
+    Source: https://commons.wikimedia.org/wiki/File:Venus_(Afrodite)_fra_Milo_-_KAS434_1.stl
+    Licence: CC0-1.0 (https://creativecommons.org/publicdomain/zero/1.0/)
+    Changes: decimated, re-oriented, scaled; cropped to the head and shoulders, the cut closed
+* Bust of Nefertiti
+    Original: Thutmose (attributed) (c. 1345 BC)
+    Scan or model: Scan via MyMiniFactory
+    Source: https://commons.wikimedia.org/wiki/File:Bust_of_Nefertiti_at_the_Neues_Museum,_Berlin.stl
+    Licence: CC0-1.0 (https://creativecommons.org/publicdomain/zero/1.0/)
+    Changes: decimated, re-oriented, scaled
+* Memnon of Ethiopia
+    Scan or model: SMK – National Gallery of Denmark, The Royal Cast Collection (KAS969)
+    Source: https://commons.wikimedia.org/wiki/File:Memnon_fra_Etiopien_-_KAS969.stl
+    Licence: CC0-1.0 (https://creativecommons.org/publicdomain/zero/1.0/)
+    Changes: decimated, re-oriented, scaled
+* Juno Ludovisi
+    Scan or model: Scan the World
+    Source: https://commons.wikimedia.org/wiki/File:Scan_the_World_-_Juno_Ludovisi.stl
+    Licence: CC-BY-SA-4.0 (https://creativecommons.org/licenses/by-sa/4.0/)
+    Changes: decimated, re-oriented, scaled
+* Marcus Aurelius
+    Scan or model: Musée Saint-Raymond, Toulouse / IMA Solutions
+    Source: https://commons.wikimedia.org/wiki/File:MSR-Marc_Aur%C3%A8le-Ra61b.stl
+    Licence: CC0-1.0 (https://creativecommons.org/publicdomain/zero/1.0/)
+    Changes: decimated, re-oriented, scaled
+* Augustus
+    Scan or model: Musée Saint-Raymond, Toulouse / IMA Solutions
+    Source: https://commons.wikimedia.org/wiki/File:MSR-Auguste-Ra57.stl
+    Licence: CC0-1.0 (https://creativecommons.org/publicdomain/zero/1.0/)
+    Changes: decimated, re-oriented, scaled
+* Trajan
+    Scan or model: Musée Saint-Raymond, Toulouse / IMA Solutions
+    Source: https://commons.wikimedia.org/wiki/File:MSR-Trajan-Ra_117.stl
+    Licence: CC0-1.0 (https://creativecommons.org/publicdomain/zero/1.0/)
+    Changes: decimated, re-oriented, scaled
+* Septimius Severus
+    Scan or model: Musée Saint-Raymond, Toulouse / IMA Solutions
+    Source: https://commons.wikimedia.org/wiki/File:MSR-Septime_S%C3%A9v%C3%A8re-Ra66a.stl
+    Licence: CC0-1.0 (https://creativecommons.org/publicdomain/zero/1.0/)
+    Changes: decimated, re-oriented, scaled
+* Tranquillina
+    Scan or model: Musée Saint-Raymond, Toulouse / IMA Solutions
+    Source: https://commons.wikimedia.org/wiki/File:MSR-Tranquillina-Ra166.stl
+    Licence: CC0-1.0 (https://creativecommons.org/publicdomain/zero/1.0/)
+    Changes: decimated, re-oriented, scaled
+* Maximian Herculius
+    Scan or model: Musée Saint-Raymond, Toulouse / IMA Solutions
+    Source: https://commons.wikimedia.org/wiki/File:MSR-Maximien_Hercule-Ra34b.stl
+    Licence: CC0-1.0 (https://creativecommons.org/publicdomain/zero/1.0/)
+    Changes: decimated, re-oriented, scaled
+* Head of a satyr
+    Scan or model: Musée Saint-Raymond, Toulouse / IMA Solutions
+    Source: https://commons.wikimedia.org/wiki/File:MSR-Tete-de-Satyre-Ra131.stl
+    Licence: CC0-1.0 (https://creativecommons.org/publicdomain/zero/1.0/)
+    Changes: decimated, re-oriented, scaled
+* Caracalla
+    Scan or model: AsPJT
+    Source: https://commons.wikimedia.org/wiki/File:Bust_of_Emperor_Caracalla.stl
+    Licence: CC0-1.0 (https://creativecommons.org/publicdomain/zero/1.0/)
+    Changes: decimated, re-oriented, scaled
+* Bust of Voltaire
+    Scan or model: Rama (scan), Musée d'art et d'histoire de Genève (1967-108)
+    Source: https://commons.wikimedia.org/wiki/File:Bust_of_Voltaire-MAHG_1967-108-High_poly-001.stl
+    Licence: LicenseRef-public-domain
+    Changes: decimated, re-oriented, scaled
+* Head of Pierre de Wissant
+    Original: Auguste Rodin (c. 1909)
+    Scan or model: Scan via Sketchfab
+    Source: https://commons.wikimedia.org/wiki/File:1917.722_Heroic_Head_of_Pierre_de_Wissant_-_3D_model.stl
+    Licence: CC0-1.0 (https://creativecommons.org/publicdomain/zero/1.0/)
+    Changes: decimated, re-oriented, scaled
+* Weeping Lady
+    Scan or model: Omar El Atabany
+    Source: https://commons.wikimedia.org/wiki/File:Weeping_Lady,_marble_head,_3D_photogrammetry_scan_(STL).stl
+    Licence: CC-BY-SA-4.0 (https://creativecommons.org/licenses/by-sa/4.0/)
+    Changes: decimated, re-oriented, scaled
+* Head of Venus (Martres)
+    Scan or model: Musée Saint-Raymond, Toulouse / IMA Solutions
+    Source: https://commons.wikimedia.org/wiki/File:MSR-Ra52-VenusMartres.stl
+    Licence: CC0-1.0 (https://creativecommons.org/publicdomain/zero/1.0/)
+    Changes: decimated, re-oriented, scaled
+
+Statues & figures
+-----------------
+* Venus de Milo
+    Original: Attributed to Alexandros of Antioch (c. 150–125 BC)
+    Scan or model: SMK – National Gallery of Denmark, The Royal Cast Collection (KAS434/1)
+    Source: https://commons.wikimedia.org/wiki/File:Venus_(Afrodite)_fra_Milo_-_KAS434_1.stl
+    Licence: CC0-1.0 (https://creativecommons.org/publicdomain/zero/1.0/)
+    Changes: decimated, re-oriented, scaled
+* David
+    Original: Michelangelo (1501–1504)
+    Scan or model: Scan the World
+    Source: https://commons.wikimedia.org/wiki/File:David_(Michelangelo).stl
+    Licence: CC-BY-SA-4.0 (https://creativecommons.org/licenses/by-sa/4.0/)
+    Changes: decimated, re-oriented, scaled
+* Doryphoros (Spear Bearer)
+    Original: After Polykleitos (c. 440 BC)
+    Scan or model: SMK – National Gallery of Denmark, The Royal Cast Collection (KAS11)
+    Source: https://commons.wikimedia.org/wiki/File:Spydb%C3%A6reren_(doryforos)_-_KAS11.stl
+    Licence: CC0-1.0 (https://creativecommons.org/publicdomain/zero/1.0/)
+    Changes: decimated, re-oriented, scaled
+* Apollo Belvedere
+    Original: After Leochares (Roman copy, c. AD 120–140)
+    Scan or model: SMK – National Gallery of Denmark, The Royal Cast Collection (KAS353)
+    Source: https://commons.wikimedia.org/wiki/File:Apollo_Belvedere_-_KAS353.stl
+    Licence: CC0-1.0 (https://creativecommons.org/publicdomain/zero/1.0/)
+    Changes: decimated, re-oriented, scaled
+* Discobolus (Discus Thrower)
+    Original: After Myron (c. 460–450 BC)
+    Scan or model: SMK – National Gallery of Denmark, The Royal Cast Collection (KAS1549)
+    Source: https://commons.wikimedia.org/wiki/File:Diskoskasteren_(Discobolos)_-_KAS1549.stl
+    Licence: CC0-1.0 (https://creativecommons.org/publicdomain/zero/1.0/)
+    Changes: decimated, re-oriented, scaled
+* Kore in chiton and cape
+    Scan or model: SMK – National Gallery of Denmark, The Royal Cast Collection (KAS1800)
+    Source: https://commons.wikimedia.org/wiki/File:Kore_ACR_671_if%C3%B8rt_chiton_og_kappe_(epiblema)_-_KAS1800.stl
+    Licence: CC0-1.0 (https://creativecommons.org/publicdomain/zero/1.0/)
+    Changes: decimated, re-oriented, scaled
+* Zeus or Poseidon of Artemision
+    Scan or model: SMK – National Gallery of Denmark, The Royal Cast Collection (KAS2100)
+    Source: https://commons.wikimedia.org/wiki/File:Poseidon_eller_Zeus_fra_Artemision_-_KAS2100.stl
+    Licence: CC0-1.0 (https://creativecommons.org/publicdomain/zero/1.0/)
+    Changes: decimated, re-oriented, scaled
+* The Thinker
+    Original: Auguste Rodin (1880–1904)
+    Scan or model: Scan the World
+    Source: https://commons.wikimedia.org/wiki/File:Scan_the_World_-_The_Thinker_(Auguste_Rodin).stl
+    Licence: CC-BY-SA-4.0 (https://creativecommons.org/licenses/by-sa/4.0/)
+    Changes: decimated, re-oriented, scaled
+* The Age of Bronze
+    Original: Auguste Rodin (1875–1877)
+    Scan or model: Scan via Wikimedia Commons
+    Source: https://commons.wikimedia.org/wiki/File:The_Age_Of_Bronze_(Auguste_Rodin).stl
+    Licence: CC0-1.0 (https://creativecommons.org/publicdomain/zero/1.0/)
+    Changes: decimated, re-oriented, scaled
+* The Walking Man
+    Original: Auguste Rodin (1877–1907)
+    Scan or model: Scan via Thingiverse
+    Source: https://commons.wikimedia.org/wiki/File:Auguste_Rodin_-_L%27Homme_qui_marche_-_3D_model_Thingiverse.stl
+    Licence: CC-BY-4.0 (https://creativecommons.org/licenses/by/4.0/)
+    Changes: decimated, re-oriented, scaled
+* Laocoön and His Sons
+    Original: Hagesandros, Athenodoros and Polydoros of Rhodes (c. 40–20 BC)
+    Scan or model: Scan the World
+    Source: https://commons.wikimedia.org/wiki/File:Scan_the_World_-_Laocoon_Group.stl
+    Licence: CC-BY-SA-4.0 (https://creativecommons.org/licenses/by-sa/4.0/)
+    Changes: decimated, re-oriented, scaled
+* Pietà
+    Original: Michelangelo (1498–1499)
+    Scan or model: Scan the World
+    Source: https://commons.wikimedia.org/wiki/File:Scan_the_World_-_Piet%C3%A0_(Michelangelo).stl
+    Licence: CC-BY-SA-4.0 (https://creativecommons.org/licenses/by-sa/4.0/)
+    Changes: decimated, re-oriented, scaled
+* Ugolino and His Sons
+    Original: Jean-Baptiste Carpeaux (1865–1867)
+    Scan or model: Scan the World
+    Source: https://commons.wikimedia.org/wiki/File:Scan_the_World_-_Ugolino_and_His_Sons.stl
+    Licence: CC-BY-SA-4.0 (https://creativecommons.org/licenses/by-sa/4.0/)
+    Changes: decimated, re-oriented, scaled
+* Venus with the Apple
+    Original: Bertel Thorvaldsen (1813–1816)
+    Scan or model: Scan the World, SMK – National Gallery of Denmark (KMS6004)
+    Source: https://commons.wikimedia.org/wiki/File:Venus_med_apple_(SMK_KMS6004,_Scan_the_World).stl
+    Licence: CC0-1.0 (https://creativecommons.org/publicdomain/zero/1.0/)
+    Changes: decimated, re-oriented, scaled
+* Belvedere Torso
+    Original: Apollonios, son of Nestor (1st century BC)
+    Scan or model: Scan the World
+    Source: https://commons.wikimedia.org/wiki/File:Scan_the_World_-_Belvedere_Torso.stl
+    Licence: CC-BY-SA-4.0 (https://creativecommons.org/licenses/by-sa/4.0/)
+    Changes: decimated, re-oriented, scaled
+* Venus of Willendorf
+    Scan or model: Scan the World
+    Source: https://commons.wikimedia.org/wiki/File:Scan_the_World_-_Venus_of_Willendorf.stl
+    Licence: CC-BY-SA-4.0 (https://creativecommons.org/licenses/by-sa/4.0/)
+    Changes: decimated, re-oriented, scaled
+* Jupiter, statuette
+    Scan or model: Musée Saint-Raymond, Toulouse / IMA Solutions
+    Source: https://commons.wikimedia.org/wiki/File:MSR-Jupiter-2014-1-1.stl
+    Licence: CC0-1.0 (https://creativecommons.org/publicdomain/zero/1.0/)
+    Changes: decimated, re-oriented, scaled
+* Hercules
+    Scan or model: Musée Saint-Raymond, Toulouse / IMA Solutions
+    Source: https://commons.wikimedia.org/wiki/File:MSR-Hercule-Ra28l.stl
+    Licence: CC0-1.0 (https://creativecommons.org/publicdomain/zero/1.0/)
+    Changes: decimated, re-oriented, scaled
+
+Animals
+-------
+* Spot
+    Original: Keenan Crane (2013)
+    Scan or model: Keenan Crane's 3D Model Repository
+    Source: https://www.cs.cmu.edu/~kmcrane/Projects/ModelRepository/
+    Licence: CC0-1.0 (https://creativecommons.org/publicdomain/zero/1.0/)
+    Changes: decimated, re-oriented, scaled
+* Bob
+    Original: Keenan Crane
+    Scan or model: Keenan Crane's 3D Model Repository
+    Source: https://www.cs.cmu.edu/~kmcrane/Projects/ModelRepository/
+    Licence: CC0-1.0 (https://creativecommons.org/publicdomain/zero/1.0/)
+    Changes: decimated, re-oriented, scaled
+* Blub
+    Original: Keenan Crane
+    Scan or model: Keenan Crane's 3D Model Repository
+    Source: https://www.cs.cmu.edu/~kmcrane/Projects/ModelRepository/
+    Licence: CC0-1.0 (https://creativecommons.org/publicdomain/zero/1.0/)
+    Changes: decimated, re-oriented, scaled
+* Origins of the Pig
+    Original: Keenan Crane
+    Scan or model: Keenan Crane's 3D Model Repository
+    Source: https://www.cs.cmu.edu/~kmcrane/Projects/ModelRepository/
+    Licence: CC0-1.0 (https://creativecommons.org/publicdomain/zero/1.0/)
+    Changes: decimated, re-oriented, scaled
+* Inigo the Dragon
+    Original: Keenan Crane
+    Scan or model: Keenan Crane's 3D Model Repository
+    Source: https://www.cs.cmu.edu/~kmcrane/Projects/ModelRepository/
+    Licence: CC0-1.0 (https://creativecommons.org/publicdomain/zero/1.0/)
+    Changes: decimated, re-oriented, scaled
+* Lion of Al-lāt
+    Scan or model: Georges Dahdouh, Re-Sculpting Syrian Statues Digitally
+    Source: https://commons.wikimedia.org/wiki/File:Asad_Al-Lat.stl
+    Licence: CC0-1.0 (https://creativecommons.org/publicdomain/zero/1.0/)
+    Changes: decimated, re-oriented, scaled
+* Street rat
+    Scan or model: Sean Buckley via Poly Haven
+    Source: https://commons.wikimedia.org/wiki/File:Street_rat_8k_(Sean_Buckley_via_Poly_Haven).stl
+    Licence: CC0-1.0 (https://creativecommons.org/publicdomain/zero/1.0/)
+    Changes: decimated, re-oriented, scaled
+* Hercules beetle
+    Scan or model: Wikimedia Commons scan series of beetles
+    Source: https://commons.wikimedia.org/wiki/File:Hercules03_(Male_hercules_beetle).stl
+    Licence: CC-BY-4.0 (https://creativecommons.org/licenses/by/4.0/)
+    Changes: decimated, re-oriented, scaled
+* Giant isopod
+    Scan or model: Wikimedia Commons
+    Source: https://commons.wikimedia.org/wiki/File:Giant_Isopod.stl
+    Licence: CC-BY-4.0 (https://creativecommons.org/licenses/by/4.0/)
+    Changes: decimated, re-oriented, scaled
+
+Hands, faces & masks
+--------------------
+* Lincoln's right hand
+    Original: Leonard Volk (1860)
+    Scan or model: Smithsonian Institution, National Portrait Gallery (NPG.71.6)
+    Source: https://commons.wikimedia.org/wiki/File:Npg_71_6_right-hires_unwrapped-150k-unwrapped_(Smithsonian_Institution).stl
+    Licence: CC0-1.0 (https://creativecommons.org/publicdomain/zero/1.0/)
+    Changes: decimated, re-oriented, scaled
+* Lincoln's left hand
+    Original: Leonard Volk (1860)
+    Scan or model: Smithsonian Institution, National Portrait Gallery (NPG.71.6)
+    Source: https://commons.wikimedia.org/wiki/File:Npg_71_6_left-hires_unwrapped-150k-unwrapped_(Smithsonian_Institution).stl
+    Licence: CC0-1.0 (https://creativecommons.org/publicdomain/zero/1.0/)
+    Changes: decimated, re-oriented, scaled
+* Lincoln life mask (1865)
+    Original: Clark Mills (1865)
+    Scan or model: Smithsonian Institution
+    Source: https://commons.wikimedia.org/wiki/File:Abraham_Lincoln_Mills_Life_Mask_-_3D_model_by_The_Smithsonian_Institution_-_Sketchfab.stl
+    Licence: CC0-1.0 (https://creativecommons.org/publicdomain/zero/1.0/)
+    Changes: decimated, re-oriented, scaled
+* Lincoln life mask (1860)
+    Original: Leonard Volk (1860)
+    Scan or model: Smithsonian Institution
+    Source: https://commons.wikimedia.org/wiki/File:Abraham_Lincoln_Life_Volks_Mask_-_3D_model_by_The_Smithsonian_Institution_-_Sketchfab.stl
+    Licence: CC0-1.0 (https://creativecommons.org/publicdomain/zero/1.0/)
+    Changes: decimated, re-oriented, scaled
+* Lincoln's hands, plaster casts
+    Original: Leonard Volk (1860)
+    Scan or model: Smithsonian Institution
+    Source: https://commons.wikimedia.org/wiki/File:Abraham_Lincoln_Hands_Plaster_Casts_-_3D_model_by_The_Smithsonian_Institution_-_Sketchfab.stl
+    Licence: CC0-1.0 (https://creativecommons.org/publicdomain/zero/1.0/)
+    Changes: decimated, re-oriented, scaled
+* Phineas Gage life mask
+    Scan or model: Cast by Henry Jacob Bigelow's circle; scan via Thingiverse
+    Source: https://commons.wikimedia.org/wiki/File:Phineas_Gage_life_mask.stl
+    Licence: LicenseRef-public-domain
+    Changes: decimated, re-oriented, scaled
+* Funerary mask
+    Scan or model: Rama (scan), Musée d'art et d'histoire de Genève (7059)
+    Source: https://commons.wikimedia.org/wiki/File:Funerary_mask-MAHG_7059-High_poly-001.stl
+    Licence: LicenseRef-public-domain
+    Changes: decimated, re-oriented, scaled
+* Mask of Thuya
+    Scan or model: Omar El Atabany
+    Source: https://commons.wikimedia.org/wiki/File:Mask_of_Thuya,_3D_photogrammetry_scan_(STL).stl
+    Licence: CC-BY-SA-4.0 (https://creativecommons.org/licenses/by-sa/4.0/)
+    Changes: decimated, re-oriented, scaled
+
+Natural history
+---------------
+* Human skull
+    Scan or model: Mariano Coretti
+    Source: https://commons.wikimedia.org/wiki/File:High_quality_skull.stl
+    Licence: CC-BY-SA-4.0 (https://creativecommons.org/licenses/by-sa/4.0/)
+    Changes: decimated, re-oriented, scaled
+* Ammonite (Cleoniceras)
+    Scan or model: Emily Hauf, Paleontological Research Institution (PRI 70601)
+    Source: https://commons.wikimedia.org/wiki/File:Cleoniceras_besairiei_(PRI_70601).stl
+    Licence: CC0-1.0 (https://creativecommons.org/publicdomain/zero/1.0/)
+    Changes: decimated, re-oriented, scaled
+* Ammonite (Taramelliceras)
+    Scan or model: Wikimedia Commons
+    Source: https://commons.wikimedia.org/wiki/File:Taramelliceras_sp.stl
+    Licence: LicenseRef-public-domain
+    Changes: decimated, re-oriented, scaled
+* Ammonite (Douvilleiceras)
+    Scan or model: Wikimedia Commons
+    Source: https://commons.wikimedia.org/wiki/File:Douvilleiceras_g._mammillatum.stl
+    Licence: CC-BY-4.0 (https://creativecommons.org/licenses/by/4.0/)
+    Changes: decimated, re-oriented, scaled
+* Fossil whale excavation
+    Scan or model: Smithsonian Institution
+    Source: https://commons.wikimedia.org/wiki/File:Whale-mpc-677-150k_(Smithsonian_Institution).stl
+    Licence: CC0-1.0 (https://creativecommons.org/publicdomain/zero/1.0/)
+    Changes: decimated, re-oriented, scaled
+* Aquilops skull
+    Scan or model: Andrew A. Farke, W. Desmond Maxwell, Richard L. Cifelli and Mathew J. Wedel (PLOS ONE)
+    Source: https://commons.wikimedia.org/wiki/File:Aquilops_cranium_scan.stl
+    Licence: CC-BY-4.0 (https://creativecommons.org/licenses/by/4.0/)
+    Changes: decimated, re-oriented, scaled
+* Radiated tortoise skeleton
+    Scan or model: Natural History Museum of the University of Pisa (B 51)
+    Source: https://commons.wikimedia.org/wiki/File:Astrochelys_radiata_3d_scan_Natural_History_Museum_University_of_Pisa_B_51.stl
+    Licence: CC-BY-SA-4.0 (https://creativecommons.org/licenses/by-sa/4.0/)
+    Changes: decimated, re-oriented, scaled
+* Asian elephant skull
+    Scan or model: Natural History Museum of the University of Pisa (C 1449)
+    Source: https://commons.wikimedia.org/wiki/File:Elephas_maximus_(skull)_3d_scan_Natural_History_Museum_University_of_Pisa_C_1449.stl
+    Licence: CC-BY-SA-4.0 (https://creativecommons.org/licenses/by-sa/4.0/)
+    Changes: decimated, re-oriented, scaled
+* Spotted hyena skull
+    Scan or model: Natural History Museum of the University of Pisa (C 1061)
+    Source: https://commons.wikimedia.org/wiki/File:Crocuta_crocuta_(skull)_3d_scan_Natural_History_Museum_University_of_Pisa_C_1061.stl
+    Licence: CC-BY-SA-4.0 (https://creativecommons.org/licenses/by-sa/4.0/)
+    Changes: decimated, re-oriented, scaled
+* Walrus skull
+    Scan or model: Natural History Museum of the University of Pisa (C 1215)
+    Source: https://commons.wikimedia.org/wiki/File:Odobenus_rosmarus_3d_scan_Natural_History_Museum_University_of_Pisa_C_1215.stl
+    Licence: CC-BY-SA-4.0 (https://creativecommons.org/licenses/by-sa/4.0/)
+    Changes: decimated, re-oriented, scaled
+* Loggerhead turtle skull
+    Scan or model: Natural History Museum of the University of Pisa (B 32)
+    Source: https://commons.wikimedia.org/wiki/File:Caretta_caretta_skull_3d_scan_Natural_History_Museum_University_of_Pisa_B_32.stl
+    Licence: CC-BY-SA-4.0 (https://creativecommons.org/licenses/by-sa/4.0/)
+    Changes: decimated, re-oriented, scaled
+* Crested macaque skull
+    Scan or model: Natural History Museum of the University of Pisa (C 1750)
+    Source: https://commons.wikimedia.org/wiki/File:Macaca_nigra_3d_scan_Natural_History_Museum_University_of_Pisa_C_1750.stl
+    Licence: CC-BY-SA-4.0 (https://creativecommons.org/licenses/by-sa/4.0/)
+    Changes: decimated, re-oriented, scaled
+* Tortoise shell
+    Scan or model: Cicero Moraes
+    Source: https://commons.wikimedia.org/wiki/File:Brazilian_tortoise_shell.stl
+    Licence: CC-BY-SA-4.0 (https://creativecommons.org/licenses/by-sa/4.0/)
+    Changes: decimated, re-oriented, scaled
+
+Objects & test classics
+-----------------------
+* Utah teapot
+    Original: Martin Newell (shape) (1975)
+    Scan or model: Nik Clark (zzubnik), solid model via Thingiverse
+    Source: https://commons.wikimedia.org/wiki/File:Utah_teapot_(solid).stl
+    Licence: CC0-1.0 (https://creativecommons.org/publicdomain/zero/1.0/)
+    Changes: decimated, re-oriented, scaled
+* Jerry the Ogre
+    Original: Keenan Crane
+    Scan or model: Keenan Crane's 3D Model Repository
+    Source: https://www.cs.cmu.edu/~kmcrane/Projects/ModelRepository/
+    Licence: CC0-1.0 (https://creativecommons.org/publicdomain/zero/1.0/)
+    Changes: decimated, re-oriented, scaled
+
+Shapes & forms
+--------------
+* Oloid
+    Original: Paul Schatz (shape)
+    Scan or model: Keenan Crane's 3D Model Repository
+    Source: https://www.cs.cmu.edu/~kmcrane/Projects/ModelRepository/
+    Licence: CC0-1.0 (https://creativecommons.org/publicdomain/zero/1.0/)
+    Changes: decimated, re-oriented, scaled
+* Body of constant width
+    Original: Arman, Bondarenko, Nazarov, Prymak and Radchenko (shape)
+    Scan or model: Keenan Crane's 3D Model Repository, after Andriy Prymak
+    Source: https://www.cs.cmu.edu/~kmcrane/Projects/ModelRepository/
+    Licence: CC0-1.0 (https://creativecommons.org/publicdomain/zero/1.0/)
+    Changes: decimated, re-oriented, scaled
+
+Generated shapes (CC0-1.0, made by Atlas Toolkit)
+--------------------------------------------------
+Vase, Goblet, Chess pawn, Chess rook, Sphere, Cube, Tetrahedron, Octahedron, Dodecahedron, Icosahedron, Pyramid, Cylinder, Cone, Capsule, Torus, Rounded cube, Stella octangula, Steinmetz tricylinder, Trefoil knot, Torus knot (3, 5), Figure-eight knot, Möbius band, Twisted torus, Klein bottle, Boy's surface, Seashell spiral, Gyroid, Schwarz P surface, Menger sponge, Rippled sphere

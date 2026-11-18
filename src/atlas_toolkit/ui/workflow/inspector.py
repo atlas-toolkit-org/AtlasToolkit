@@ -220,6 +220,11 @@ class NodeInspector(QWidget):
             pick.clicked.connect(self._pick_fixed)
             row.addWidget(self.path, 1)
             row.addWidget(pick)
+            if n.kind == "mesh":                       # a ready-made model from the catalogue
+                from ..catalogue import catalogue_button
+                cat = catalogue_button(self.theme, "Catalogue…")
+                cat.clicked.connect(self._pick_fixed_catalogue)
+                row.addWidget(cat)
             self.lay.addLayout(row)
             self.lay.addWidget(hint("The same file for every run: a shape to cut with, a depth map, a reference "
                                     "model."))
@@ -237,6 +242,13 @@ class NodeInspector(QWidget):
         if f:
             self.path.setText(f)
             self.page.set_node_attrs(self.node.id, "path", path=f)
+
+    def _pick_fixed_catalogue(self) -> None:
+        from ..catalogue import pick_models
+        paths = pick_models(self, multiple=False, ctx=self.ctx, title="Model catalogue · fixed input")
+        if paths:
+            self.path.setText(paths[0])
+            self.page.set_node_attrs(self.node.id, "path", path=paths[0])
 
     # ------------------------------------------------------------------ saves
     def _save(self) -> None:

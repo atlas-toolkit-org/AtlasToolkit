@@ -59,6 +59,9 @@ Almost everything works out of the box. Two optional extras unlock more: [Blende
 later for Melt and a few Remesh methods, and a [GPU depth runtime](docs/TOOLS.md#photo-hatching-and-the-gpu-runtime) for
 Photo Hatching. The app's Setup page shows what is missing and how to add it.
 
+No model at hand? The built-in [model catalogue](docs/TOOLS.md#the-model-catalogue) has about 130 to try: natural heads, busts,
+statues, animals, skulls, masks and shapes, all free to use.
+
 The app ships no presets: every tool starts from its defaults. The free
 [Basic preset pack](https://atlas-toolkit.org/presets/) gives each tool a tuned starting point; drop the file on the
 window to install it.
@@ -541,7 +544,8 @@ transforms.
 - **[Tools and user guide](docs/TOOLS.md):** every tool in depth, presets, shortcuts, the files the app keeps.
 - **[Workflows](docs/TOOLS.md#workflows):** chain tools into one visual pipeline and run it over many files.
 - **[Command line](docs/TOOLS.md#command-line):** the same tools and settings, for scripts and batches.
-- **[Building](docs/BUILDING.md)**, **[packaging](docs/PACKAGING.md)** and **[adding a tool](docs/ADDING_A_TOOL.md)**.
+- **[Building](docs/BUILDING.md)**, **[packaging](docs/PACKAGING.md)**, **[adding a tool](docs/ADDING_A_TOOL.md)** and
+  **[adding a catalogue model](docs/CATALOGUE.md)**.
 - **[Platforms](docs/PLATFORMS.md):** what has really been proven on each system.
 - **[Changelog](CHANGELOG.md):** what changed, version by version.
 

@@ -90,10 +90,10 @@ version = { attr = "atlas_toolkit.version.__version__" }
 where = ["src"]
 
 [tool.setuptools.package-data]
-"atlas_toolkit" = ["bin/*", "licenses/*"]
 "atlas_toolkit.ui.theme" = ["*.json", "fonts/*.ttf", "fonts/*.txt"]
 "atlas_toolkit.tools.mesh_texture" = ["assets/*.json", "assets/*.png"]
 "atlas_toolkit.tools.flowrep_sketch" = ["icon.svg"]
+"atlas_toolkit" = ["bin/*", "licenses/*", "catalogue/*.json", "catalogue/thumbs/*.png", "catalogue/models/*.ply.gz"]
 
 # Read by the Atlas gallery: every sub-folder of this directory is one tool and one Atlas code unit.
 [tool.atlas-toolkit]

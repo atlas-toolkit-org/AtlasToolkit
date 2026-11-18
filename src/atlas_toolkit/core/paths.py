@@ -85,6 +85,51 @@ def ml_runtime_dir() -> Path:
     return _base("runtime") / "ml-runtime"
 
 
+def documents_dir() -> Path:
+    """The user's Documents folder, where they look for their files (redirected or renamed ones included)."""
+    home = Path.home()
+    if sys.platform == "win32":
+        try:
+            import ctypes
+            from ctypes import wintypes
+
+            class GUID(ctypes.Structure):
+                _fields_ = [("a", wintypes.DWORD), ("b", wintypes.WORD), ("c", wintypes.WORD), ("d", ctypes.c_ubyte * 8)]
+
+            # FOLDERID_Documents {FDD39AD0-238F-46AF-ADB4-6C85480369C7}
+            fid = GUID(0xFDD39AD0, 0x238F, 0x46AF, (ctypes.c_ubyte * 8)(0xAD, 0xB4, 0x6C, 0x85, 0x48, 0x03, 0x69, 0xC7))
+            out = ctypes.c_wchar_p()
+            if ctypes.windll.shell32.SHGetKnownFolderPath(ctypes.byref(fid), 0, None, ctypes.byref(out)) == 0:
+                found = Path(out.value)
+                ctypes.windll.ole32.CoTaskMemFree(out)
+                return found
+        except (OSError, AttributeError, ValueError):
+            pass
+        return home / "Documents"
+    if sys.platform != "darwin":
+        dirs = Path(os.environ.get("XDG_CONFIG_HOME") or home / ".config") / "user-dirs.dirs"
+        try:
+            for line in dirs.read_text(encoding="utf-8").splitlines():
+                if line.startswith("XDG_DOCUMENTS_DIR="):
+                    value = line.split("=", 1)[1].strip().strip('"').replace("$HOME", str(home))
+                    if value and Path(value) != home:
+                        return Path(value)
+        except OSError:
+            pass
+    return home / "Documents"
+
+
+def catalogue_dir() -> Path:
+    """Where models from the model catalogue go (core/catalogue.py), by default: a folder the user sees, since tools
+    write their outputs next to their inputs. In portable mode it stays inside the portable folder. Not created here;
+    Setup › Storage can choose another (the `catalogue_dir` option)."""
+    chosen = os.environ.get(HOME_ENV)
+    portable = Path(chosen) if chosen else app_home() / PORTABLE_DIR
+    if chosen or portable.is_dir():
+        return portable / "catalogue"
+    return documents_dir() / "Atlas Toolkit" / "Catalogue"
+
+
 def display_path(path) -> str:
     """Where a file is, said without this computer's particulars: inside the built app as "bundled with the app",
     under the app's folder as <app>/…, under a standard folder by its variable (%ProgramFiles%, %LOCALAPPDATA%,

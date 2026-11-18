@@ -113,6 +113,23 @@ python scripts\dev\depth_install_test.py --app "dist\Atlas Toolkit\atlas-toolkit
 
 Also do it on Linux (in WSL, CUDA comes through Windows' driver) when the pins change.
 
+## Releasing
+
+`scripts/release.py` walks a public release through five steps, checking each and asking before anything leaves this
+computer. You review between them:
+
+| Step | Command | What it does | Then you |
+|---|---|---|---|
+| 1 | `python scripts/release.py check X.Y.Z` | Read-only: version, changelog entry, install guides, newer than the public release, the notes | write what it lists (the changelog entry first) |
+| 2 | `python scripts/release.py prepare X.Y.Z` | Sets `version.py`, dates the changelog heading, moves the install guides' file names to X.Y.Z; a `release/X.Y.Z` branch, a signed-off commit, the pull request | review the PR; CI runs; merge it |
+| 3 | `python scripts/release.py tag X.Y.Z` | Tags `main` (refused unless `main` is X.Y.Z) and pushes the tag over HTTPS | wait: `release.yml` builds the draft (below) |
+| 4 | `python scripts/release.py status X.Y.Z` | The release run, and the draft's five installers and checksums | download the draft and try it |
+| 5 | `python scripts/release.py publish X.Y.Z` | Publishes the draft as the latest release; fills the server's `public/X.Y.Z/` from it (every checksum verified before the version goes live on /download/); merges the website's `release/X.Y.Z` branch (its changes for this release, made ahead), or else updates its roadmap caption, and lists any version its pages still name | deploy the website if it changed |
+
+Step 5 reads `[release]` in `dev.local.toml` (`site` = the website's checkout, `ssh` = the server); without them it
+prints the commands instead. The install guides name only the current version's files: their sizes are on the
+release page, so nothing in them goes stale between releases. The changelog entry is the release notes.
+
 ## A draft release
 
 Once a version is merged to `main`, tag it:
