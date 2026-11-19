@@ -38,6 +38,13 @@ class ReleaseEditTests(unittest.TestCase):
         self.assertIn("## 2.3.1 (2026-11-14)", rel.dated_changelog(text, "2.4.0", "2026-12-01"))
         self.assertIn("## 2.5.0 (2026-12-01)", rel.dated_changelog("## 2.5.0\n", "2.5.0", "2026-12-01"))
 
+    def test_the_server_script_survives_windows_line_endings(self):
+        """Piped from Windows in text mode the script picked up CRLF and bash read "set -eu\\r" (2.4.0's publish)."""
+        self.assertNotIn("\r", rel.SERVER_FILL)
+        self.assertTrue(rel.REMOTE_FILL.startswith("tr -d '\\r' | bash -s --"), rel.REMOTE_FILL)
+        import inspect
+        self.assertIn('SERVER_FILL.encode("utf-8")', inspect.getsource(rel.fill_server), "sent as bytes, not text")
+
     def test_the_server_step_goes_live_only_after_every_checksum(self):
         s = rel.SERVER_FILL
         self.assertLess(s.index("sha256sum -c"), s.index("mv sums.tmp SHA256SUMS.txt"))

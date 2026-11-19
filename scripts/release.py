@@ -57,6 +57,8 @@ for f in AtlasToolkit-$v-windows-x64-setup.exe atlas-toolkit_${v}_amd64.deb atla
 curl -fsSL -o sums.tmp "$gh_dl/SHA256SUMS.txt" && sha256sum -c sums.tmp && mv sums.tmp SHA256SUMS.txt
 echo "public/$v is live"
 """
+# what ssh runs on the server: the script arrives on stdin, any CR (a CRLF file) removed before bash reads it
+REMOTE_FILL = "tr -d '\\r' | bash -s -- {v}"
 
 
 # ----------------------------------------------------------------------------- small helpers
@@ -252,14 +254,26 @@ def publish(version: str, yes: bool) -> None:
         print("already published on GitHub")
     # 2. The server's public/X.Y.Z/ (what /download/ offers)
     host = cfg.get("ssh")
+    script = ROOT / "build" / "server-fill.sh"
+    script.parent.mkdir(exist_ok=True)
+    script.write_bytes(SERVER_FILL.encode("utf-8"))           # LF only: bash reads "set -eu\r" as a bad option
     if host and ask(f"Fill public/{version}/ on {host} from the GitHub release (checksums verified)?", yes):
-        run(["ssh", host, "bash", "-s", "--", version], input=SERVER_FILL)
+        fill_server(host, version)
     elif not host:
-        print(f"\nOn the server (set [release] ssh in dev.local.toml to do this from here):\n"
-              f"  ssh <account>@ssh-<account>.alwaysdata.net 'bash -s -- {version}' < server-fill.sh\n"
-              f"with this script as server-fill.sh:\n{SERVER_FILL}")
+        print(f"\nOn the server (set [release] ssh in dev.local.toml to do this from here), from this folder:\n"
+              f"  ssh <account>@ssh-<account>.alwaysdata.net \"{REMOTE_FILL.format(v=version)}\" "
+              f"< build/server-fill.sh")
     # 3. The website's texts
     site_texts(version, cfg, yes)
+
+
+def fill_server(host: str, version: str) -> None:
+    """SERVER_FILL over ssh. Sent as bytes: in text mode Windows writes CRLF into the pipe, and the server strips any
+    CR anyway (tr), so a script that picked up CRLF on the way still runs."""
+    r = subprocess.run(["ssh", host, REMOTE_FILL.format(v=version)], input=SERVER_FILL.encode("utf-8"))
+    if r.returncode:
+        sys.exit(f"the server step failed (exit {r.returncode}): see above; nothing is live until SHA256SUMS.txt "
+                 f"is in place, so it can be run again")
 
 
 def site_texts(version: str, cfg: dict, yes: bool) -> None:
