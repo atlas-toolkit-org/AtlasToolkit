@@ -49,14 +49,18 @@ SEMVER = re.compile(r"^\d+\.\d+\.\d+$")
 # in place under its real name (which is what makes the version live on /download/). It runs on the server.
 SERVER_FILL = r"""set -eu
 v="$1"; dest="$HOME/private/atlas-toolkit.org/public/$v"
-[ -f "$dest/SHA256SUMS.txt" ] && { echo "public/$v is already live"; exit 0; }
+cache="$HOME/private/atlas-toolkit.org/cache/github-latest.json"   # /download/'s copy of GitHub's latest release
+[ -f "$dest/SHA256SUMS.txt" ] && { rm -f "$cache"; echo "public/$v is already live"; exit 0; }
 mkdir -p "$dest" && cd "$dest"
 gh_dl="https://github.com/atlas-toolkit-org/AtlasToolkit/releases/download/v$v"
 for f in AtlasToolkit-$v-windows-x64-setup.exe atlas-toolkit_${v}_amd64.deb atlas-toolkit-$v-1.x86_64.rpm \
          AtlasToolkit-$v-linux-x86_64.AppImage AtlasToolkit-$v-macos-arm64.dmg; do curl -fsSLO "$gh_dl/$f"; done
 curl -fsSL -o sums.tmp "$gh_dl/SHA256SUMS.txt" && sha256sum -c sums.tmp && mv sums.tmp SHA256SUMS.txt
+rm -f "$cache"                     # asked again at the next visit, so the page names the new release at once
 echo "public/$v is live"
 """
+# what ssh runs on the server: the script arrives on stdin, any CR (a CRLF file) removed before bash reads it
+REMOTE_FILL = "tr -d '\\r' | bash -s -- {v}"
 
 
 # ----------------------------------------------------------------------------- small helpers
@@ -252,14 +256,26 @@ def publish(version: str, yes: bool) -> None:
         print("already published on GitHub")
     # 2. The server's public/X.Y.Z/ (what /download/ offers)
     host = cfg.get("ssh")
+    script = ROOT / "build" / "server-fill.sh"
+    script.parent.mkdir(exist_ok=True)
+    script.write_bytes(SERVER_FILL.encode("utf-8"))           # LF only: bash reads "set -eu\r" as a bad option
     if host and ask(f"Fill public/{version}/ on {host} from the GitHub release (checksums verified)?", yes):
-        run(["ssh", host, "bash", "-s", "--", version], input=SERVER_FILL)
+        fill_server(host, version)
     elif not host:
-        print(f"\nOn the server (set [release] ssh in dev.local.toml to do this from here):\n"
-              f"  ssh <account>@ssh-<account>.alwaysdata.net 'bash -s -- {version}' < server-fill.sh\n"
-              f"with this script as server-fill.sh:\n{SERVER_FILL}")
+        print(f"\nOn the server (set [release] ssh in dev.local.toml to do this from here), from this folder:\n"
+              f"  ssh <account>@ssh-<account>.alwaysdata.net \"{REMOTE_FILL.format(v=version)}\" "
+              f"< build/server-fill.sh")
     # 3. The website's texts
     site_texts(version, cfg, yes)
+
+
+def fill_server(host: str, version: str) -> None:
+    """SERVER_FILL over ssh. Sent as bytes: in text mode Windows writes CRLF into the pipe, and the server strips any
+    CR anyway (tr), so a script that picked up CRLF on the way still runs."""
+    r = subprocess.run(["ssh", host, REMOTE_FILL.format(v=version)], input=SERVER_FILL.encode("utf-8"))
+    if r.returncode:
+        sys.exit(f"the server step failed (exit {r.returncode}): see above; nothing is live until SHA256SUMS.txt "
+                 f"is in place, so it can be run again")
 
 
 def site_texts(version: str, cfg: dict, yes: bool) -> None:
@@ -278,8 +294,7 @@ def site_texts(version: str, cfg: dict, yes: bool) -> None:
         if ask(f"Website: merge {branch} into its main?", yes):
             run(["git", "switch", "main"], cwd=site)
             run(["git", "merge", "--ff-only", branch], cwd=site)
-            print("merged. Deploy as the website's README says, e.g.\n"
-                  "  rsync -av site/ <account>@ssh-<account>.alwaysdata.net:sites/atlas-toolkit.org/")
+            print("merged")
     minor = version.rsplit(".", 1)[0]
     rm = site / "dev" / "roadmap-text.md"
     text = rm.read_text(encoding="utf-8")
@@ -288,8 +303,7 @@ def site_texts(version: str, cfg: dict, yes: bool) -> None:
         rm.write_text(text.replace(making, f"You are here: **{minor}**"), encoding="utf-8")
         run([sys.executable, "dev/scripts/roadmap.py"], cwd=site)
         run(["git", "commit", "-am", f"Roadmap: {minor} is out"], cwd=site)
-        print(f"committed in the website's checkout. Deploy the page as its README says, e.g.\n"
-              f"  rsync -av site/ <account>@ssh-<account>.alwaysdata.net:sites/atlas-toolkit.org/")
+        print("committed in the website's checkout")
     old = re.compile(r"\b2\.\d+\.\d+\b")
     hits = []
     for f in (site / "site").rglob("*.html"):
@@ -300,6 +314,37 @@ def site_texts(version: str, cfg: dict, yes: bool) -> None:
     print("\nVersions named on the website's pages (look whether they should move):" if hits else
           "\nNo other version is named on the website's pages.")
     print("\n".join(hits[:30]))
+    deploy_site(site, cfg.get("ssh"), yes)
+
+
+SITE_ROOT = "sites/atlas-toolkit.org"      # the web root on the server (the website's README, "Layout")
+
+
+def deploy_site(site: Path, host: str | None, yes: bool) -> None:
+    """The website's main pushed to its repository and its site/ folder copied to the web root, as the README's
+    `rsync -av site/ ...` does (files added or replaced, none deleted), with tar over ssh, which Windows has too."""
+    if out(["git", "branch", "--show-current"], cwd=site) != "main" or out(["git", "status", "--porcelain"], cwd=site):
+        print("\nThe website's checkout is not on a clean main: deploy it by hand when it is ready.")
+        return
+    ahead = out(["git", "log", "--oneline", "@{upstream}..main"], cwd=site)
+    target = host or "<account>@ssh-<account>.alwaysdata.net"
+    by_hand = f"  git push origin main\n  tar -C site -cf - . | ssh {target} \"tar -C {SITE_ROOT} -xf -\""
+    if not host:
+        print(f"\nDeploy the website from its checkout:\n{by_hand}")
+        return
+    print("\nThe website's main" + (f" has commits not pushed yet:\n{ahead}" if ahead else " is pushed."))
+    if not ask(f"Website: push its main and deploy site/ to {host}:{SITE_ROOT}?", yes):
+        print(f"Later, from the website's checkout:\n{by_hand}")
+        return
+    if ahead:
+        run(["git", "-c", "credential.helper=", "-c", "credential.helper=!gh auth git-credential", "push", "origin",
+             "main"], cwd=site)
+    pack = subprocess.Popen(["tar", "-C", str(site / "site"), "-cf", "-", "."], stdout=subprocess.PIPE)
+    r = subprocess.run(["ssh", host, f"tar -C {SITE_ROOT} -xf -"], stdin=pack.stdout)
+    pack.stdout.close()
+    if pack.wait() or r.returncode:
+        sys.exit("the website's deploy failed: see above")
+    print("website deployed")
 
 
 def main() -> int:
