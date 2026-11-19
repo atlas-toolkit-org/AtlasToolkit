@@ -155,10 +155,30 @@ def compiler(env: dict) -> str:
         return name or subprocess.run([cl], env=env, capture_output=True, text=True, errors="replace").stderr.splitlines()[0]
 
 
+def stale_compiler(tree: Path) -> str:
+    """A compiler a build tree was configured with that is no longer there ('' when all are): a CI cache restored on a
+    runner whose Visual Studio (or GCC) moved on, or a toolchain updated locally. CMake then fails at its first
+    project() line, so such a tree is started afresh instead."""
+    for cache in tree.rglob("CMakeCache.txt"):
+        try:
+            lines = cache.read_text(encoding="utf-8", errors="replace").splitlines()
+        except OSError:
+            continue
+        for line in lines:
+            if line.startswith(("CMAKE_CXX_COMPILER:", "CMAKE_C_COMPILER:")) and "=" in line:
+                value = line.split("=", 1)[1].strip()
+                if value and Path(value).is_absolute() and not Path(value).exists():
+                    return value
+    return ""
+
+
 def build(helpers, jobs: int, clean: bool) -> Path:
     cmake, env = toolchain()
     tree = NATIVE / "build" / PRESET
-    if clean and tree.exists():
+    gone = stale_compiler(tree) if tree.exists() and not clean else ""
+    if gone:
+        print(f"the build tree was made with a compiler that is gone ({gone}): starting it afresh")
+    if (clean or gone) and tree.exists():
         shutil.rmtree(tree)
     env["CMAKE_BUILD_PARALLEL_LEVEL"] = str(jobs)
     options = [f"-DATLAS_NATIVE_{h.upper()}={'ON' if h in helpers else 'OFF'}" for h in HELPERS]

@@ -39,7 +39,9 @@
   asking before each outward step (docs/PACKAGING.md, "Releasing"). The install guides no longer list file sizes,
   which went stale between releases.
 - **For developers:** `catalogue/recipes.toml` + `scripts/catalogue.py` build it all (fetch, prepare, thumbnails,
-  index, starter set, checks); [docs/CATALOGUE.md](docs/CATALOGUE.md) shows how to add a model. Downloads now share
+  index, starter set, checks); [docs/CATALOGUE.md](docs/CATALOGUE.md) shows how to add a model.
+  `native/build.py` starts a build tree afresh when the compiler it was configured with is gone (a CI cache
+  restored on a runner whose Visual Studio moved on stopped the 2.4.0 release build). Downloads now share
   `core/download.py` with the depth environment's installer and the update check.
 
 ## 2.3.2 (2026-11-17)
