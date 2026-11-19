@@ -7,6 +7,8 @@ A public release in five steps, each one checked, with you reviewing between the
     python scripts/release.py tag      X.Y.Z    after the merge: tag main and push the tag. release.yml then builds every
                                                 installer and makes a DRAFT release (nothing public yet).
     python scripts/release.py status   X.Y.Z    the release run, and the draft's files and checksums once it is there.
+    python scripts/release.py notes    X.Y.Z    the draft's notes again, from CHANGELOG.md as it is now (after a
+                                                changelog fix merged once the tag was out).
     python scripts/release.py publish  X.Y.Z    after you have tried the draft: publish it on GitHub as the latest
                                                 release, then the website: fill public/X.Y.Z/ on the server and
                                                 update the site's version texts (both shown first, then asked).
@@ -223,6 +225,15 @@ def status(version: str) -> None:
         print(f"  {'ok ' if n in names else 'MISSING'} {n}" + (f"  {names[n] / 1e6:.0f} MB" if n in names else ""))
 
 
+def notes(version: str, yes: bool) -> None:
+    """The draft's notes made again from this checkout's CHANGELOG.md (pull main first)."""
+    text = out([sys.executable, str(ROOT / "scripts" / "release_notes.py"), f"v{version}"])
+    print(text[:1500] + ("\n…" if len(text) > 1500 else ""))
+    if ask(f"Replace the notes of v{version} with these?", yes):
+        run(["gh", "release", "edit", f"v{version}", "--repo", REPO, "--notes-file", "-"], input=text)
+        print("notes replaced")
+
+
 def publish(version: str, yes: bool) -> None:
     view = json.loads(out(["gh", "release", "view", f"v{version}", "--repo", REPO, "--json", "isDraft,assets,url"]))
     names = {a["name"] for a in view["assets"]}
@@ -293,7 +304,7 @@ def site_texts(version: str, cfg: dict, yes: bool) -> None:
 
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("step", choices=["check", "prepare", "tag", "status", "publish"])
+    ap.add_argument("step", choices=["check", "prepare", "tag", "status", "notes", "publish"])
     ap.add_argument("version", nargs="?")
     ap.add_argument("--yes", action="store_true", help="answer yes to every question (you have read them)")
     ap.add_argument("--base", default="origin/main", help="prepare: the branch to start from (default origin/main)")
@@ -304,7 +315,7 @@ def main() -> int:
     if a.step == "check":
         return 0 if check(v) else 1
     {"prepare": lambda: prepare(v, a.yes, a.base), "tag": lambda: tag(v, a.yes), "status": lambda: status(v),
-     "publish": lambda: publish(v, a.yes)}[a.step]()
+     "notes": lambda: notes(v, a.yes), "publish": lambda: publish(v, a.yes)}[a.step]()
     return 0
 
 

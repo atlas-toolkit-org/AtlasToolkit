@@ -82,7 +82,7 @@ the surface thinner than 3% of the model's size, and only the simple shapes bund
 
 Remote models live on a GitHub release of the public repository, tag `catalogue-<revision>`, one `<id>.ply.gz` per
 model; `index.json`'s `base_url` points there. `scripts/catalogue.py publish` uploads `build/catalogue/out/*.ply.gz`
-(only when asked: it publishes). Changing a model's file changes its hash: raise `revision` in `recipes.toml` (a new
+(only when asked: it publishes). It is made a pre-release, so it never shows as the latest app version and GitHub's `releases/latest` and the app's update check skip it; never delete one an app still lists. Changing a model's file changes its hash: raise `revision` in `recipes.toml` (a new
 tag) so older apps keep the files they know. The build (`scripts/build.py`) runs `catalogue.py bundle`, which takes the
 starter set from `build/catalogue/out/` or else downloads it from the release, each file checked against the index.
 
