@@ -42,7 +42,7 @@
   index, starter set, checks); [docs/CATALOGUE.md](docs/CATALOGUE.md) shows how to add a model. Downloads now share
   `core/download.py` with the depth environment's installer and the update check.
 
-**Also in this release** (prepared as 2.3.2, never published)
+## 2.3.2 (2026-11-17)
 
 
 **The app says when a new version is out**

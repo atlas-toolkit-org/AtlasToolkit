@@ -569,9 +569,13 @@ def publish(data) -> None:
     files = sorted(str(p) for p in OUT.glob("*.ply.gz"))
     exists = subprocess.run(["gh", "release", "view", tag], capture_output=True).returncode == 0
     if not exists:
-        subprocess.run(["gh", "release", "create", tag, "--title", f"Model catalogue ({tag})", "--notes",
-                        "Models for the app's model catalogue, downloaded by the app on first use. Credits and "
-                        "licences: src/atlas_toolkit/licenses/catalogue-models.txt.", "--latest=false"], check=True)
+        # a pre-release: never the latest release, so GitHub's /releases/latest and the app's update check skip it
+        subprocess.run(["gh", "release", "create", tag, "--prerelease", "--latest=false",
+                        "--title", f"Model catalogue files ({tag}), not an app version", "--notes",
+                        "**Not an app release.** The 3D models of the app's Model catalogue, one `.ply.gz` per model, "
+                        "downloaded by the app on first use and checked against the SHA-256 in its index. Do not "
+                        "delete it: the apps that list these models download from it. Credits and licences: "
+                        "src/atlas_toolkit/licenses/catalogue-models.txt."], check=True)
     for i in range(0, len(files), 20):
         subprocess.run(["gh", "release", "upload", tag, "--clobber", *files[i:i + 20]], check=True)
     print(f"  publish: {len(files)} files to {tag}")

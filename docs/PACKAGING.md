@@ -124,6 +124,7 @@ computer. You review between them:
 | 2 | `python scripts/release.py prepare X.Y.Z` | Sets `version.py`, dates the changelog heading, moves the install guides' file names to X.Y.Z; a `release/X.Y.Z` branch, a signed-off commit, the pull request | review the PR; CI runs; merge it |
 | 3 | `python scripts/release.py tag X.Y.Z` | Tags `main` (refused unless `main` is X.Y.Z) and pushes the tag over HTTPS | wait: `release.yml` builds the draft (below) |
 | 4 | `python scripts/release.py status X.Y.Z` | The release run, and the draft's five installers and checksums | download the draft and try it |
+| 4b | `python scripts/release.py notes X.Y.Z` | Only when the changelog changed after the tag: the draft's notes again from `main`'s changelog | |
 | 5 | `python scripts/release.py publish X.Y.Z` | Publishes the draft as the latest release; fills the server's `public/X.Y.Z/` from it (every checksum verified before the version goes live on /download/); merges the website's `release/X.Y.Z` branch (its changes for this release, made ahead), or else updates its roadmap caption, and lists any version its pages still name | deploy the website if it changed |
 
 Step 5 reads `[release]` in `dev.local.toml` (`site` = the website's checkout, `ssh` = the server); without them it
