@@ -48,6 +48,8 @@ class ReleaseEditTests(unittest.TestCase):
     def test_the_server_step_goes_live_only_after_every_checksum(self):
         s = rel.SERVER_FILL
         self.assertLess(s.index("sha256sum -c"), s.index("mv sums.tmp SHA256SUMS.txt"))
+        # then /download/'s cached answer from GitHub goes, so it names the new release at once (2.4.0 showed 2.3.2)
+        self.assertLess(s.index("mv sums.tmp SHA256SUMS.txt"), s.rindex('rm -f "$cache"'))
         for name in rel.INSTALLERS:
             self.assertIn(name.split("{v}")[0], s)
 

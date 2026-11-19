@@ -125,7 +125,7 @@ computer. You review between them:
 | 3 | `python scripts/release.py tag X.Y.Z` | Tags `main` (refused unless `main` is X.Y.Z) and pushes the tag over HTTPS | wait: `release.yml` builds the draft (below) |
 | 4 | `python scripts/release.py status X.Y.Z` | The release run, and the draft's five installers and checksums | download the draft and try it |
 | 4b | `python scripts/release.py notes X.Y.Z` | Only when the changelog changed after the tag: the draft's notes again from `main`'s changelog | |
-| 5 | `python scripts/release.py publish X.Y.Z` | Publishes the draft as the latest release; fills the server's `public/X.Y.Z/` from it (every checksum verified before the version goes live on /download/); merges the website's `release/X.Y.Z` branch (its changes for this release, made ahead), or else updates its roadmap caption, and lists any version its pages still name | deploy the website if it changed |
+| 5 | `python scripts/release.py publish X.Y.Z` | Publishes the draft as the latest release; fills the server's `public/X.Y.Z/` from it (every checksum verified before the version goes live on /download/); merges the website's `release/X.Y.Z` branch (its changes for this release, made ahead), or else updates its roadmap caption, lists any version its pages still name, clears /download/'s cached GitHub answer, then pushes the website's `main` and deploys `site/` (tar over ssh) | check atlas-toolkit.org |
 
 Step 5 reads `[release]` in `dev.local.toml` (`site` = the website's checkout, `ssh` = the server); without them it
 prints the commands instead. The install guides name only the current version's files: their sizes are on the
