@@ -304,8 +304,9 @@ class LiveViewTests(unittest.TestCase):
         self.wait(lambda: page.runnable() and page.idle())
         v = page.viewer
         self.assertTrue(v.sets_view)
-        page.queue.setCurrentItem(page.rows[str(src)].item)         # the page may hold earlier tests' files too
-        self.wait(lambda: v.path == str(src) and v.state == "done")
+        key = str(src.resolve())                                    # the page keys rows by resolved path (RUNNER~1, /private/var)
+        page.queue.setCurrentItem(page.rows[key].item)         # the page may hold earlier tests' files too
+        self.wait(lambda: v.path == key and v.state == "done")
         self.assertLessEqual(v.model.faces, AIM_FACES)
         self.assertEqual(v._p(v.values).flat_angle, 35.0)
         before = page.values()

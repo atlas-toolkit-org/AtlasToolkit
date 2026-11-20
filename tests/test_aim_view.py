@@ -171,8 +171,9 @@ class AimViewTests(unittest.TestCase):
         self.win.show()
         self.wait(lambda: page.runnable() and page.idle())
         v = page.viewer
-        page.queue.setCurrentItem(page.rows[str(src)].item)
-        self.wait(lambda: v.path == str(src) and v.state == "done")
+        key = str(src.resolve())                                    # the page keys rows by resolved path (RUNNER~1, /private/var)
+        page.queue.setCurrentItem(page.rows[key].item)
+        self.wait(lambda: v.path == key and v.state == "done")
 
         def fills():
             S = roll_screen(v.cam.project(v.cam.to_camera(v.fit_points())), v._roll_deg())
