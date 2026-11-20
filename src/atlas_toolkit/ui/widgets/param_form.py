@@ -112,6 +112,7 @@ class Field(QWidget):
                 self.lay.addWidget(cb, 1)
         elif isinstance(p, Text):
             le = QLineEdit()
+            le.setMaxLength(2**31 - 1)        # never Qt's default 32 767: a longer value would be cut, silently
             le.setPlaceholderText(p.placeholder)
             le.editingFinished.connect(self._on_edit)
             self.widgets = [le]

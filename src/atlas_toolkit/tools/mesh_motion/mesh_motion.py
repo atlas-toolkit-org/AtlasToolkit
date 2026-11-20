@@ -64,7 +64,7 @@ TEMPLATES = {0: ((0, 1, 2),), 1: ((0, 3, 2), (3, 1, 2)), 2: ((1, 4, 0), (4, 2, 0
              7: ((0, 3, 5), (3, 1, 4), (5, 4, 2), (3, 4, 5))}
 
 
-def refine(v, f, heading, span, resolution, budget, ctx, mask_step=None):
+def refine(v, f, heading, span, resolution, budget, ctx):
     v, f = np.asarray(v, float), np.asarray(f, np.int64)
     for _ in range(24):
         ctx.check_cancel()
@@ -73,8 +73,6 @@ def refine(v, f, heading, span, resolution, budget, ctx, mask_step=None):
         inv = inv.reshape(-1, 3)
         x = v @ heading
         split = np.abs(x[edges[:, 1]] - x[edges[:, 0]]) > span / resolution * (1 + 1e-9)
-        if mask_step is not None:
-            split |= np.linalg.norm(v[edges[:, 1]]-v[edges[:, 0]], axis=1) > mask_step
         if not split.any():
             return v, f
         requested = len(f) + int(np.count_nonzero(split[inv]))
@@ -104,19 +102,12 @@ def wake(vertices, heading, transverse, normal, centre, length, curl, taper, pre
             (cz + (z-cz)*shrink)[:, None]*normal)
 
 
-def sculpt(mesh, p, ctx, painted=None):
+def sculpt(mesh, p, ctx):
     import trimesh
     if p.amount == 0:
         return mesh.copy(), {"pieces": 1, "layers": 0, "max_reach": 0.}
-    if p.influence == "paint" and painted is None:
-        raise ValueError("Paint an area in the Selection tab before sculpting.")
     if len(mesh.faces) > p.max_faces:
         raise ValueError("Input exceeds Maximum faces. Simplify it or raise the budget.")
-    if painted is not None:
-        if p.paint_style == "connected":
-            return sculpt_painted(mesh, p, ctx, painted)
-        from .painted_layers import sculpt as swept_layers
-        return swept_layers(mesh, p, ctx, painted)
     if p.structure == "splinters" and p.layers * p.lanes > 5000:
         raise ValueError("Use at most 5,000 layer/bar cells. Reduce Layers or Bars per layer.")
     n, a, b = basis(p.layer_axis, p.tilt)
@@ -189,76 +180,3 @@ def sculpt(mesh, p, ctx, painted=None):
     if not parts:
         raise ValueError("No solid layers found. Check the input model.")
     return trimesh.util.concatenate(parts), {"pieces": len(parts), "layers": len(slabs), "max_reach": max_reach}
-
-
-def sculpt_painted(mesh, p, ctx, painted):
-    """Continuous layer-sampled motion on the source surface, with pinned unpainted skin.
-
-    Unlike separate full-model slabs, a partially painted connected surface must
-    not acquire coincident internal caps. Blend adjacent layer gestures instead.
-    """
-    import trimesh
-    from .selection import protect
-    n, a, b = basis(p.layer_axis, p.tilt)
-    lo, hi = cutting.span(mesh, n)
-    pitch = (hi-lo)/p.layers
-    if pitch < 1e-10:
-        raise ValueError("Model has no thickness along the layer direction.")
-    ctx.progress(.08, "refining connected painted surface")
-    rest, faces = refine(mesh.vertices, mesh.faces, n, hi-lo, max(p.resolution, p.layers*2),
-                         p.max_faces, ctx, mask_step=max(p.paint_feather*.01, .01))
-    weights = painted(rest)
-    coordinate = np.clip((rest@n-lo)/pitch-.5, 0., p.layers-1.)
-    lower = np.floor(coordinate).astype(int)
-    blend = coordinate-lower
-    target = np.zeros_like(rest)
-    reach = 0.
-    for k in range(p.layers):
-        ctx.progress(.35+.4*k/p.layers, f"shaping painted layer {k+1}/{p.layers}")
-        contribution = np.where(lower == k, 1.-blend, 0.) + np.where(lower+1 == k, blend, 0.)
-        active = contribution > 0
-        if not active.any():
-            continue
-        s = (k+.5)/p.layers
-        angle = math.radians(p.heading+(p.turn*(s-.5) if p.gesture == "vortex" else 0.))
-        h, side = math.cos(angle)*a+math.sin(angle)*b, -math.sin(angle)*a+math.cos(angle)*b
-        phase = 2*math.pi*p.cycles*s+math.radians(p.phase)
-        rhythm = {"stream": 1., "vortex": 1., "pulse": .15+.85*(.5+.5*math.sin(phase))**2,
-                  "gust": .15+.85*(.5+.5*math.sin(phase+.65*math.sin(phase*.47)))**2}[p.gesture]
-        hold = smooth((s-p.hold_base/100)/.1) if p.hold_base else 1.
-        amount = p.amount*hold
-        v = rest[active]
-        x, y = v@h, v@side
-        xlo, xhi = cutting.span(mesh, h)
-        q = smooth(((xhi-x)/max(xhi-xlo, 1e-12)-p.preserve/100)/(1-p.preserve/100))
-        q = 1-p.preserve/100+p.preserve/100*q
-        rng = np.random.default_rng(np.random.SeedSequence([int(p.seed), k]))
-        draws = rng.random(p.lanes+1 if p.structure == "splinters" else 1)
-        if p.structure == "splinters":
-            ylo, yhi = cutting.span(mesh, side)
-            lane = np.clip((y-ylo)/max(yhi-ylo, 1e-12)*p.lanes, 0., p.lanes)
-            randomness = np.interp(lane, np.arange(p.lanes+1), draws)
-        else:
-            randomness = draws[0]
-        variation = 1-p.variation/100+p.variation/100*randomness
-        length = p.reach*.02*amount*rhythm*variation
-        curl = p.curl*.02*amount*rhythm
-        cy = float(mesh.bounds.mean(axis=0)@side)
-        displacement = -np.outer(length*q, h)
-        displacement += np.outer(-(y-cy)*p.taper/100*amount*q+curl*q*q, side)
-        if p.structure == "splinters":
-            bar_pitch = max(yhi-ylo, 1e-12)/p.lanes
-            displacement -= np.outer(p.bar_gap/100*p.amount*bar_pitch/(2*math.pi)*np.sin(2*math.pi*lane), side)
-        target[active] += (v+displacement)*contribution[active, None]
-        reach = max(reach, float(np.max(length)))
-    # Continuous corrugation expresses layer separation without opening a seam
-    # through the pinned region. Its unmasked longitudinal derivative stays positive.
-    phase = 2*math.pi*((rest@n-lo)/pitch-.5)
-    target -= np.outer(p.gap/100*p.amount*pitch/(2*math.pi)*np.sin(phase), n)
-    target = rest+(target-rest)*weights[:, None]
-    target, achieved = protect(rest, target, faces, ctx)
-    output = trimesh.Trimesh(target, faces, process=False)
-    if not output.is_watertight or not output.is_winding_consistent or output.volume <= 0:
-        raise ValueError("Painted deformation failed solid validation. Increase Paint feather or reduce motion.")
-    return output, {"pieces": len(output.split()), "layers": p.layers, "max_reach": reach*achieved,
-                    "paint_guard_scale": achieved, "max_displacement": float(np.linalg.norm(target-rest, axis=1).max())}

@@ -94,6 +94,13 @@ class MotionTests(unittest.TestCase):
         b, _ = self.sculpt(reach=0., taper=0., curl=0.)
         np.testing.assert_allclose(a.bounds, b.bounds)
 
+    def test_painted_area_is_gone_and_old_settings_act_on_the_whole_model(self):
+        # 0.5.0 removed Painted area. A preset, history entry or workflow saved with it still runs, on the whole model.
+        choices = [value for value, _ in TOOL.param("influence").choices]
+        self.assertNotIn("paint", choices)
+        old = TOOL.values(dict(influence="paint", paint_style="layers", selection="{}", layers=6, resolution=4))
+        self.assertEqual(old.influence, "all")
+
     def test_face_budget_and_cancellation_fail_before_publication(self):
         self.mesh = trimesh.creation.icosphere(subdivisions=3)
         with self.assertRaisesRegex(ValueError, "Maximum faces"):

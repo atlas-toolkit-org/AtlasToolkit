@@ -59,10 +59,6 @@
         "sphere_radius": 30.0,
         "feather": 15.0,
         "invert_influence": false,
-        "paint_style": "layers",
-        "paint_feather": 8.0,
-        "selection_file": "",
-        "selection": "",
         "up_axis": "auto",
         "front": "auto",
         "rotate": [

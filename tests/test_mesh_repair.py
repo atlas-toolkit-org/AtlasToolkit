@@ -308,6 +308,13 @@ class ToolTests(unittest.TestCase):
         self.assertTrue(res.notes)
         self.assertIn("Still not a closed solid", res.report)
 
+    def test_rebuild_runs_in_the_tool(self):
+        """The resampler reports progress with a message too: 1.0.0 stopped on it whenever it rebuilt."""
+        src = self.tool.resolve(self.tool.sample)(self.dir)
+        res = self.run_tool(src, strategy="rebuild", resolution=64)
+        from atlas_toolkit.geom import mesh as gm
+        self.assertTrue(R.diagnose(gm.load_mesh(Path(res.outputs[0]))).solid)
+
 
 if __name__ == "__main__":
     unittest.main()

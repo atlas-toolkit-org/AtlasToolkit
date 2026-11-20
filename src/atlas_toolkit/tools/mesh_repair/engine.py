@@ -85,7 +85,7 @@ def run(ctx, src: Path, dst: Path | None, p) -> Result:
                  f"be rebuilt, resampling at {int(p.resolution)} can take a few minutes more. Cancel stops it at any "
                  "time.".replace(",", " "))
     out, notes, rebuilt = R.repair(original, s, log=ctx.log,
-                                   progress=lambda t: ctx.progress(0.25 + 0.6 * float(t), "rebuilding"))
+                                   progress=lambda t, msg="": ctx.progress(0.25 + 0.6 * float(t), "rebuilding"))
     ctx.progress(0.88, "checking")
     after = R.diagnose(out)
     if not len(out.faces):

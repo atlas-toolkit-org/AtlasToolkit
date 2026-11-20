@@ -920,6 +920,16 @@ def _weld(M, F) -> tuple:
     return P[used], remap[G], np.flatnonzero(np.isin(index, bad))
 
 
+def _without_sheets(P, G) -> tuple:
+    from atlas_toolkit.geom.repair import drop_duplicate_sheets
+    _, kept, _ = drop_duplicate_sheets(P, G)
+    if len(kept) == len(G):
+        return P, G
+    used = np.zeros(len(P), bool)
+    used[kept] = True
+    return P[used], (np.cumsum(used) - 1)[kept]
+
+
 def closed_arrays(solid: mf.Manifold, to_model) -> tuple:
     """(V, F, distance moved), V in the model's units, of a solid that stays closed once saved, in the float32 of an STL.
 
@@ -947,6 +957,9 @@ def closed_arrays(solid: mf.Manifold, to_model) -> tuple:
             moved = max(moved, by)
         P, G, bad = _weld(to_model(V), F)
         if not len(bad):
+            # A weld can fold a sliver into two faces back to back: a sheet with no volume, which every loader's
+            # duplicate check would halve into a hole. Both faces go (the check below proves it stays closed).
+            P, G = _without_sheets(P, G)
             check = clean(trimesh.Trimesh(P.copy(), G.copy(), process=False))
             if check.is_volume and len(check.faces) == len(G):
                 return P, G, moved

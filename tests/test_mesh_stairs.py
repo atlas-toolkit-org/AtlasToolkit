@@ -147,6 +147,16 @@ class Steps(unittest.TestCase):
         self.assertLess(moved, 1e-3)
         self.assertTrue(gm.clean(trimesh.Trimesh(V, F, process=False)).is_volume)
 
+    def test_a_sheet_left_by_the_weld_does_not_open_the_solid(self):
+        # A weld can fold a sliver into two faces back to back. A loader keeps one of them: an open edge (2.4.2).
+        cube = trimesh.creation.box()
+        V = np.vstack((cube.vertices, [[3., 0, 0], [4., 0, 0], [3., 1, 0]]))
+        F = np.vstack((cube.faces, [[8, 9, 10], [8, 10, 9]]))
+        self.assertFalse(gm.clean(trimesh.Trimesh(V, F, process=False)).is_volume)
+        P, G = ms._without_sheets(V, F)
+        self.assertEqual((len(P), len(G)), (8, 12))
+        self.assertTrue(gm.clean(trimesh.Trimesh(P, G, process=False)).is_volume)
+
 
 class Ensemble(unittest.TestCase):
     def test_a_flight_always_goes_to_a_neighbour_one_storey_up(self):
