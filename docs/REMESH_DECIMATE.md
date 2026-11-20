@@ -29,6 +29,18 @@ Curved cells are triangulated internally for processing and visibility; their ex
   always uses % of that diagonal. Internal normalisation protects small/large coordinates without changing units.
 - Keep open boundaries fixed and Keep sharp features default on. The sharp threshold is 45°. Surface error
   defaults to 0.1% diagonal; normal deviation defaults to 60°. Larger tolerances allow stronger simplification.
+- Sharp edges on a scan are mostly noise: short, scattered chains. Kept as features, they stop the remesher from
+  collapsing edges around them, so the faces multiply and every iteration slows. That was five times the target,
+  and minutes instead of seconds, on a 25 000-face bust. The helper drops feature chains shorter than 4 edges
+  or 3 target lengths. Then one quick pass with the remaining features and one without show whether they block
+  it; if they do, the model is remeshed without them and the log says so. Real creases (a cube, a chess piece, a
+  cut base) leave the face count alone and are kept.
+- Projection onto the source uses a bounding-volume hierarchy instead of PMP's kd-tree. On a turned model, that tree
+  kept hundreds of triangles in each leaf around the poles: 70 s instead of under one on an 88 000-face pawn.
+- When the result strays further than Surface-error tolerance, the tool retries once at the density the measured
+  error calls for (error falls about as faces^-0.75). When that is more than 16 times the target, it stops at once
+  and says which tolerance this target meets, or which target this tolerance needs. On a scan, uniform triangles at
+  the scan's own face count typically stay within 1–3%: the 0.1% default suits decimation better.
 - Triangle remeshing defaults to ten split/collapse/flip/relax iterations with source projection. Adaptive edge
   factors bound the curvature-driven local sizing. Directional elongation specifies the long-edge direction
   in the Model frame. Zero direction vectors are rejected.

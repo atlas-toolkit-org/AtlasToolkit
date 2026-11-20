@@ -291,6 +291,35 @@ class LiveViewTests(unittest.TestCase):
         self.assertEqual(v.cam.psi, 90.0)
         self.wait(lambda: page.values()["psi"] == 90.0)
 
+    def test_aim_is_a_light_trace_until_exact_lines(self):
+        """Aim draws the light trace (a decimated copy, outline and creases) whatever the settings; E, or the Exact
+        lines button, shows the drawing itself, and E again goes back. It is view state, never a setting."""
+        import trimesh
+        from PySide6.QtCore import Qt
+        from atlas_toolkit.tools.plotter_vision.aim import AIM_FACES
+        src = self.tmp / "dense.stl"
+        trimesh.creation.icosphere(subdivisions=6, radius=10.0).export(src)       # 81 920 faces
+        page = self.win.open_tool("plotter-vision", [str(src)])
+        self.win.show()
+        self.wait(lambda: page.runnable() and page.idle())
+        v = page.viewer
+        self.assertTrue(v.sets_view)
+        page.queue.setCurrentItem(page.rows[str(src)].item)         # the page may hold earlier tests' files too
+        self.wait(lambda: v.path == str(src) and v.state == "done")
+        self.assertLessEqual(v.model.faces, AIM_FACES)
+        self.assertEqual(v._p(v.values).flat_angle, 35.0)
+        before = page.values()
+        self.key(v, Qt.Key_E)
+        self.assertTrue(v.exact and v.btn_exact.isChecked())
+        self.wait(lambda: v.state == "done" and v.model is not None)
+        self.assertGreater(v.model.faces, AIM_FACES)
+        self.assertEqual(v._p(v.values).flat_angle, page.values()["flat_angle"])
+        v.btn_exact.click()
+        self.assertFalse(v.exact)
+        self.wait(lambda: v.state == "done" and v.model is not None)
+        self.assertLessEqual(v.model.faces, AIM_FACES)
+        self.assertEqual(page.values(), before)
+
     def test_aim_with_mouse_and_keys_then_draw(self):
         from PySide6.QtCore import Qt
         src = self.tmp / "scene.stl"
@@ -300,7 +329,7 @@ class LiveViewTests(unittest.TestCase):
         self.wait(lambda: page.runnable() and page.idle())
         v = page.viewer
         self.assertIsNotNone(v)
-        self.assertEqual(page.stage.current_title(), "Vision")
+        self.assertEqual(page.stage.current_title(), "Aim")
         self.wait(lambda: v.state == "done")
         self.assertTrue(v.pieces)
         # drag 40 px right: ψ turns by 40 x 0.29° as on plotter.vision, and the camera lands in the settings
@@ -322,9 +351,9 @@ class LiveViewTests(unittest.TestCase):
         # 5: from above; F: fit (look at the centre, a new distance)
         self.key(v, Qt.Key_5)
         self.wait(lambda: abs(page.values()["theta"] - 1.0) < 1e-6)
-        r = page.values()["radius"]
-        self.key(v, Qt.Key_F)
-        self.wait(lambda: page.values()["radius"] != r and tuple(page.values()["lookat"]) == (0.0, 0.0, 0.0))
+        r, look = page.values()["radius"], tuple(page.values()["lookat"])
+        self.key(v, Qt.Key_F)                                    # the picture centred and filling the frame
+        self.wait(lambda: page.values()["radius"] != r and tuple(page.values()["lookat"]) != look)
         self.wait(lambda: v.state == "done")
         # a preset keeps the camera
         theta = page.values()["theta"]

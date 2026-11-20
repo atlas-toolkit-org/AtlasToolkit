@@ -27,12 +27,15 @@ src/atlas_toolkit/
     selftest.py    run every tool on a sample (in the worker for heavy tools), used after every build
     workflow.py    workflows: graph of steps, Check, chain names, content-addressed cache, run_workflow (a Job)
     paths.py       per-platform folders, portable mode, reveal/open files
+    errors.py      ToolError: an expected problem the user can fix (message, hint, a tool to open): no traceback
   geom/      shared geometry, no Qt
     svg.py         SVG reading (re-exported from the Overlap Cleaner's engine), drawings for previews,
                    signing, <metadata> run records, default SVG inspect
     svgout.py      writing new mm SVGs, joining and ordering polylines
     drawing.py     Drawing / Pen: polylines per pen in mm, plot statistics (ink, travel, lifts, time)
     mesh.py        trimesh loading and cleaning, preview decimation, signed saving, default mesh inspect
+    repair.py      what is wrong with a mesh (diagnose), the safe tidy every solid tool runs (tidy_input), the
+                   full repair (Repair Mesh, the catalogue), NeedsRepair: the error that names Repair Mesh
     paper.py       paper sizes, fitting
     image.py       photos: EXIF-aware loading, the default image inspect, raster preview views
     depth.py       depth maps: the GPU runtime client (cached per photo/model/detail), depth files, rough depth
@@ -171,6 +174,9 @@ The drawing tools share one path from a mesh to the paper:
    union of its stages' bounds.
 2. **Camera** (`geom/camera`): plotter.vision's orbit camera through the paper's drawing area. The Aim tab is
    Plotter Vision's live view (`tools/plotter_vision/aim.py`), fed the same frame, so its numbers are the engine's.
+   Every Mesh → SVG tool aims there, Plotter Vision (light trace, Exact lines on E) and the Hatch Maker (the same
+   camera, orthographic only, `camera_params(ortho_only=True)`) included; it is the only tab that sets the view. F
+   and Always fit use `geom/camera.fit_view`, a tight fit of the picture.
 3. **Rays** (`geom/raycast`): embree, every ray of a step in one batch: visibility (Contour Lines), a G-buffer per
    paper pixel, ambient occlusion and soft shadows (`geom/shading`, Sketch Hatching and Stipple).
 4. **Paper** (`geom/sketch`, `geom/svgout`): strokes in mm, one layer per pen, ordered, signed.

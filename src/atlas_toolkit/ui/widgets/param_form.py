@@ -13,7 +13,7 @@ from PySide6.QtWidgets import (QCheckBox, QComboBox, QFileDialog, QGridLayout, Q
 
 from ...core.params import AUTO, Bool, Choice, FileRef, Float, Int, Section, Seed, Text, Vec3
 from ..theme import icon, label_font
-from .common import Segmented, apply_icon, icon_button, repolish
+from .common import Segmented, apply_icon, hint, icon_button, repolish
 from .spin import DoubleSpin, IntSpin
 
 SLIDER_STEPS = 1000
@@ -327,6 +327,10 @@ class ParamForm(QWidget):
         grid.setVerticalSpacing(7)
         grid.setColumnStretch(1, 1)
         r = 0
+        if sec.note:
+            note = hint(sec.note)
+            grid.addWidget(note, r, 0, 1, 2)
+            r += 1
         for p in sec.params:
             f = Field(p, self.theme)
             f.changed.connect(self._field_changed)

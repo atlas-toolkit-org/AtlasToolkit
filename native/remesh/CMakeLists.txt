@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.24)
 cmake_policy(SET CMP0091 NEW)
 set(CMAKE_TRY_COMPILE_CONFIGURATION Release)
-project(atlas_remesh VERSION 0.1.1 LANGUAGES CXX)
+project(atlas_remesh VERSION 0.1.2 LANGUAGES CXX)
 
 # Pinned sources fetched by native/build.py (see native/deps.lock.json).
 set(ATLAS_DEPS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../_deps" CACHE PATH "Pinned third-party sources")
@@ -33,14 +33,16 @@ endif()
 set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
   "${CMAKE_CURRENT_SOURCE_DIR}/generate.py"
   "${PMP_DIR}/src/pmp/algorithms/remeshing.cpp"
-  "${PMP_DIR}/src/pmp/algorithms/decimation.cpp")
+  "${PMP_DIR}/src/pmp/algorithms/decimation.cpp"
+  "${PMP_DIR}/src/pmp/algorithms/curvature.cpp")
 
 add_subdirectory("${PMP_DIR}" pmp EXCLUDE_FROM_ALL)
 get_target_property(PMP_SOURCES pmp SOURCES)
-list(FILTER PMP_SOURCES EXCLUDE REGEX "[/\\](remeshing|decimation).cpp$")
+list(FILTER PMP_SOURCES EXCLUDE REGEX "[/\\](remeshing|decimation|curvature).cpp$")
 set_property(TARGET pmp PROPERTY SOURCES ${PMP_SOURCES})
 target_sources(pmp PRIVATE "${ATLAS_GENERATED}/remeshing.cpp")
 target_sources(pmp PRIVATE "${ATLAS_GENERATED}/decimation.cpp")
+target_sources(pmp PRIVATE "${ATLAS_GENERATED}/curvature.cpp")
 target_include_directories(pmp PUBLIC "${PMP_DIR}/src")
 add_executable(atlas-remesh-core main.cpp)
 target_compile_features(atlas-remesh-core PRIVATE cxx_std_17)

@@ -3,6 +3,7 @@ from pathlib import Path
 import time
 from atlas_toolkit.core import Result, Stat
 from atlas_toolkit.geom import frame3d, mesh as gm
+from atlas_toolkit.geom import repair as R
 from atlas_toolkit.geom.mesh_export import publish_meshes
 from . import TOOL
 from .mesh_motion import sculpt
@@ -20,9 +21,16 @@ def run(ctx, src, dst, p):
     if p.influence == "band" and p.band_from >= p.band_to:
         raise ValueError("Band from must be below Band to.")
     ctx.progress(.02, "loading source model")
-    original = gm.load_mesh(src)
+    original = R.tidy_input(ctx, gm.load_mesh(src), painted=p.influence == "paint")
     if not original.is_watertight or not original.is_winding_consistent or original.volume <= 0:
-        raise ValueError("Motion Sculpture requires a closed, consistently oriented solid. Repair the model first.")
+        if p.repair == "strict" or p.influence == "paint":
+            raise R.needs_repair(original, TOOL, "Open input › Repair by resampling", painted=p.influence == "paint")
+        ctx.note("Closed by resampling (Open input › Repair by resampling): fine detail may soften.")
+        v, f, _ = R.rebuild(original.vertices, original.faces, int(p.repair_resolution),
+                            lambda t, msg="": ctx.progress(0.02 + 0.03 * float(t), "repair: " + str(msg)))
+        original = trimesh.Trimesh(v, f, process=False)
+        if not original.is_watertight or not original.is_winding_consistent or original.volume <= 0:
+            raise R.needs_repair(original, TOOL)
     up, front, rotate, _ = frame3d.resolve_axes(src, p, original.extents)
     frame = frame3d.fit_frame(original.vertices, up, front, rotate, mode="height", size=2.)
     canonical = trimesh.Trimesh(frame.apply(original.vertices), original.faces, process=False)

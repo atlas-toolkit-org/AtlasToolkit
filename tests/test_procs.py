@@ -247,9 +247,9 @@ class HelperResolverTests(unittest.TestCase):
             if _isolate.REQUIRE_HELPERS:
                 self.fail("the remesh helper is missing")
             self.skipTest("remesh helper not built")
-        self.assertIn("atlas-remesh-core", runtimes.check_helper(exe, "atlas-remesh-core", 1))
+        self.assertIn("atlas-remesh-core", runtimes.check_helper(exe, "atlas-remesh-core", 2))
         with patch.object(procs, "spawn", side_effect=AssertionError("not started twice")):
-            runtimes.check_helper(exe, "atlas-remesh-core", 1)
+            runtimes.check_helper(exe, "atlas-remesh-core", 2)
         with self.assertRaisesRegex(RuntimeError, "another protocol"):
             runtimes.check_helper(exe, "atlas-remesh-core", 99)
         with self.assertRaisesRegex(RuntimeError, "not a working"):

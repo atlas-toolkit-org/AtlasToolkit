@@ -186,7 +186,8 @@ class EngineTests(unittest.TestCase):
 
     def test_strict_open_input_and_explicit_resampling(self):
         model = gm.load_mesh(self.src)
-        model.update_faces(np.arange(len(model.faces)) != 0)
+        z = model.triangles_center[:, 2]
+        model.update_faces(z < z.max() - 0.15 * np.ptp(z))      # an opening (a pin-hole would just be tidied)
         model.export(self.root / "open.stl")
         with self.assertRaisesRegex(ValueError, "closed solid"):
             engine.run(context(), self.root / "open.stl", None, TOOL.values(dict(count=2)))

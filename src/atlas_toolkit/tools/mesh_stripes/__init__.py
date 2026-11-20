@@ -2,7 +2,8 @@
 from atlas_toolkit.core import Bool, Choice, Float, Inputs, Int, Output, Section, Seed, Tool, frame_params
 
 TOOL = Tool(
-    id="mesh-stripes", name="Surface Stripes", version="0.2.0", category="mesh", icon="surface-stripes",
+    needs="solid",
+    id="mesh-stripes", name="Surface Stripes", version="0.2.1", category="mesh", icon="surface-stripes",
     action="Stripe",
     summary="Generate flowing surface bands, on the model or as solid ribbons alone.",
     tagline="Flowing bands on a model, or solid ribbons that describe its shape on their own.",

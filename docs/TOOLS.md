@@ -139,6 +139,14 @@ See [methods, controls and examples](REMESH_DECIMATE.md).
 Plotter Vision's **Remeshed network** preset draws every native mesh edge, including coplanar cell boundaries,
 without polygon triangulation diagonals. FlowRep accepts preserved polygons from OBJ and PLY.
 
+**Repair Mesh 1.0.0** fixes the mesh errors that stop the sculpting tools: back-to-back faces and crumbs left by
+decimation, holes, non-manifold edges and bow-tie vertices, wrongly wound or inside-out faces. It repairs in place
+(no vertex moves), fills holes flat or smooth, and rebuilds by resampling only if the model is still not a solid.
+The report gives a before/after table and the tools the result is **Ready for**; **Problems** marks the bad edges in
+red. Tools that need a solid tidy small defects themselves (logged, the surface unchanged). They mark an input that
+needs more as *Needs repair* as soon as it is added, and offer **Open in Repair Mesh**. See [what it fixes, and
+when to use it](REPAIR_MESH.md).
+
 **Mirror 0.1.0** reflects a whole model through a manually positioned plane. Its plane starts at the model's
 side, making an adjacent copy. Keep the original or save only the reflection; export combined unjoined shells
 or separate files. The live Plane tab shares Plane Cut's drawing, arrows, rings, numeric controls and maximizable
@@ -182,8 +190,8 @@ See [Surface Stripes](SURFACE_STRIPES.md) for controls, build instructions and l
 | **Overlap Cleaner** 1.2.1 | SVG → SVG | SVG Overlap Cleaner v1, SVG Join Paths v1/v2, svg_dedup | Cuts ink drawn twice, so every line is plotted once. Optional: join stroke ends, whole-duplicates mode, rect/circle/ellipse, stroke width as part of the pen. `<name>--nooverlap.svg` |
 | **Shape Cutter** 2.0 | SVG → SVG | svg_shape_cutter | Keeps the lines inside (or outside) a closed shape: the element or layer named “shape”, a chosen layer or another SVG. Every island and hole counts. `<name>_cutout.svg` |
 | **Shape Outline** 2.0 | SVG → SVG | SVG_Shape_outline_v1 | One closed outline around a drawing: an envelope that hugs the strokes (bridging gaps under N mm), a concave or a convex hull. All parts or the largest, optional holes, a margin in mm. Written alone on the same sheet (ready as the Shape Cutter's “Another SVG”) or as a new layer. `<name>_outline.svg` |
-| **Hatch Maker** 6.0.2 | Mesh → SVG | STL 3D Hatch Maker v2.1, v3, v5 | Draws a model from any view: seven hatching styles, outlines and creases, hidden lines removed, fitted to paper in mm, one pen per layer, ordered to cut pen travel. `<name>_hatch.svg` |
-| **Plotter Vision** 1.4.1 | Mesh → SVG | plotter.vision (web app, reimplemented) | A model as the edges you can see through a perspective camera, aimed live in the Vision tab: drag to orbit, wheel for distance, 1-5 views, F fit; hidden lines removed as soon as you stop. Edges flatter than an angle left out (0.01° = plotter.vision, a few degrees = clean quads, 30°+ = features; the Sketch preset is the Aim tab's look), lines where parts cross, optional decimation, depth pens, outline and hidden-line pens, red/blue stereo. `<name>_vision.svg` |
+| **Hatch Maker** 7.0.0 | Mesh → SVG | STL 3D Hatch Maker v2.1, v3, v5 | Draws a model through an orthographic camera aimed in the Aim tab: seven hatching styles, outlines and creases, hidden lines removed, cut at the paper's frame in mm, one pen per layer, ordered to cut pen travel. `<name>_hatch.svg` |
+| **Plotter Vision** 1.5.0 | Mesh → SVG | plotter.vision (web app, reimplemented) | A model as the edges you can see through a perspective camera, aimed live in the Aim tab: drag to orbit, wheel for distance, 1-5 views, F fit; a light trace while you aim, the exact drawing with E. Edges flatter than an angle left out (0.01° = plotter.vision, a few degrees = clean quads, 30°+ = features; the Sketch preset is the Aim tab's look), lines where parts cross, optional decimation, depth pens, outline and hidden-line pens, red/blue stereo. `<name>_vision.svg` |
 | **Contour Lines** 1.1.0 | Mesh → SVG | new | A model as horizontal slices seen through a camera, hidden lines removed by ray casting: the melting and twisting heads' line language, for any model, without Blender. Spacing in mm on paper, converging lines tapered, strokes chained for few pen lifts. Draws a Twist or Melt stage set with one frame (same scale, position and slice heights on every plate). `<name>_contours.svg` |
 | **Sketch Hatching** 1.0.2 | Mesh → SVG | new | A model as an illustrator's pen sketch: lost-and-found outline, suggestive contours, valleys, creases, and hatching that follows the form in tone bands, with cast shadows and ambient occlusion; a focus point and a portrait light for a face. Two pens. `<name>_sketch.svg` |
 | **Stipple** 1.0 | Mesh → SVG | Digital divide's sphere (`projects/blender3d_project/digital_divide_1`) | A model in dots only: blue-noise stippling of its ray-cast light and shade, an empty highlight, edge darkening instead of an outline, a dot budget. `<name>_stipple.svg` |
@@ -273,9 +281,38 @@ atlas-toolkit run mesh-disintegrate model.stl --steps 3 --strength 1 --units per
 atlas-toolkit run mesh-disintegrate model.obj --layout final --direction normal --separate --format .ply
 ```
 
+## Aim: where a drawing's view is set
+
+Every Mesh → SVG tool (Plotter Vision, Hatch Maker, Contour Lines, Sketch Hatching, Stipple, FlowRep Sketch) opens
+on its **Aim** tab, marked with a crosshair. Aim is the one place the drawing's view is set: the paper's drawing
+area is framed, and what is in the frame is what Preview and Draw make. The model shows as a light trace (a copy of
+at most 20 000 faces, its outline and creases, hidden lines removed when you stop), so it turns smoothly whatever
+its size. The real drawing comes from **Preview** or **Draw**, in the Drawing tab.
+
+The **Input** tab beside it is for looking the model over: it turns to the side you are aiming at when you open
+it, and its toolbar says *Inspect only · view set in Aim*; orbiting it changes nothing (click the note to go
+back to Aim). The Camera settings show Aim's numbers, to read or fine-tune. In Workflows, **Aim in tool…** opens
+the same tab with the step's input and settings, and **Back to workflow** brings the view back.
+
+Every Aim tab is driven the same way:
+
+| Do | To |
+|---|---|
+| drag | orbit (Tilt θ, Turn ψ) |
+| Shift-drag or right-drag | move the look-at point |
+| wheel / Ctrl+wheel | distance / field of view |
+| `1` `2` `3` `4` `5` | front, side, back, other side, top |
+| `F` or double-click | fit: the model's picture centred and as large as the frame allows (a stage set: its whole box) |
+| `A` or **Always fit** | fit after every move, so the model stays framed while you orbit; `A` again, Shift-drag or the wheel goes back to framing by hand |
+| `R` | the start view |
+
+Always fit is a way of aiming, not a setting: the camera it leaves is what Draw uses, and it is off whenever the
+tab opens. The Hatch Maker's camera is the same one, always orthographic (the distance sets the size), plus Roll,
+which turns the picture.
+
 ## Plotter Vision
 
-The **Vision** tab is plotter.vision inside the toolkit. The paper's drawing area is framed: the camera looks
+The **Aim** tab is plotter.vision inside the toolkit. The paper's drawing area is framed: the camera looks
 through it, so what is in the frame is what Draw writes, cut at the frame in mm.
 
 | Do | To |
@@ -284,11 +321,15 @@ through it, so what is in the frame is what Draw writes, cut at the frame in mm.
 | Shift-drag or right-drag | move the look-at point |
 | wheel / Ctrl+wheel | distance / field of view |
 | `1` `2` `3` `4` `5` | front, side, back, other side, top |
-| `F` or double-click | fit the model in the frame |
-| `R` / `T` | plotter.vision's start view / red-blue stereo |
+| `F` or double-click | fit the model in the frame (`A`: after every move) |
+| `R` | plotter.vision's start view |
+| `E` or **Exact lines** | the exact drawing instead of the light trace (and back) |
+| `T` | red-blue stereo (with Exact lines) |
 
-While you move, every candidate edge shows in the accent colour; when you stop, hidden lines are removed and the
-drawing fills in from the middle. Letting go writes the camera into the settings, so presets keep it and Draw uses
+Aim shows the light trace by default (the Sketch preset's look), quick on any model. **Exact lines** draws what
+Draw will write, live, as plotter.vision did, with your edge, decimation, depth and stereo settings: it can be slow
+on big models, and it is never saved, so the page always opens on the trace. While you move, every candidate edge
+shows in the accent colour; when you stop, hidden lines are removed and the drawing fills in from the middle. Letting go writes the camera into the settings, so presets keep it and Draw uses
 it. It draws the same lines as plotter.vision (checked against its own JavaScript on a reference scene), but hides
 them exactly. Lines inside other solids, faces crossing the window edge or the near plane, and tiny faces no longer
 leak hidden lines, and no edge is drawn twice.
@@ -300,7 +341,8 @@ Digital divide's sphere), for any model. `docs/PARAMETERS_3D.md` ranks their set
 drawing and gives the recipes that reproduce the pieces.
 
 - **Aim** (Contour Lines, Sketch Hatching, Stipple): the camera is Plotter Vision's, and so is its live view, the
-  **Aim** tab (drag, wheel, `1`-`5`, `F`). The model shows as its outline and creases; Preview draws the real thing.
+  **Aim** tab (drag, wheel, `1`-`5`, `F`; see [Aim](#aim-where-a-drawings-view-is-set)). The model shows as its
+  outline and creases; Preview draws the real thing.
 - **Up and Front** say how a model stands (Auto: Z-up STL, Y-up OBJ, a statue stored lying down stands up, as in
   the Atlas gallery); **Extra turn** lays it down or tilts it. Lengths are % of the model's height and frequencies
   are waves over its height, so settings carry over between models.
@@ -505,9 +547,8 @@ Mosaic.
   - **SVG tools** analyse every file again as you change a setting.
   - **Mesh tools** have **Preview**, a dry run of the selected file. **Run** (or Clean, Cut, Draw…) writes every
     file. An output that exists is overwritten, or kept, as Setup says (below); originals are never changed.
-- **Plotter Vision:** aim in the Vision tab (see below); presets change the lines, never the camera.
-- **Hatch Maker:** orbit the model in the Input tab, press **Use the 3D view**, then **Preview**. The drawing is made
-  from exactly that view.
+- **Mesh → SVG tools:** aim in the Aim tab (see [Aim](#aim-where-a-drawings-view-is-set)), then **Preview** or
+  **Draw**; presets change the lines, never the view. The Input tab is for looking only.
 - **Home** shows the tools as cards or as a one-line **List**; each section (Workflows and each tool group)
   folds under its header, and **Fold all** folds them together. Saved workflows show by their names.
 - A tool whose required program (Blender for Melt, the stripes helper) is missing is **faded** in every list, with an amber ⚠ and the reason in its tooltip; its page shows a notice under its name (Locate, Get, Setup guide) and Run waits. In Workflows its step turns amber at once. An optional program only adds a quiet note on the tool's page. The app looks again whenever its window comes back into focus.

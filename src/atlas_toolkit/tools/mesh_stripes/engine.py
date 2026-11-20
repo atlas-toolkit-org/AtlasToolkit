@@ -12,6 +12,7 @@ from atlas_toolkit.core import Result, Stat
 from atlas_toolkit.core.paths import cache_dir
 from atlas_toolkit.geom import frame3d
 from atlas_toolkit.geom import mesh as gm
+from atlas_toolkit.geom import repair as R
 from . import TOOL
 from . import mesh_stripes as stripes
 
@@ -39,7 +40,7 @@ def run(ctx, src, dst, p):
     stripes_only = bool(p.get("stripes_only", False))
     if stripes_only and float(p.relief) <= 0:
         raise ValueError("Export stripes only needs a positive Raised height for ribbon thickness")
-    mesh = gm.load_mesh(src)
+    mesh = R.tidy_input(ctx, gm.load_mesh(src))
     faces_in = len(mesh.faces)
     up, front, rotate, _source = frame3d.resolve_axes(src, p, mesh.extents)
     frame = frame3d.fit_frame(mesh.vertices, up, front, rotate, mode="height", size=2.)
@@ -48,8 +49,7 @@ def run(ctx, src, dst, p):
     repaired = body_solid is None
     if repaired:
         if not p.repair:
-            raise ValueError("the input is open or is not a consistently oriented solid. Close it first, or enable "
-                             "Repair open mesh (resampling can soften detail).")
+            raise R.needs_repair(mesh, TOOL, "Repair open mesh")
         resolution = min(int(p.repair_resolution), 112) if ctx.draft else int(p.repair_resolution)
         ctx.warn(f"Closing the input by resampling at {resolution} samples; fine detail can soften.")
         V, F = holes.closed_copy(body.vertices, body.faces, resolution,
@@ -57,7 +57,7 @@ def run(ctx, src, dst, p):
         body = trimesh.Trimesh(V, F, process=True)
         body_solid = holes.solid(body.vertices, body.faces)
         if body_solid is None:
-            raise ValueError("the repaired surface could not be made into a closed solid")
+            raise R.needs_repair(mesh, TOOL)
     if body.volume < 0:
         body.invert()
     initial_volume = body_solid.volume()

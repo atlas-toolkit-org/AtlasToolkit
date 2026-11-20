@@ -1,7 +1,7 @@
 {
  "schema": 1,
- "revision": 1,
- "base_url": "https://github.com/atlas-toolkit-org/AtlasToolkit/releases/download/catalogue-1/",
+ "revision": 2,
+ "base_url": "https://github.com/atlas-toolkit-org/AtlasToolkit/releases/download/catalogue-2/",
  "categories": [
   {
    "id": "light",
@@ -112,9 +112,9 @@
    "name": "Bust of Nefertiti",
    "category": "busts",
    "kind": "bundled",
-   "triangles": 260000,
+   "triangles": 259998,
    "file": "nefertiti.ply.gz",
-   "bytes": 2797742,
+   "bytes": 2878868,
    "description": "The painted limestone bust of the Egyptian queen, in the Neues Museum, Berlin.",
    "tags": [
     "egypt",
@@ -128,16 +128,16 @@
    "source_url": "https://commons.wikimedia.org/wiki/File:Bust_of_Nefertiti_at_the_Neues_Museum,_Berlin.stl",
    "license": "CC0-1.0",
    "thumbnail": "nefertiti.png",
-   "sha256": "4dfbe10669d24d8479d355038f95616d92865f13077abc7513b07b9d5d2ee30d"
+   "sha256": "7c781a7a3d8d65ebe1f3481a0d025b50ccb33dd942cae25925bf1e16e24296bf"
   },
   {
    "id": "memnon",
    "name": "Memnon of Ethiopia",
    "category": "busts",
    "kind": "remote",
-   "triangles": 1000000,
+   "triangles": 999996,
    "file": "memnon.ply.gz",
-   "bytes": 9556877,
+   "bytes": 9698139,
    "description": "Portrait bust of Memnon, a pupil of Herodes Atticus.",
    "tags": [
     "roman",
@@ -150,7 +150,7 @@
    "source_url": "https://commons.wikimedia.org/wiki/File:Memnon_fra_Etiopien_-_KAS969.stl",
    "license": "CC0-1.0",
    "thumbnail": "memnon.png",
-   "sha256": "d4fd30ab744b88bbd3319a9bc8e5c36f4efebd64f54c1bfe310811535eda8280"
+   "sha256": "e041eb67fdc9559df4f21cc7d940ac051f61e7422a10ba449bdaee373f769714"
   },
   {
    "id": "juno-ludovisi",
@@ -265,9 +265,9 @@
    "name": "Tranquillina",
    "category": "busts",
    "kind": "remote",
-   "triangles": 79633,
+   "triangles": 102238,
    "file": "tranquillina.ply.gz",
-   "bytes": 979178,
+   "bytes": 1177236,
    "description": "Portrait of the empress, wife of Gordian III.",
    "tags": [
     "roman",
@@ -280,16 +280,16 @@
    "source_url": "https://commons.wikimedia.org/wiki/File:MSR-Tranquillina-Ra166.stl",
    "license": "CC0-1.0",
    "thumbnail": "tranquillina.png",
-   "sha256": "929542fd04c3aa410e78d5c3e296080678eb574fd7a1db7ed18e2e63f3b7d0de"
+   "sha256": "de3a575534cb0baa9eebafe2444cb195f2ab0f02f985f8030052bdc12356f0b5"
   },
   {
    "id": "maximian",
    "name": "Maximian Herculius",
    "category": "busts",
    "kind": "remote",
-   "triangles": 149912,
+   "triangles": 151264,
    "file": "maximian.ply.gz",
-   "bytes": 1893152,
+   "bytes": 1916515,
    "description": "Portrait of the tetrarch emperor Maximian.",
    "tags": [
     "roman",
@@ -301,7 +301,7 @@
    "source_url": "https://commons.wikimedia.org/wiki/File:MSR-Maximien_Hercule-Ra34b.stl",
    "license": "CC0-1.0",
    "thumbnail": "maximian.png",
-   "sha256": "2f250f9536a016ed90f173556ee023aa98f69353947b8d34e9d32d94bf169d3c"
+   "sha256": "41bcdf679de2309a471eaa56cce2e0bd4ab9f97ed9920d7f5335e454d37c6dfd"
   },
   {
    "id": "satyr-head",
@@ -328,9 +328,9 @@
    "name": "Caracalla",
    "category": "busts",
    "kind": "remote",
-   "triangles": 181169,
+   "triangles": 208438,
    "file": "caracalla.ply.gz",
-   "bytes": 1836978,
+   "bytes": 2067093,
    "description": "Bust of the scowling emperor.",
    "tags": [
     "roman",
@@ -342,16 +342,16 @@
    "source_url": "https://commons.wikimedia.org/wiki/File:Bust_of_Emperor_Caracalla.stl",
    "license": "CC0-1.0",
    "thumbnail": "caracalla.png",
-   "sha256": "a88ab3dfbb8c5f40671eaf584ef603c3204af86b1fb9cdc01e3f44d7a7980a7b"
+   "sha256": "b9b289cf17cb6a0b14a4172bd238ab30fa5197fb87ba30c3594fe6adfd1b32e5"
   },
   {
    "id": "voltaire",
    "name": "Bust of Voltaire",
    "category": "busts",
    "kind": "remote",
-   "triangles": 238469,
+   "triangles": 238470,
    "file": "voltaire.ply.gz",
-   "bytes": 2276146,
+   "bytes": 2276235,
    "description": "The writer in old age.",
    "tags": [
     "enlightenment",
@@ -362,7 +362,7 @@
    "source_url": "https://commons.wikimedia.org/wiki/File:Bust_of_Voltaire-MAHG_1967-108-High_poly-001.stl",
    "license": "LicenseRef-public-domain",
    "thumbnail": "voltaire.png",
-   "sha256": "f8338784a21edb5fdfa889108a37ab19aae4c4263d1681b1c9a4e527c0697cbc"
+   "sha256": "892ddfe8278ef0158410d416b1fe6abf92311b9a70a3a7731079f2be0befe9c4"
   },
   {
    "id": "pierre-de-wissant",
@@ -433,9 +433,9 @@
    "name": "Venus de Milo",
    "category": "statues",
    "kind": "remote",
-   "triangles": 1000000,
+   "triangles": 999982,
    "file": "venus-de-milo.ply.gz",
-   "bytes": 11586940,
+   "bytes": 11508530,
    "description": "The Aphrodite of Milos, whole, from a plaster cast.",
    "tags": [
     "greek",
@@ -448,16 +448,16 @@
    "source_url": "https://commons.wikimedia.org/wiki/File:Venus_(Afrodite)_fra_Milo_-_KAS434_1.stl",
    "license": "CC0-1.0",
    "thumbnail": "venus-de-milo.png",
-   "sha256": "8bcac2f2c4bdfbf6b63e6dc35a5aa10453b52b27f9af57425f139150fa1ce6c2"
+   "sha256": "b4db4a631d91b919700dc43bd9a74b86fd249cc42b639b4f5064a3fb9449a69d"
   },
   {
    "id": "david",
    "name": "David",
    "category": "statues",
    "kind": "remote",
-   "triangles": 1000000,
+   "triangles": 999800,
    "file": "david.ply.gz",
-   "bytes": 13342545,
+   "bytes": 13211922,
    "description": "Michelangelo's David, the whole figure.",
    "tags": [
     "renaissance",
@@ -471,7 +471,7 @@
    "source_url": "https://commons.wikimedia.org/wiki/File:David_(Michelangelo).stl",
    "license": "CC-BY-SA-4.0",
    "thumbnail": "david.png",
-   "sha256": "9b557afccd09c4fc03a228d5ac9ee4af62726a7941285e0057c39a3219cc8d07"
+   "sha256": "93d97d88ebab152696fb95aacc554cde1651771f99ffc9bd594baf67574aa8c2"
   },
   {
    "id": "doryphoros",
@@ -501,9 +501,9 @@
    "name": "Apollo Belvedere",
    "category": "statues",
    "kind": "remote",
-   "triangles": 1000000,
+   "triangles": 999990,
    "file": "apollo-belvedere.ply.gz",
-   "bytes": 11765584,
+   "bytes": 11672413,
    "description": "Apollo striding, mid-gesture, from a plaster cast.",
    "tags": [
     "greek",
@@ -517,16 +517,16 @@
    "source_url": "https://commons.wikimedia.org/wiki/File:Apollo_Belvedere_-_KAS353.stl",
    "license": "CC0-1.0",
    "thumbnail": "apollo-belvedere.png",
-   "sha256": "7c8d09d20ab18b360e9b16615b8ffb7331edcb4d2c14794bbec39f96f291fce7"
+   "sha256": "eb342e1067fe67387bd6469b9e0a8dc33e0d4700bfcfad6bf6c6921ba08b3330"
   },
   {
    "id": "discobolus",
    "name": "Discobolus (Discus Thrower)",
    "category": "statues",
    "kind": "remote",
-   "triangles": 1000000,
+   "triangles": 999998,
    "file": "discobolus.ply.gz",
-   "bytes": 9649197,
+   "bytes": 9777265,
    "description": "An athlete coiled at the top of his swing, from a plaster cast.",
    "tags": [
     "greek",
@@ -541,16 +541,16 @@
    "source_url": "https://commons.wikimedia.org/wiki/File:Diskoskasteren_(Discobolos)_-_KAS1549.stl",
    "license": "CC0-1.0",
    "thumbnail": "discobolus.png",
-   "sha256": "babf203b14156388fe38ea5d6c3dc1519bdb7f62f893a664a4e40b7501b6de1f"
+   "sha256": "ca7c4e6e6c0c4aa9ec83a4ee795887bc7123b60220c0d6371aa45efe625f1b44"
   },
   {
    "id": "kore",
    "name": "Kore in chiton and cape",
    "category": "statues",
    "kind": "remote",
-   "triangles": 1000000,
+   "triangles": 999998,
    "file": "kore.ply.gz",
-   "bytes": 11559103,
+   "bytes": 11650416,
    "description": "Archaic maiden from the Athenian Acropolis (Acr. 671), from a plaster cast.",
    "tags": [
     "greek",
@@ -563,16 +563,16 @@
    "source_url": "https://commons.wikimedia.org/wiki/File:Kore_ACR_671_if%C3%B8rt_chiton_og_kappe_(epiblema)_-_KAS1800.stl",
    "license": "CC0-1.0",
    "thumbnail": "kore.png",
-   "sha256": "d7abf8f91468a4bf1d137baff748743d669bb46837c23b17b623f14f50de35e6"
+   "sha256": "891a8ed3265775696f2c711f598b55fa30f470cf8ccf24f68f62110018db3b73"
   },
   {
    "id": "artemision-bronze",
    "name": "Zeus or Poseidon of Artemision",
    "category": "statues",
    "kind": "remote",
-   "triangles": 1000000,
+   "triangles": 999996,
    "file": "artemision-bronze.ply.gz",
-   "bytes": 11493352,
+   "bytes": 11438639,
    "description": "A god with arms outstretched, about to throw, from a cast of the bronze.",
    "tags": [
     "greek",
@@ -585,7 +585,7 @@
    "source_url": "https://commons.wikimedia.org/wiki/File:Poseidon_eller_Zeus_fra_Artemision_-_KAS2100.stl",
    "license": "CC0-1.0",
    "thumbnail": "artemision-bronze.png",
-   "sha256": "d4941b5d4b00213df4122f8712901f33a97de695ebb92952d1f10716b76cbd7f"
+   "sha256": "2d67cd7742091c4906c764ae4249e4ff4679af6f14521e6bf770c0046243c697"
   },
   {
    "id": "thinker",
@@ -594,7 +594,7 @@
    "kind": "remote",
    "triangles": 600000,
    "file": "thinker.ply.gz",
-   "bytes": 8057527,
+   "bytes": 7908239,
    "description": "Rodin's seated figure, lost in thought.",
    "tags": [
     "rodin",
@@ -609,7 +609,7 @@
    "source_url": "https://commons.wikimedia.org/wiki/File:Scan_the_World_-_The_Thinker_(Auguste_Rodin).stl",
    "license": "CC-BY-SA-4.0",
    "thumbnail": "thinker.png",
-   "sha256": "8fc3ad8a2ff1f2781a0ea835cbd7565e264f060131a1eada0355495b791142c2"
+   "sha256": "b6e730bd91f41041a844e8ce20bb2c9d3900d85ebca09203b5377e59409d78c7"
   },
   {
    "id": "age-of-bronze",
@@ -641,7 +641,7 @@
    "kind": "remote",
    "triangles": 71794,
    "file": "walking-man.ply.gz",
-   "bytes": 817654,
+   "bytes": 823995,
    "description": "Striding, headless and armless: motion and nothing else.",
    "tags": [
     "rodin",
@@ -656,7 +656,7 @@
    "source_url": "https://commons.wikimedia.org/wiki/File:Auguste_Rodin_-_L%27Homme_qui_marche_-_3D_model_Thingiverse.stl",
    "license": "CC-BY-4.0",
    "thumbnail": "walking-man.png",
-   "sha256": "b13150120309e6c1e7d2614fc80141d387f7dba4ec0c47c6436e3ad86ada5edf"
+   "sha256": "e28cc0292f89a9590380f58a162639be0df2925f81a6c905e98e69031b6f0f0b"
   },
   {
    "id": "laocoon",
@@ -689,7 +689,7 @@
    "kind": "remote",
    "triangles": 815348,
    "file": "pieta.ply.gz",
-   "bytes": 10363198,
+   "bytes": 10361298,
    "description": "Mary holding the body of Christ.",
    "tags": [
     "renaissance",
@@ -704,7 +704,7 @@
    "source_url": "https://commons.wikimedia.org/wiki/File:Scan_the_World_-_Piet%C3%A0_(Michelangelo).stl",
    "license": "CC-BY-SA-4.0",
    "thumbnail": "pieta.png",
-   "sha256": "2da966f5711563ca63ea9faf663b4bab5164666a0b303fae8ec1a6e1481d02ba"
+   "sha256": "5ea10f06d598c16d22fe78d171e816c2824386662c88bc27e1320d13bee26a24"
   },
   {
    "id": "ugolino",
@@ -735,7 +735,7 @@
    "kind": "remote",
    "triangles": 1000000,
    "file": "venus-with-apple.ply.gz",
-   "bytes": 14150160,
+   "bytes": 13643492,
    "description": "Venus holding the golden apple, the prize of the judgement of Paris.",
    "tags": [
     "neoclassical",
@@ -748,7 +748,7 @@
    "source_url": "https://commons.wikimedia.org/wiki/File:Venus_med_apple_(SMK_KMS6004,_Scan_the_World).stl",
    "license": "CC0-1.0",
    "thumbnail": "venus-with-apple.png",
-   "sha256": "0b42f9e9e0a8a4889b8293cd5131e1839e39554c3b4b193b0bd2cb9f688ca3c7"
+   "sha256": "5836cad9e84edb2b2305290f02c5bbb7ebcfeff6ec152ebe486b9af8ef1b18b3"
   },
   {
    "id": "belvedere-torso",
@@ -948,9 +948,9 @@
    "name": "Lion of Al-lāt",
    "category": "animals",
    "kind": "remote",
-   "triangles": 117052,
+   "triangles": 178878,
    "file": "lion-al-lat.ply.gz",
-   "bytes": 1171706,
+   "bytes": 1708902,
    "description": "Digital reconstruction of the lion of Palmyra, destroyed in 2015.",
    "tags": [
     "lion",
@@ -962,16 +962,16 @@
    "source_url": "https://commons.wikimedia.org/wiki/File:Asad_Al-Lat.stl",
    "license": "CC0-1.0",
    "thumbnail": "lion-al-lat.png",
-   "sha256": "91f8724c41086162f8920a99a6c12cc6026599816e6ef8f49a14ecd1d79a2c3e"
+   "sha256": "c71ed8c529c3c368ca67e8b799d26419a21a34b428e0816085847d8ef5c12fcc"
   },
   {
    "id": "street-rat",
    "name": "Street rat",
    "category": "animals",
    "kind": "remote",
-   "triangles": 57208,
+   "triangles": 57528,
    "file": "street-rat.ply.gz",
-   "bytes": 551489,
+   "bytes": 474212,
    "description": "A rat sitting up.",
    "tags": [
     "rat",
@@ -981,7 +981,7 @@
    "source_url": "https://commons.wikimedia.org/wiki/File:Street_rat_8k_(Sean_Buckley_via_Poly_Haven).stl",
    "license": "CC0-1.0",
    "thumbnail": "street-rat.png",
-   "sha256": "35f6ca430ca3f1e7fbb8e66e249d67fd69e3b7c40ae74247bfe4d5b6636aa2b1"
+   "sha256": "c5ce745df0c34deb5b3d9b3daaaefebbf2a3799c24c707cc49787662542656e0"
   },
   {
    "id": "hercules-beetle",
@@ -1008,9 +1008,9 @@
    "name": "Giant isopod",
    "category": "animals",
    "kind": "remote",
-   "triangles": 400000,
+   "triangles": 399992,
    "file": "giant-isopod.ply.gz",
-   "bytes": 4258421,
+   "bytes": 4251527,
    "description": "A deep-sea isopod, armoured in overlapping plates.",
    "tags": [
     "crustacean",
@@ -1020,7 +1020,7 @@
    "source_url": "https://commons.wikimedia.org/wiki/File:Giant_Isopod.stl",
    "license": "CC-BY-4.0",
    "thumbnail": "giant-isopod.png",
-   "sha256": "a037a98ab7300c448a32d7b5201532b3512fbf6f28cc65b1b4a1aee1d7f71242"
+   "sha256": "930611a53bedbea436eb7c8f899dee39a1966cceba6b1535ca68c58246d3e1a8"
   },
   {
    "id": "lincoln-right-hand",
@@ -1139,9 +1139,9 @@
    "name": "Phineas Gage life mask",
    "category": "hands",
    "kind": "remote",
-   "triangles": 400000,
+   "triangles": 399988,
    "file": "phineas-gage.ply.gz",
-   "bytes": 4348483,
+   "bytes": 4417605,
    "description": "Life mask of the railway foreman who survived an iron rod through his skull.",
    "tags": [
     "face",
@@ -1154,16 +1154,16 @@
    "source_url": "https://commons.wikimedia.org/wiki/File:Phineas_Gage_life_mask.stl",
    "license": "LicenseRef-public-domain",
    "thumbnail": "phineas-gage.png",
-   "sha256": "64cbc9fdd827e6b05fdfe068628c4e2b5524fb8abfae13d885f3c065d7d9f5c8"
+   "sha256": "0d56c047f562755867ffe84df13e8245420675bc69d4f8d26449bd437797a2f4"
   },
   {
    "id": "funerary-mask",
    "name": "Funerary mask",
    "category": "hands",
    "kind": "remote",
-   "triangles": 349999,
+   "triangles": 359842,
    "file": "funerary-mask.ply.gz",
-   "bytes": 3344176,
+   "bytes": 3481155,
    "description": "A funerary mask from the Geneva museum of art and history.",
    "tags": [
     "face",
@@ -1174,7 +1174,7 @@
    "source_url": "https://commons.wikimedia.org/wiki/File:Funerary_mask-MAHG_7059-High_poly-001.stl",
    "license": "LicenseRef-public-domain",
    "thumbnail": "funerary-mask.png",
-   "sha256": "eef0f6553d7761b5cb2421104efdfe1793847f45ebd171098976ffdaa01fb726"
+   "sha256": "db5f4f7a4c6602bcc0df22ec10236e653ece5f5affcea67061658a4f90331612"
   },
   {
    "id": "mask-of-thuya",
@@ -1203,9 +1203,9 @@
    "name": "Human skull",
    "category": "nature",
    "kind": "remote",
-   "triangles": 260000,
+   "triangles": 259994,
    "file": "human-skull.ply.gz",
-   "bytes": 2618215,
+   "bytes": 2652770,
    "description": "A human skull with its jaw, in detail.",
    "tags": [
     "skull",
@@ -1216,16 +1216,16 @@
    "source_url": "https://commons.wikimedia.org/wiki/File:High_quality_skull.stl",
    "license": "CC-BY-SA-4.0",
    "thumbnail": "human-skull.png",
-   "sha256": "d8412f01c0376889858aa4e76ee58f281ecf75905d7ec54fcdf05181779bc68f"
+   "sha256": "43384b6123e735124b103fc357b4f9a9773b65472d2cadc2ad918e0f3a952942"
   },
   {
    "id": "ammonite-cleoniceras",
    "name": "Ammonite (Cleoniceras)",
    "category": "nature",
    "kind": "remote",
-   "triangles": 209306,
+   "triangles": 209390,
    "file": "ammonite-cleoniceras.ply.gz",
-   "bytes": 2325683,
+   "bytes": 2335529,
    "description": "A Cretaceous ammonite from Madagascar.",
    "tags": [
     "fossil",
@@ -1236,7 +1236,7 @@
    "source_url": "https://commons.wikimedia.org/wiki/File:Cleoniceras_besairiei_(PRI_70601).stl",
    "license": "CC0-1.0",
    "thumbnail": "ammonite-cleoniceras.png",
-   "sha256": "2a09add35df6237c6f438714e4431f7b1c169fbf5dde0ed021060aca67b98553"
+   "sha256": "6a1930d013cfe51fb6a54457b984d1872b4c840a05a928aca809fb2332129a56"
   },
   {
    "id": "ammonite-taramelliceras",
@@ -1245,7 +1245,7 @@
    "kind": "remote",
    "triangles": 121498,
    "file": "ammonite-taramelliceras.ply.gz",
-   "bytes": 786352,
+   "bytes": 786419,
    "description": "A Jurassic ammonite.",
    "tags": [
     "fossil",
@@ -1256,7 +1256,7 @@
    "source_url": "https://commons.wikimedia.org/wiki/File:Taramelliceras_sp.stl",
    "license": "LicenseRef-public-domain",
    "thumbnail": "ammonite-taramelliceras.png",
-   "sha256": "e0f6c9598849fcf3c9cea97953f445b7cc6a3b10e1c46fb33637dc7a45676853"
+   "sha256": "ee5568b6d364f03b6eb39be7deb2064a896137af05e5833e99d3d9c29b98d736"
   },
   {
    "id": "ammonite-douvilleiceras",
@@ -1265,7 +1265,7 @@
    "kind": "bundled",
    "triangles": 257210,
    "file": "ammonite-douvilleiceras.ply.gz",
-   "bytes": 2676271,
+   "bytes": 2676109,
    "description": "A ribbed, knobbly Cretaceous ammonite.",
    "tags": [
     "fossil",
@@ -1276,27 +1276,7 @@
    "source_url": "https://commons.wikimedia.org/wiki/File:Douvilleiceras_g._mammillatum.stl",
    "license": "CC-BY-4.0",
    "thumbnail": "ammonite-douvilleiceras.png",
-   "sha256": "158dfcc154c4422e7c3d15e5cf8e714bf695dd76b73987d73997bb235e85b580"
-  },
-  {
-   "id": "fossil-whale",
-   "name": "Fossil whale excavation",
-   "category": "nature",
-   "kind": "remote",
-   "triangles": 149999,
-   "file": "fossil-whale.ply.gz",
-   "bytes": 1607035,
-   "description": "A fossil whale skeleton as it lay when dug up, Cerro Ballena, Chile.",
-   "tags": [
-    "fossil",
-    "whale",
-    "skeleton"
-   ],
-   "credit": "Smithsonian Institution",
-   "source_url": "https://commons.wikimedia.org/wiki/File:Whale-mpc-677-150k_(Smithsonian_Institution).stl",
-   "license": "CC0-1.0",
-   "thumbnail": "fossil-whale.png",
-   "sha256": "a3e53d891a147f4f7191ea34638758a2ee05cd19bc1f273e7be34cff8e3b32fb"
+   "sha256": "6de24c507fe27a99b939315033da9a31bcca807306176335367652ad2b854f30"
   },
   {
    "id": "aquilops-skull",
@@ -1323,9 +1303,9 @@
    "name": "Radiated tortoise skeleton",
    "category": "nature",
    "kind": "remote",
-   "triangles": 699999,
+   "triangles": 847848,
    "file": "tortoise-skeleton.ply.gz",
-   "bytes": 6882580,
+   "bytes": 8123418,
    "description": "Skeleton and shell of a radiated tortoise.",
    "tags": [
     "skeleton",
@@ -1336,16 +1316,16 @@
    "source_url": "https://commons.wikimedia.org/wiki/File:Astrochelys_radiata_3d_scan_Natural_History_Museum_University_of_Pisa_B_51.stl",
    "license": "CC-BY-SA-4.0",
    "thumbnail": "tortoise-skeleton.png",
-   "sha256": "5f8a5ae8e53eb5911fdf304895c786e9b02cb897754356bebc256c9e975ea870"
+   "sha256": "659d8d603cb068dcdd2437059879051c1cac8b472ee2fa0c0c0aae64c19e3ef9"
   },
   {
    "id": "elephant-skull",
    "name": "Asian elephant skull",
    "category": "nature",
    "kind": "remote",
-   "triangles": 999999,
+   "triangles": 1007846,
    "file": "elephant-skull.ply.gz",
-   "bytes": 9674586,
+   "bytes": 9711499,
    "description": "The skull of an Asian elephant, honeycombed with air spaces.",
    "tags": [
     "skull",
@@ -1355,16 +1335,16 @@
    "source_url": "https://commons.wikimedia.org/wiki/File:Elephas_maximus_(skull)_3d_scan_Natural_History_Museum_University_of_Pisa_C_1449.stl",
    "license": "CC-BY-SA-4.0",
    "thumbnail": "elephant-skull.png",
-   "sha256": "0755e0abb2e2bb8f1f71cabbed612868b0dd1a33e6d33b87bd14031a5c878aae"
+   "sha256": "3d5b8a8d65abee63463e30cc7eeeb4abe2efa50981e176295f8d39b5c2bf3a3e"
   },
   {
    "id": "hyena-skull",
    "name": "Spotted hyena skull",
    "category": "nature",
    "kind": "remote",
-   "triangles": 499999,
+   "triangles": 557166,
    "file": "hyena-skull.ply.gz",
-   "bytes": 4884529,
+   "bytes": 5356998,
    "description": "A spotted hyena's heavy skull.",
    "tags": [
     "skull",
@@ -1374,7 +1354,7 @@
    "source_url": "https://commons.wikimedia.org/wiki/File:Crocuta_crocuta_(skull)_3d_scan_Natural_History_Museum_University_of_Pisa_C_1061.stl",
    "license": "CC-BY-SA-4.0",
    "thumbnail": "hyena-skull.png",
-   "sha256": "3fdea847c0eedfaa1b011ce7f6405436f7a17d21c916b147a9196a1cdf58169f"
+   "sha256": "5afcabb89b0ac144e2fa376fd68b2b615a109e1549798fbeea547ae9fc553bf6"
   },
   {
    "id": "walrus-skull",
@@ -1383,7 +1363,7 @@
    "kind": "remote",
    "triangles": 500000,
    "file": "walrus-skull.ply.gz",
-   "bytes": 5907127,
+   "bytes": 5872094,
    "description": "A walrus skull with its tusks.",
    "tags": [
     "skull",
@@ -1394,16 +1374,16 @@
    "source_url": "https://commons.wikimedia.org/wiki/File:Odobenus_rosmarus_3d_scan_Natural_History_Museum_University_of_Pisa_C_1215.stl",
    "license": "CC-BY-SA-4.0",
    "thumbnail": "walrus-skull.png",
-   "sha256": "017b64dc840800e601727e06ce5493aed3ab17059fc395c36961f4d050a7722a"
+   "sha256": "80a1ea574ef998b5f3535b50394c4a8f84b2fd6fc113b1a4ae91fa48504e98c4"
   },
   {
    "id": "turtle-skull",
    "name": "Loggerhead turtle skull",
    "category": "nature",
    "kind": "remote",
-   "triangles": 500000,
+   "triangles": 499984,
    "file": "turtle-skull.ply.gz",
-   "bytes": 4809109,
+   "bytes": 4799827,
    "description": "Skull of a loggerhead sea turtle.",
    "tags": [
     "skull",
@@ -1414,16 +1394,16 @@
    "source_url": "https://commons.wikimedia.org/wiki/File:Caretta_caretta_skull_3d_scan_Natural_History_Museum_University_of_Pisa_B_32.stl",
    "license": "CC-BY-SA-4.0",
    "thumbnail": "turtle-skull.png",
-   "sha256": "1d81868bb5cf17376790e2b8697d713fc9939b68b3b42ba6c8f24efa1ad7d597"
+   "sha256": "a0a1077c3c87045b7b5cc6af8014de4256aac6d2ef791706d45002f8916fb926"
   },
   {
    "id": "macaque-skull",
    "name": "Crested macaque skull",
    "category": "nature",
    "kind": "remote",
-   "triangles": 500000,
+   "triangles": 503572,
    "file": "macaque-skull.ply.gz",
-   "bytes": 4812502,
+   "bytes": 4835913,
    "description": "Skull of a Celebes crested macaque.",
    "tags": [
     "skull",
@@ -1434,7 +1414,7 @@
    "source_url": "https://commons.wikimedia.org/wiki/File:Macaca_nigra_3d_scan_Natural_History_Museum_University_of_Pisa_C_1750.stl",
    "license": "CC-BY-SA-4.0",
    "thumbnail": "macaque-skull.png",
-   "sha256": "c08b8c2f523fd5d6af57d7f4c38daa0deab05f9343b4e5a572f35872bac42c00"
+   "sha256": "3d8d5d63fbba62cb0fbe8676df59c632c0df1975401eeaf8fe3ecfdca27b546a"
   },
   {
    "id": "tortoise-shell",
@@ -1443,7 +1423,7 @@
    "kind": "remote",
    "triangles": 200000,
    "file": "tortoise-shell.ply.gz",
-   "bytes": 2126851,
+   "bytes": 2126874,
    "description": "The domed, plated shell of a Brazilian tortoise.",
    "tags": [
     "shell",
@@ -1453,7 +1433,7 @@
    "source_url": "https://commons.wikimedia.org/wiki/File:Brazilian_tortoise_shell.stl",
    "license": "CC-BY-SA-4.0",
    "thumbnail": "tortoise-shell.png",
-   "sha256": "b35e3a60f353d66ac09859c6bb31268615c621a9922d2cc47e5b1409020227da"
+   "sha256": "a1cb1aacba652989204fb4e16c195433489faf0c5f810c21f5e306dc7d3e1322"
   },
   {
    "id": "utah-teapot",
@@ -1483,9 +1463,9 @@
    "name": "Jerry the Ogre",
    "category": "objects",
    "kind": "remote",
-   "triangles": 159424,
+   "triangles": 166144,
    "file": "jerry-ogre.ply.gz",
-   "bytes": 1567613,
+   "bytes": 1618427,
    "description": "The ogre from a ray-tracing paper: a character test model.",
    "tags": [
     "character",
@@ -1498,7 +1478,7 @@
    "source_url": "https://www.cs.cmu.edu/~kmcrane/Projects/ModelRepository/",
    "license": "CC0-1.0",
    "thumbnail": "jerry-ogre.png",
-   "sha256": "2f38903c156bb9867638f679939ea7addc853d2ffb2303ba4772347a8d29ca6a"
+   "sha256": "dc3bf16ee80acc69c87c4f102acaa1656ac7cf54a19c05b1eab5a827b1f130b7"
   },
   {
    "id": "vase",
@@ -2246,9 +2226,9 @@
    "name": "Lagoa Santa woman, facial reconstruction",
    "category": "people",
    "kind": "remote",
-   "triangles": 399999,
+   "triangles": 454306,
    "file": "lagoa-santa.ply.gz",
-   "bytes": 3905566,
+   "bytes": 4372065,
    "description": "Forensic facial reconstruction of an early inhabitant of Lagoa Santa, Brazil.",
    "tags": [
     "realistic",
@@ -2259,16 +2239,16 @@
    "source_url": "https://commons.wikimedia.org/wiki/File:Lapa_do_Santo_-_Sepultamento_26_-_Facial_reconstruction_by_Caroline_WilkinsonNew_Face_of_Lagoa_Santa_people_by_Caroline_Wilkinson.stl",
    "license": "CC-BY-SA-4.0",
    "thumbnail": "lagoa-santa.png",
-   "sha256": "f5d5ae44cbba222d7fbf19fd3cb99935f1973929a580f0d235d9925cb0a4cfd2"
+   "sha256": "fc41f6bf10c4d43a05f358f64c396646b27a5be0b532598aa033071271294b40"
   },
   {
    "id": "fracastoro",
    "name": "Girolamo Fracastoro, facial reconstruction",
    "category": "people",
    "kind": "remote",
-   "triangles": 500000,
+   "triangles": 499940,
    "file": "fracastoro.ply.gz",
-   "bytes": 5611253,
+   "bytes": 5632454,
    "description": "The Renaissance physician, from his portraits and his skull.",
    "tags": [
     "realistic",
@@ -2282,7 +2262,7 @@
    "source_url": "https://commons.wikimedia.org/wiki/File:Girolamo_Fracastoro.stl",
    "license": "CC-BY-SA-4.0",
    "thumbnail": "fracastoro.png",
-   "sha256": "d7323d417d03fe1ab1fc1722c52c71c61791d2b1cc6db5f6ca9d921da6cea252"
+   "sha256": "6c67442866785d54480aad5c009adc4d777fac0d10d479a4c5acce6ae3fc03cc"
   },
   {
    "id": "homo-longi",
@@ -2291,7 +2271,7 @@
    "kind": "remote",
    "triangles": 41690,
    "file": "homo-longi.ply.gz",
-   "bytes": 432030,
+   "bytes": 433078,
    "description": "A facial approximation of the archaic human known from the Harbin skull.",
    "tags": [
     "realistic",
@@ -2303,7 +2283,7 @@
    "source_url": "https://commons.wikimedia.org/wiki/File:Homo_longi_-_bust_-_Moraes_et_al._2026.stl",
    "license": "CC-BY-SA-4.0",
    "thumbnail": "homo-longi.png",
-   "sha256": "873658d57ebca98984d05ec046f5ee3b1c1745f6301206e4649bee8a092d4b58"
+   "sha256": "497e4b49b16a909676f6b90a5519672463e81e40da3e22bfbafdab1ae5106cbf"
   },
   {
    "id": "claes-lindhardt",
@@ -2352,9 +2332,9 @@
    "name": "Bust of a woman (Laurana)",
    "category": "people",
    "kind": "remote",
-   "triangles": 99868,
+   "triangles": 131222,
    "file": "laurana-woman.ply.gz",
-   "bytes": 1001118,
+   "bytes": 1303718,
    "description": "Laurana's serene portrait of a young woman, smooth and natural.",
    "tags": [
     "renaissance",
@@ -2368,7 +2348,7 @@
    "source_url": "https://commons.wikimedia.org/wiki/File:Laurana.stl",
    "license": "CC-BY-SA-4.0",
    "thumbnail": "laurana-woman.png",
-   "sha256": "afc4d3ac31254d2bf94aca7ce7945a74520db0c504be226163068173c6c115b5"
+   "sha256": "11caac682b7619689abe7fc0dcaf329e5a8754b1b1cb9d9a54997b913da1a771"
   },
   {
    "id": "singing-woman",
@@ -2545,7 +2525,7 @@
    "kind": "bundled",
    "triangles": 30000,
    "file": "augustus-light.ply.gz",
-   "bytes": 298386,
+   "bytes": 296665,
    "description": "Portrait head of the first Roman emperor.",
    "tags": [
     "roman",
@@ -2559,16 +2539,16 @@
    "license": "CC0-1.0",
    "changes": "a lighter version (at most 30 000 triangles)",
    "thumbnail": "augustus-light.png",
-   "sha256": "13f80679ce1e16a7cb44ca668744e86bb5fdcb7d6cd574437343ed05c5690775"
+   "sha256": "a6cc390c1954f691614b591c3b1c7237c811028ee1c9a292141bf24d004845b4"
   },
   {
    "id": "maximian-light",
    "name": "Maximian Herculius · light",
    "category": "light",
    "kind": "bundled",
-   "triangles": 29999,
+   "triangles": 30030,
    "file": "maximian-light.ply.gz",
-   "bytes": 388927,
+   "bytes": 382788,
    "description": "Portrait of the tetrarch emperor Maximian.",
    "tags": [
     "roman",
@@ -2582,16 +2562,16 @@
    "license": "CC0-1.0",
    "changes": "a lighter version (at most 30 000 triangles)",
    "thumbnail": "maximian-light.png",
-   "sha256": "1a4b2064acdbd9a67f08e8426c8e6a37741c1baaaf2d3cfc2bdb21923de339cd"
+   "sha256": "456719f72946a68e4c4dd5cd20a7aff93da0556254a78e8ffcc8f5226849ce9b"
   },
   {
    "id": "voltaire-light",
    "name": "Bust of Voltaire · light",
    "category": "light",
    "kind": "bundled",
-   "triangles": 30000,
+   "triangles": 29964,
    "file": "voltaire-light.ply.gz",
-   "bytes": 293226,
+   "bytes": 292579,
    "description": "The writer in old age.",
    "tags": [
     "enlightenment",
@@ -2604,16 +2584,16 @@
    "license": "LicenseRef-public-domain",
    "changes": "a lighter version (at most 30 000 triangles)",
    "thumbnail": "voltaire-light.png",
-   "sha256": "67e8094b37e9f31b92206d6e3fc3ae4ca899335da37072a69bc604512c1e24e6"
+   "sha256": "422d146a47a2fa976e1dea6aafc7a7b4cbb3117f920611d76ff14abb63fd39c3"
   },
   {
    "id": "pierre-de-wissant-light",
    "name": "Head of Pierre de Wissant · light",
    "category": "light",
    "kind": "bundled",
-   "triangles": 30000,
+   "triangles": 29998,
    "file": "pierre-de-wissant-light.ply.gz",
-   "bytes": 337438,
+   "bytes": 339545,
    "description": "Heroic head of one of the Burghers of Calais, in bronze.",
    "tags": [
     "rodin",
@@ -2629,16 +2609,16 @@
    "license": "CC0-1.0",
    "changes": "a lighter version (at most 30 000 triangles)",
    "thumbnail": "pierre-de-wissant-light.png",
-   "sha256": "c99938c44f11113c7deb29e1a359ea3b5ebfc41f2ede233da9fa7f963d1149a2"
+   "sha256": "81884aad89e28335cf14d13a8914dbd3eefa0c5e3478f3b68d38fc392712ed55"
   },
   {
    "id": "venus-de-milo-light",
    "name": "Venus de Milo · light",
    "category": "light",
    "kind": "bundled",
-   "triangles": 40000,
+   "triangles": 39914,
    "file": "venus-de-milo-light.ply.gz",
-   "bytes": 491483,
+   "bytes": 483606,
    "description": "The Aphrodite of Milos, whole, from a plaster cast.",
    "tags": [
     "greek",
@@ -2653,16 +2633,16 @@
    "license": "CC0-1.0",
    "changes": "a lighter version (at most 40 000 triangles)",
    "thumbnail": "venus-de-milo-light.png",
-   "sha256": "99318e0e0ce9f70737e947c641698887fbf37f9b31d94443c1379ef34b0ebc8e"
+   "sha256": "e0ce0070133464335f8c00ea5cc96a8af8b2ada288854dfaf6fd164acf2e77ce"
   },
   {
    "id": "david-light",
    "name": "David · light",
    "category": "light",
    "kind": "bundled",
-   "triangles": 40000,
+   "triangles": 39968,
    "file": "david-light.ply.gz",
-   "bytes": 537291,
+   "bytes": 526038,
    "description": "Michelangelo's David, the whole figure.",
    "tags": [
     "renaissance",
@@ -2678,7 +2658,7 @@
    "license": "CC-BY-SA-4.0",
    "changes": "a lighter version (at most 40 000 triangles)",
    "thumbnail": "david-light.png",
-   "sha256": "fff77f90131822d5de33e0debaaccbefc66df3583ffe8bc109e32c416fbeb7ba"
+   "sha256": "1218949c400441ce1b5c8126979fa420aee24ad15ae70292263d64066cc25e24"
   },
   {
    "id": "doryphoros-light",
@@ -2736,9 +2716,9 @@
    "name": "Apollo Belvedere · light",
    "category": "light",
    "kind": "bundled",
-   "triangles": 50000,
+   "triangles": 49956,
    "file": "apollo-belvedere-light.ply.gz",
-   "bytes": 615600,
+   "bytes": 606536,
    "description": "Apollo striding, mid-gesture, from a plaster cast.",
    "tags": [
     "greek",
@@ -2754,16 +2734,16 @@
    "license": "CC0-1.0",
    "changes": "a lighter version (at most 50 000 triangles)",
    "thumbnail": "apollo-belvedere-light.png",
-   "sha256": "c9735e1c68134bbb279739bbc7455e19a915879c182bbbf854b1b6eab3fbddd0"
+   "sha256": "222b7fe20e597b9e0dddd3af2a4a134719687bba7e4e186b239f934829b94bf2"
   },
   {
    "id": "artemision-bronze-light",
    "name": "Zeus or Poseidon of Artemision · light",
    "category": "light",
    "kind": "bundled",
-   "triangles": 40000,
+   "triangles": 39996,
    "file": "artemision-bronze-light.ply.gz",
-   "bytes": 485082,
+   "bytes": 478181,
    "description": "A god with arms outstretched, about to throw, from a cast of the bronze.",
    "tags": [
     "greek",
@@ -2778,16 +2758,16 @@
    "license": "CC0-1.0",
    "changes": "a lighter version (at most 40 000 triangles)",
    "thumbnail": "artemision-bronze-light.png",
-   "sha256": "cb866f218c04d9b33006e059650173869f82966c6ebd81c72bb0c2ee5814333e"
+   "sha256": "604f0d207600417d5f8c9099d9b292ba4da1e2b44f32db447252c49c09c208f1"
   },
   {
    "id": "thinker-light",
    "name": "The Thinker · light",
    "category": "light",
    "kind": "bundled",
-   "triangles": 40000,
+   "triangles": 39998,
    "file": "thinker-light.ply.gz",
-   "bytes": 532467,
+   "bytes": 523804,
    "description": "Rodin's seated figure, lost in thought.",
    "tags": [
     "rodin",
@@ -2804,16 +2784,16 @@
    "license": "CC-BY-SA-4.0",
    "changes": "a lighter version (at most 40 000 triangles)",
    "thumbnail": "thinker-light.png",
-   "sha256": "3db106533638b32cec1643af0f877063336e52e76ae2cbc30a36eddb86e41e90"
+   "sha256": "319f7a33b7fc017af6cbcac37f480d407f2ecf3f8f740703a76f670b052e697c"
   },
   {
    "id": "age-of-bronze-light",
    "name": "The Age of Bronze · light",
    "category": "light",
    "kind": "bundled",
-   "triangles": 40000,
+   "triangles": 39996,
    "file": "age-of-bronze-light.ply.gz",
-   "bytes": 522142,
+   "bytes": 513994,
    "description": "A young man waking, one arm raised: Rodin's first life-size figure.",
    "tags": [
     "rodin",
@@ -2829,16 +2809,16 @@
    "license": "CC0-1.0",
    "changes": "a lighter version (at most 40 000 triangles)",
    "thumbnail": "age-of-bronze-light.png",
-   "sha256": "4f10ee4074437f9fff0610a1f3cb7991d4e992ce48d10052594a9b510144f491"
+   "sha256": "c55f0d1d98bb357b96655575e3e62e6ea8620b2f63f2dee2b2d4a835550812c8"
   },
   {
    "id": "belvedere-torso-light",
    "name": "Belvedere Torso · light",
    "category": "light",
    "kind": "bundled",
-   "triangles": 25000,
+   "triangles": 24998,
    "file": "belvedere-torso-light.ply.gz",
-   "bytes": 285103,
+   "bytes": 285657,
    "description": "The fragment that Michelangelo studied: a seated, twisting torso.",
    "tags": [
     "greek",
@@ -2853,7 +2833,7 @@
    "license": "CC-BY-SA-4.0",
    "changes": "a lighter version (at most 25 000 triangles)",
    "thumbnail": "belvedere-torso-light.png",
-   "sha256": "863788c0f81d75bcb110363e0fc8717dc0250964a4be516f2b5310669e7d42eb"
+   "sha256": "968abf3cdc7d80c66fad85438dbf6837de8583979a4848b6224258488134387b"
   },
   {
    "id": "venus-of-willendorf-light",
@@ -2907,9 +2887,9 @@
    "name": "St. Valentine, facial reconstruction · light",
    "category": "light",
    "kind": "bundled",
-   "triangles": 40000,
+   "triangles": 39998,
    "file": "st-valentine-light.ply.gz",
-   "bytes": 398829,
+   "bytes": 397746,
    "description": "A bust sculpted from the forensic facial reconstruction of the saint.",
    "tags": [
     "realistic",
@@ -2923,16 +2903,16 @@
    "license": "CC-BY-SA-4.0",
    "changes": "a lighter version (at most 40 000 triangles)",
    "thumbnail": "st-valentine-light.png",
-   "sha256": "9ae77f73417858c92f51334be6c6811ca2fe096a4d0af61da5f0184f95e0110f"
+   "sha256": "fcae174f42339b22ad9aed912504e776bc39590f24836e20b97fa4d885a07304"
   },
   {
    "id": "fracastoro-light",
    "name": "Girolamo Fracastoro · light",
    "category": "light",
    "kind": "bundled",
-   "triangles": 40000,
+   "triangles": 39856,
    "file": "fracastoro-light.ply.gz",
-   "bytes": 435969,
+   "bytes": 433845,
    "description": "The Renaissance physician, from his portraits and his skull.",
    "tags": [
     "realistic",
@@ -2948,16 +2928,16 @@
    "license": "CC-BY-SA-4.0",
    "changes": "a lighter version (at most 40 000 triangles)",
    "thumbnail": "fracastoro-light.png",
-   "sha256": "42d4db2d78ba25af71ea6afee11ba3783f79a2c98b964bdd45d1b4389cf61a28"
+   "sha256": "8379819a5b7dbb88f49a1a94dfd629222d367647d3da03d819e7df501619a8fb"
   },
   {
    "id": "lagoa-santa-light",
    "name": "Lagoa Santa woman · light",
    "category": "light",
    "kind": "bundled",
-   "triangles": 39999,
+   "triangles": 43038,
    "file": "lagoa-santa-light.ply.gz",
-   "bytes": 400543,
+   "bytes": 416995,
    "description": "Forensic facial reconstruction of an early inhabitant of Lagoa Santa, Brazil.",
    "tags": [
     "realistic",
@@ -2968,9 +2948,9 @@
    "credit": "Caroline Wilkinson; model by MAE-USP (Strauss)",
    "source_url": "https://commons.wikimedia.org/wiki/File:Lapa_do_Santo_-_Sepultamento_26_-_Facial_reconstruction_by_Caroline_WilkinsonNew_Face_of_Lagoa_Santa_people_by_Caroline_Wilkinson.stl",
    "license": "CC-BY-SA-4.0",
-   "changes": "a lighter version (at most 40 000 triangles)",
+   "changes": "a lighter version (at most 34 000 triangles)",
    "thumbnail": "lagoa-santa-light.png",
-   "sha256": "baac2af1943622bff9b310e81550ebd00ddf2816867a386de375b692312693bd"
+   "sha256": "fe48b984da220226acef72971ceb66eb9bfb60bd40bff5c64e39f8e939346c9d"
   }
  ]
 }

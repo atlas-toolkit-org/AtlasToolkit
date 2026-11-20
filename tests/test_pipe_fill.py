@@ -200,9 +200,11 @@ class PipeIntegrationTests(unittest.TestCase):
 
     def test_open_mesh_is_rejected_unless_explicitly_repaired(self):
         body = gm.load_mesh(self.src)
-        body.update_faces(np.arange(len(body.faces)) != 0)
+        body = trimesh.Trimesh(*trimesh.remesh.subdivide_to_size(body.vertices, body.faces, 3.0))  # many-edge opening
+        z = body.triangles_center[:, 2]
+        body.update_faces(z < z.max() - 0.35 * np.ptp(z))       # an opening (a pin-hole would just be tidied)
         body.export(self.src)
-        with self.assertRaisesRegex(ValueError, 'closed'):
+        with self.assertRaisesRegex(ValueError, 'closed solid'):
             run(context(), self.src, None, self.values)
         result = run(context(), self.src, None, TOOL.values(dict(self.values, repair=True, repair_resolution=48)))
         self.assertTrue(result.data['repaired'])

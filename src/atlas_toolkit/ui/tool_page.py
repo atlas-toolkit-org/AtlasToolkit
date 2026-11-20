@@ -22,6 +22,7 @@ from PySide6.QtWidgets import (QButtonGroup, QComboBox, QFileDialog, QFrame, QGr
                                QTabWidget, QToolButton, QTreeWidgetItem, QVBoxLayout, QWidget)
 
 from ..core import runtimes
+from ..geom.repair import REPAIR_TOOL
 from ..core.history import RunRecord
 from ..core.io import expand_inputs, output_path
 from ..core.job import Job
@@ -50,6 +51,8 @@ class Row:
     result: Result | None = None
     result_mode: str = ""
     error: str = ""
+    fix_tool: str = ""            # a tool that can fix this input (a ToolError's suggest_tool), e.g. Repair Mesh
+    fix_hint: str = ""
     saved: list = field(default_factory=list)
     jobs: set = field(default_factory=set)
     gen: int = -1
@@ -150,7 +153,23 @@ class ToolPage(QWidget):
         self.logview = QPlainTextEdit(readOnly=True)
         self.logview.setMaximumBlockCount(5000)
         self.logview.setPlaceholderText("Messages from this tool's runs appear here.")
-        self.bottom.addTab(self.report, "Report")
+        report_tab = QWidget()
+        rl = QVBoxLayout(report_tab)
+        rl.setContentsMargins(0, 0, 0, 0)
+        rl.setSpacing(6)
+        # "this input needs fixing first": what to do, and a button that opens the tool that does it
+        self.fix_bar = QFrame(objectName="warnBanner")
+        fb = QHBoxLayout(self.fix_bar)
+        fb.setContentsMargins(12, 8, 8, 8)
+        self.fix_text = QLabel("", wordWrap=True)
+        self.fix_button = QPushButton("Open in Repair Mesh")
+        self.fix_button.clicked.connect(self._open_fix_tool)
+        fb.addWidget(self.fix_text, 1)
+        fb.addWidget(self.fix_button, 0, Qt.AlignVCenter)
+        self.fix_bar.hide()
+        rl.addWidget(self.fix_bar)
+        rl.addWidget(self.report, 1)
+        self.bottom.addTab(report_tab, "Report")
         self.bottom.addTab(self.logview, "Log")
         left.addWidget(self.bottom)
         left.setSizes([330, 300])
@@ -790,8 +809,12 @@ class ToolPage(QWidget):
     def _on_inspected(self, row: Row, kind: str, payload) -> None:
         if kind == "done":
             row.info = payload[0]
+            check = (row.info.values.get("input_check") if row.info is not None else None) or {}
             self.queue.set_status(row.item, "Ready" if not self.tool.live else "Analysing…",
                                   "accent" if not self.tool.live else "dim")
+            if check.get("state") == "repair":
+                self.queue.set_status(row.item, "Needs repair", "warning", check.get("text", ""))
+                self.ctx.log("warning", check.get("text", ""), f"{self.tool.id} · {Path(row.key).name}")
             if self.tool.live:
                 self.analyse(row.key)
         elif kind == "error":
@@ -804,11 +827,13 @@ class ToolPage(QWidget):
     def _on_result(self, row: Row, mode: str, kind: str, payload, *, prefer_result: bool = True) -> None:
         if kind == "done":
             row.result, row.result_mode, row.error = payload[0], mode, ""
+            row.fix_tool = row.fix_hint = ""
             self._fill_row(row)
         elif kind == "error":
             row.error = payload[0]
             row.result = None
-            self.queue.set_status(row.item, "Error", "danger", payload[0])
+            self._note_fix(row, payload)
+            self.queue.set_status(row.item, "Needs repair" if row.fix_tool else "Error", "danger", payload[0])
             self.queue.clear_cells(row.item)
             self.logview.appendPlainText(f"{time.strftime('%H:%M:%S')}  error   {Path(row.key).name}: {payload[0]}"
                                          + (f"\n{payload[1]}" if len(payload) > 1 and payload[1] else ""))
@@ -823,6 +848,7 @@ class ToolPage(QWidget):
         if kind == "done":
             res: Result = payload[0]
             row.result, row.result_mode, row.error = res, "run", ""
+            row.fix_tool = row.fix_hint = ""
             row.saved = list(res.outputs)
             if b is not None:
                 b["saved"] += bool(res.outputs)
@@ -836,7 +862,8 @@ class ToolPage(QWidget):
             row.error = payload[0]
             if b is not None:
                 b["failed"] += 1
-            self.queue.set_status(row.item, "Error", "danger", payload[0])
+            self._note_fix(row, payload)
+            self.queue.set_status(row.item, "Needs repair" if row.fix_tool else "Error", "danger", payload[0])
             self.logview.appendPlainText(f"{time.strftime('%H:%M:%S')}  error   {Path(row.key).name}: {payload[0]}"
                                          + (f"\n{payload[1]}" if len(payload) > 1 and payload[1] else ""))
             diagnostic=payload[2] if len(payload)>2 and isinstance(payload[2],dict) else {}
@@ -904,6 +931,7 @@ class ToolPage(QWidget):
         if self.viewer is not None and (row is None or row.info_error or row.info is None):
             self.viewer.set_input(None, None)
         if row is None:
+            self.fix_bar.hide()
             self.info_line.setText("")
             self.stage.clear("Add files to start." if not self.rows else "Select a file.")
             self.report.clear()
@@ -940,9 +968,14 @@ class ToolPage(QWidget):
         self.stage.show_views(views, prefer)
         self._show_tiles(res)
         lines = []
+        self._show_fix(row)
         if row.error:
             lines.append(f"{row.key}\n\nError: {row.error}")
         elif res is not None:
+            for note in getattr(res, "notes", None) or []:
+                lines.append(f"Note: {note}")
+            if lines:
+                lines.append("")
             lines.append(res.report or f"{name}: done")
             if row.result_mode != "run":
                 lines.append(f"\n  output     {self.output_for(row.key)}  (not written yet)")
@@ -950,6 +983,40 @@ class ToolPage(QWidget):
             lines.append(f"{name}\n  {row.info.summary}\n  folder     {Path(row.key).parent}\n"
                          f"  output     {self.output_for(row.key)}")
         self.report.setPlainText("\n".join(lines))
+
+    def _note_fix(self, row: Row, payload) -> None:
+        """Remember what can fix this input (a ToolError names a tool), say it in the Log, offer it in a toast."""
+        diag = payload[2] if len(payload) > 2 and isinstance(payload[2], dict) else {}
+        row.fix_tool = diag.get("suggest_tool") or ""
+        row.fix_hint = diag.get("hint") or ""
+        if row.fix_tool and row.fix_tool in self.ctx.registry.tools and row.fix_tool != self.tool.id:
+            name = self.ctx.registry.get(row.fix_tool).name
+            self.ctx.log("warning", row.fix_hint or f"Run {name} on this file first.",
+                         f"{self.tool.id} · {Path(row.key).name}")
+            self.ctx.toast(f"{Path(row.key).name} needs repair before {self.tool.name} can use it.", "warning",
+                           f"Open in {name}", lambda key=row.key, tid=row.fix_tool: self.send_to.emit(tid, [key]),
+                           ms=8000)
+        else:
+            row.fix_tool = ""
+
+    def _show_fix(self, row: Row | None) -> None:
+        check = (row.info.values.get("input_check") if row is not None and row.info is not None else None) or {}
+        if row is not None and not row.error and check.get("state") == "repair" and REPAIR_TOOL in                 self.ctx.registry.tools and self.tool.id != REPAIR_TOOL:
+            row.fix_tool, row.fix_hint = REPAIR_TOOL, check.get("text", "")
+        elif row is not None and not row.error:
+            row.fix_tool = row.fix_hint = ""
+        if row is None or not row.fix_tool:
+            self.fix_bar.hide()
+            return
+        name = self.ctx.registry.get(row.fix_tool).name
+        self.fix_text.setText(f"<b>Repair this model first.</b> {row.fix_hint}")
+        self.fix_button.setText(f"Open in {name}")
+        self.fix_bar.show()
+
+    def _open_fix_tool(self) -> None:
+        row = self._current_row()
+        if row is not None and row.fix_tool:
+            self.send_to.emit(row.fix_tool, [row.key])
 
     def _show_tiles(self, res: Result | None) -> None:
         stats = [] if res is None else [s for s in res.stats if s.key not in self.tool.columns and not s.key.endswith("_pct")]

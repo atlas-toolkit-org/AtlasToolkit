@@ -33,6 +33,7 @@ EXTRA_ICONS = {
     "raster-dem-to-mesh": '<path d="m3 16 9 5 9-5v-3l-9 5-9-5zM3 13l5-7 4 4 3-6 6 9-9 5zM8 6l1 7 3-3m0 0 3 5 0-11"/>',
     "remesh-decimate": '<path d="m3 5 7-2 4 5-4 5-7-2zM3 5l7 8M10 3v10m-7-2 7-8M16 5l5 3-2 7-6 1-3-3m4-5 7 0-8 8 6-1M13 16l2 5 4-6"/>',
     "mirror-plane": '<path d="M12 3v18" stroke-dasharray="2 2"/><path d="M3 6h5v12H3l3-6zM21 6h-5v12h5l-3-6z"/>',
+    "mesh-repair": '<path d="M3 19 12 4l9 15zM7.5 11.5h9M12 4v7.5"/><path d="m9.5 14.5 5 3.5m0-3.5-5 3.5"/>',
     "plane-cut": '<path d="m3 14 7-5 11 2-7 5zM10 9V3m4 13v5M5 5l14 14"/><path d="m16 17 3 2-1-3"/>',
     "developable": '<path d="M3 17 7 5l5 4 5-4 4 12-5 3-4-4-4 4-5-3ZM7 5l1 15m4-11v7m5-11-1 15M3 17l9-1 9 1"/>',
     "scissors": '<circle cx="6" cy="7" r="2.5"/><circle cx="6" cy="17" r="2.5"/><path d="M8.2 8.3 20 17M8.2 15.7 20 7"/>',
@@ -99,6 +100,8 @@ EXTRA_ICONS = {
     # the model catalogue (ui/catalogue.py): its button, downloads and categories; no tool may use these
     "catalogue": '<circle cx="7.5" cy="7.5" r="4"/><path d="M14 3.5h6.5V10H14zM3 21h18M4.5 21v-5h6v5M13.5 21l3.5-6 3.5 6"/>',
     "download": '<path d="M12 3v12m-5-5 5 5 5-5M4 17v3.5h16V17"/>',
+    # the Aim tab (ui/widgets/preview.py): the view that sets a drawing's camera; no tool may use it
+    "aim": '<circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="1.5"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/>',
     "cat_bust": '<path d="M12 3a4 4 0 0 1 4 4v1.5a4 4 0 0 1-8 0V7a4 4 0 0 1 4-4zM10 12.8v1.7c-2.8.6-5 2.6-5 5.5h14'
                 'c0-2.9-2.2-4.9-5-5.5v-1.7M7 20v1.5h10V20"/>',
     "cat_statue": '<circle cx="12" cy="4" r="2"/><path d="M12 6.5v6.5l-2.2 6.5M12 13l2.2 6.5M8.5 9.5 12 8l3.5 2.5 1-2'

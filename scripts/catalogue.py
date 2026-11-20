@@ -216,7 +216,7 @@ def _mesh_for(m):
     from atlas_toolkit.geom.mesh import load_mesh
     if m.get("generator"):
         mesh = shapes.build(m["generator"], **m.get("params", {}))
-        return np.asarray(mesh.vertices), np.asarray(mesh.faces)
+        return _repaired(m, np.asarray(mesh.vertices), np.asarray(mesh.faces))
     path = source_mesh_path(m)
     mesh = load_mesh(path)
     if not isinstance(mesh, trimesh.Trimesh):
@@ -260,8 +260,28 @@ def _mesh_for(m):
                 else trimesh.remesh.subdivide(mesh.vertices, mesh.faces)
             mesh = trimesh.Trimesh(v, f, process=False)
     mesh.remove_unreferenced_vertices()
+    V, F = _repaired(m, np.asarray(mesh.vertices), np.asarray(mesh.faces))
+    mesh = trimesh.Trimesh(V, F, process=False)
     shapes.normalise(mesh, float(m.get("size", shapes.SIZE * 2)))
     return np.asarray(mesh.vertices), np.asarray(mesh.faces)
+
+
+def _repaired(m, V, F):
+    """Every model ships as a clean closed solid, so every tool takes it as it is: decimation leaves back-to-back
+    faces and crumbs, scans leave holes and folds (geom/repair.py, never resampled here: detail is kept). A model
+    that cannot be one (`open = "<why>"` in its recipe: a non-orientable surface) is left as it is."""
+    import numpy as np
+
+    from atlas_toolkit.geom import repair
+    if m.get("open"):
+        return V, F
+    d = repair.diagnose_arrays(np.asarray(V, float), np.asarray(F, np.int64))
+    if d.solid and d.manifold:          # a clean closed solid, and no parts touching at a point (bow-ties)
+        return V, F
+    V, F, notes, _ = repair.repair_arrays(V, F, repair.Settings(strategy="repair"))
+    for note in notes:
+        print(f"    {m['id']}: {note}")
+    return V, F
 
 
 def _base_rotation(mesh):
@@ -317,9 +337,18 @@ def prepare(data, only) -> None:
             shutil.copyfileobj(src, out, 1 << 20)
         ply.unlink()
         stats = {"triangles": int(len(F)), "vertices": int(len(V)), "sha256": sha256(gz), "bytes": gz.stat().st_size,
-                 "thin": thinness(V, F)}
+                 "thin": thinness(V, F), "solid": solid_state(V, F)}
         (OUT / f"{m['id']}.json").write_text(json.dumps(stats), encoding="utf-8")
         print(f"  {m['id']}: {len(F):,} triangles, {stats['bytes'] / 1e6:.1f} MB ({time.time() - t:.0f}s)")
+
+
+def solid_state(V, F) -> str:
+    """"" for a clean closed solid, else what is wrong with it (geom/repair.py's diagnosis)."""
+    import numpy as np
+
+    from atlas_toolkit.geom import repair
+    d = repair.diagnose_arrays(np.asarray(V, float), np.asarray(F, np.int64))
+    return "" if d.solid and d.manifold else d.summary()
 
 
 def thinness(V, F, samples: int = 3000) -> float:
@@ -426,9 +455,10 @@ def notice(data) -> None:
     lines = ["Atlas Toolkit model catalogue: credits and licences", "=" * 52, "",
              "The model catalogue (Model catalogue… beside a mesh tool's inputs) offers the models below. Scanned and",
              "modelled works are the property of their authors and are redistributed under the licences named; each",
-             "was decimated, re-oriented (Z up, front toward -Y), centred and scaled, and saved as binary PLY, and some",
-             "were cropped (see Changes). Generated shapes are built by the app (geom/shapes.py) and dedicated to the",
-             "public domain (CC0 1.0). Licence texts: CC0-1.0.txt, CC-BY-4.0.txt, CC-BY-SA-4.0.txt in this folder.",
+             "was decimated, re-oriented (Z up, front toward -Y), cleaned (holes closed, stray faces removed), centred",
+             "and scaled, and saved as binary PLY, and some were cropped (see Changes). Generated shapes are built by",
+             "the app (geom/shapes.py) and dedicated to the public domain (CC0 1.0). Licence texts: CC0-1.0.txt,",
+             "CC-BY-4.0.txt, CC-BY-SA-4.0.txt in this folder.",
              "Public domain: the source marks the work as free of copyright.", ""]
     names = {c["id"]: c["name"] for c in data["category"]}
     for c in data["category"]:
@@ -445,7 +475,8 @@ def notice(data) -> None:
                 lines.append(f"    Scan or model: {model.credit}")
             lines.append(f"    Source: {model.source_url}")
             lines.append(f"    Licence: {model.license}" + (f" ({model.license_url})" if model.license_url else ""))
-            changes = "decimated, re-oriented, scaled" + (f"; {model.changes}" if model.changes else "")
+            changes = ("decimated, re-oriented, cleaned (holes closed, stray faces removed), scaled"
+                       + (f"; {model.changes}" if model.changes else ""))
             lines.append(f"    Changes: {changes}")
         lines.append("")
     gen = [m["name"] for m in data["model"] if m.get("generator")]
@@ -519,6 +550,13 @@ def check(data) -> list[str]:
         if "thin" not in st and (OUT / m["file"]).is_file():
             st["thin"] = thinness(*_read_out(m["id"]))
             f.write_text(json.dumps(st))
+        if "solid" not in st and (OUT / m["file"]).is_file():
+            st["solid"] = solid_state(*_read_out(m["id"]))
+            f.write_text(json.dumps(st))
+        recipe = next((r for r in data["model"] if r["id"] == m["id"]), {})
+        if st.get("solid") and not recipe.get("open"):
+            problems.append(f"{m['id']}: not a clean closed solid ({st['solid']}): the tools that need one would stop. "
+                            "Fix the recipe (crop, keep), or set open = \"<why>\" if it cannot be one")
         if st.get("thin", 0) > LIMITS["thin"]:
             problems.append(f"{m['id']}: {st['thin']:.0%} of its surface is thinner than 3% of its size (wires, bones, "
                             f"thin walls); the limit is {LIMITS['thin']:.0%}")

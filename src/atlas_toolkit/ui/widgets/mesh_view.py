@@ -3,8 +3,8 @@
 blueprint grid), an optional wireframe, a floor grid scaled to the model. Drag orbits, right-drag or
 middle-drag pans, wheel zooms, double-click fits. Z is up, as in STL files.
 
-`camera()` returns (azimuth, elevation) in degrees; the Hatch Maker turns that into its view rotation, so the
-drawing is made from exactly the view on screen.
+`camera()` returns (azimuth, elevation) in degrees and `set_camera` turns the view; beside an Aim tab the stage turns
+it to the side being aimed at (ui/widgets/preview.py).
 """
 from __future__ import annotations
 
@@ -76,6 +76,7 @@ class MeshView(QWidget):
         self.mesh = None
         self.item = None
         self.edge_item = None
+        self.mark_item = None
         self.grid = None
         self.wire = False
         lay = QStackedLayout(self)
@@ -100,7 +101,7 @@ class MeshView(QWidget):
     def _gl_failed(self, reason: str) -> None:
         """From here on this is the same as having no OpenGL at all: every method already copes with no view."""
         self._failed_view, self.view = self.view, None
-        self.item = self.edge_item = self.grid = None
+        self.item = self.edge_item = self.mark_item = self.grid = None
         self.msg.setText(f"3D preview unavailable: {reason}.")
         self.layout().setCurrentWidget(self.msg)
 
@@ -115,6 +116,9 @@ class MeshView(QWidget):
         if self.edge_item is not None:
             self.view.removeItem(self.edge_item)
             self.edge_item = None
+        if self.mark_item is not None:
+            self.view.removeItem(self.mark_item)
+            self.mark_item = None
         if self.item is not None:
             self.view.removeItem(self.item)
             self.item = None
@@ -136,6 +140,13 @@ class MeshView(QWidget):
             self.edge_item = gl.GLLinePlotItem(pos=data.edge_segments.reshape(-1,3), mode='lines',
                 color=(col.redF(), col.greenF(), col.blueF(), .75), width=1., antialias=True)
             self.view.addItem(self.edge_item)
+        marks = getattr(data, "marks", None)
+        if marks is not None and len(marks):
+            col = qcolor(self.theme['danger'])
+            self.mark_item = gl.GLLinePlotItem(pos=np.asarray(marks, dtype=np.float32).reshape(-1, 3), mode='lines',
+                color=(col.redF(), col.greenF(), col.blueF(), 1.0), width=3., antialias=True)
+            self.mark_item.setGLOptions("translucent")      # on top of the surface, so a problem is never hidden
+            self.view.addItem(self.mark_item)
         (x0, y0, z0), (x1, y1, z1) = data.bounds
         size = max(x1 - x0, y1 - y0, z1 - z0) or 1.0
         self.grid = gl.GLGridItem()

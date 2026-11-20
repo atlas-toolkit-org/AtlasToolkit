@@ -3,6 +3,7 @@
 The orbit camera stays local to the editor. The committed face mask is a portable schema value, so CLI,
 history, presets and Workflows execute the same selection without depending on Qt or a running editor.
 """
+import json
 from pathlib import Path
 import numpy as np
 import trimesh
@@ -54,11 +55,30 @@ class SelectionView(QWidget):
     def set_input(self, path, info):
         self.path = Path(path) if path else None
         self.values = dict(self.page.values())
+        self.whole_if_paint_is_elsewhere(info)
         if info and info.preview:
             self.model.show_mesh(info.preview["views"][0]["mesh"])
         else:
             self.model.show_mesh(None)
         self.refresh()
+
+    def whole_if_paint_is_elsewhere(self, info):
+        """A painted selection belongs to one exact mesh. When the remembered settings say Painted area but this
+        input has no selection of its own (another model's, or none), act on the whole surface instead."""
+        if self.values.get("region") != "paint" or self.values.get("selection_file") or info is None:
+            return
+        faces = (info.values or {}).get("faces")
+        try:
+            painted_faces = json.loads(self.values.get("selection") or "{}").get("faces")
+        except (ValueError, AttributeError):
+            painted_faces = None
+        if painted_faces is not None and painted_faces == faces:
+            return
+        self.page.form.set_values({"region": "whole", "selection": ""})
+        self.values = dict(self.page.values())
+        self.page._settings_changed()
+        self.page.ctx.log("info", "Surface Eject: the painted area belonged to another model, so this one starts "
+                          "on the whole surface. Open Paint / select area to paint it.", "mesh-surface-eject")
 
     def values_changed(self, values):
         previous = self.values.get("region")

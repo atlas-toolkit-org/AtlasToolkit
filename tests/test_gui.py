@@ -1251,23 +1251,23 @@ class GuiFlowTests(unittest.TestCase):
         h = page.add_entry("tool:stl-hatch-maker")
         page.add_paths([str(src)])
         tool_page = self.win.page("stl-hatch-maker")
-        own = tool_page.values()["azimuth"]
+        own = tool_page.values()["psi"]
         page.aim(h)
         self.wait(lambda: page.idle() and tool_page.borrowed is not None)
         self.assertIs(self.win.stack.currentWidget(), tool_page)
         self.assertFalse(tool_page.btn_run.isEnabled())
-        tool_page.form.set_values({"azimuth": 33.0})
+        tool_page.form.set_values({"psi": 33.0})
         tool_page.end_borrow(keep=True)
         self.assertIs(self.win.stack.currentWidget(), page)
-        self.assertEqual(page.wf.nodes[h].values["azimuth"], 33.0)
-        self.assertEqual(tool_page.values()["azimuth"], own)    # the page keeps its own settings
+        self.assertEqual(page.wf.nodes[h].values["psi"], 33.0)
+        self.assertEqual(tool_page.values()["psi"], own)    # the page keeps its own settings
         self.assertIsNone(tool_page.borrowed)
         page.aim(h)                                              # Discard: back, the step unchanged
         self.wait(lambda: page.idle() and tool_page.borrowed is not None)
-        tool_page.form.set_values({"azimuth": 120.0})
+        tool_page.form.set_values({"psi": 120.0})
         tool_page.end_borrow(keep=False)
         self.assertIs(self.win.stack.currentWidget(), page)
-        self.assertEqual(page.wf.nodes[h].values["azimuth"], 33.0)
+        self.assertEqual(page.wf.nodes[h].values["psi"], 33.0)
 
 
 if __name__ == "__main__":

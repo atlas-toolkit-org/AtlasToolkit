@@ -27,6 +27,59 @@ def cube():
 
 
 class RemeshTests(unittest.TestCase):
+    def test_noisy_sharp_edges_do_not_blow_up_uniform_remeshing(self):
+        """A scan's sharp edges are mostly noise: kept as features they blocked PMP's collapses all over the model
+        (five times the faces, minutes instead of seconds). They are dropped, said in the log; a cube keeps its."""
+        sphere = trimesh.creation.icosphere(subdivisions=5)
+        rng = np.random.default_rng(3)
+        sphere.vertices *= (1 + 0.02 * rng.standard_normal(len(sphere.vertices)))[:, None]   # scan-like roughness
+        warnings = []
+        ctx = JobContext(lambda kind, payload: warnings.append(payload[1]) if kind == "log" else None, lambda: False)
+        target = 6000
+        values = TOOL.values(dict(method='uniform', target_faces=target, iterations=4, surface_error=20.))
+        out, data = process(from_mesh(sphere), values, ctx)
+        self.assertLess(len(out.faces), 2 * target, data)
+        self.assertTrue(any("scan noise" in w for w in warnings), warnings)
+        box = trimesh.creation.box(extents=(2, 2, 2)).subdivide().subdivide().subdivide()
+        warnings.clear()
+        out, data = process(from_mesh(box), TOOL.values(dict(method='uniform', target_faces=1500, iterations=4,
+                                                             surface_error=5.)), ctx)
+        self.assertFalse(any("scan noise" in w for w in warnings), warnings)
+        corners = np.abs(np.asarray(out.vertices)).min(axis=1) > 0.999     # a vertex still on each sharp corner
+        self.assertGreaterEqual(int(corners.sum()), 8)
+
+    def test_creased_models_come_out_without_flat_faces(self):
+        """PMP left "caps" (a corner on the line of the opposite edge) next to creases: decimation through its
+        normal-cone test, remeshing because Atlas locks the edges at crease corners. None may reach the output."""
+        shape = trimesh.creation.cylinder(radius=1.0, height=2.0, sections=48)
+        shape = trimesh.Trimesh(*trimesh.remesh.subdivide_to_size(shape.vertices, shape.faces, 0.08))
+        for method, target in (('decimate', 1500), ('uniform', 3000), ('adaptive', 3000)):
+            with self.subTest(method=method):
+                values = TOOL.values(dict(method=method, target_faces=target, iterations=6, surface_error=5.,
+                                          preserve_features=True, feature_angle=45.))
+                out, _ = process(from_mesh(shape), values, context())
+                mesh = out.as_trimesh()
+                self.assertTrue(mesh.nondegenerate_faces().all())
+                validate(mesh, output=True)
+
+    def test_an_unreachable_tolerance_stops_at_once_and_says_what_works(self):
+        """It used to double the density five times (minutes, millions of faces) and fail anyway."""
+        import time
+        from atlas_toolkit.core.errors import ToolError
+        sphere = trimesh.creation.icosphere(subdivisions=5)
+        rng = np.random.default_rng(5)
+        sphere.vertices *= (1 + 0.03 * rng.standard_normal(len(sphere.vertices)))[:, None]
+        values = TOOL.values(dict(method='uniform', target_faces=3000, iterations=3, surface_error=0.01,
+                                  preserve_features=False))
+        t0 = time.perf_counter()
+        with self.assertRaises(ToolError) as cm:
+            process(from_mesh(sphere), values, context())
+        self.assertLess(time.perf_counter() - t0, 30)
+        self.assertIn("Surface-error tolerance", cm.exception.hint)
+        tolerance = float(cm.exception.hint.split("about ")[1].split("%")[0])
+        out, data = process(from_mesh(sphere), TOOL.values(dict(values, surface_error=tolerance)), context())
+        self.assertEqual(data['density_attempts'], 1)          # the suggestion works as it is
+
     def test_surface_methods_are_valid_and_reproducible(self):
         source = from_mesh(trimesh.creation.icosphere(subdivisions=2))
         for method in ('decimate','uniform','adaptive','directional','cells','quads'):
@@ -91,7 +144,7 @@ class RemeshTests(unittest.TestCase):
 
     def test_nonmanifold_and_degenerate_fail(self):
         surface=from_arrays([[0,0,0],[1,0,0],[0,1,0],[0,-1,0],[0,0,1]],np.array([[0,1,2],[1,0,3],[0,1,4]]))
-        with self.assertRaisesRegex(ValueError,'Non-manifold'):
+        with self.assertRaisesRegex(ValueError,'non-manifold'):
             process(surface,TOOL.defaults(),context())
         with self.assertRaises(ValueError):
             from_arrays([[0,0,0],[1,0,0],[0,1,0]],[[0,1,8]])

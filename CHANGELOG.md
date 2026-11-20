@@ -1,5 +1,77 @@
 # Changelog
 
+## 2.4.1 (2026-11-19)
+
+**One Aim for every Mesh → SVG tool**
+- **The same Aim tab everywhere:** Plotter Vision, Hatch Maker, Contour Lines, Sketch Hatching, Stipple and FlowRep
+  Sketch all open on an **Aim** tab, marked with a crosshair, where the drawing's view is set. It shows a light
+  trace of the model (at most 20 000 faces, outline and creases), so it turns smoothly on big models and in
+  Workflows' **Aim in tool…**.
+- **Plotter Vision** 1.5.0: its *Vision* tab is now **Aim**, with the light trace by default (Sketch's look) instead
+  of drawing every edge of the full model on every stop. **Exact lines** (`E`) brings back the live exact
+  drawing, stereo included, when you want it; it is never saved.
+- **Hatch Maker** 7.0.0: aims in its own **Aim** tab at last, with the same camera and controls as the other tools
+  (Tilt, Turn, Distance, Look at; drag, Shift-drag, wheel, `1`-`5`, `F`, `R`), always orthographic, plus Roll. The
+  drawing is no longer squeezed onto the paper whatever the view: it is drawn as framed and cut at the paper's
+  drawing area, like the others (too close says so instead of drawing for ever). Azimuth and Elevation in saved
+  settings and workflows carry over as Tilt and Turn; on the command line use `--theta` / `--psi`. The
+  *Use the 3D view* and *Show this view* buttons are gone.
+- **F fits tighter, and Always fit:** `F` now centres the model's picture and makes it as large as the frame allows
+  (it used to fit a sphere around it). `A`, or the **Always fit** button, keeps doing that after every move, in
+  every Aim tab; `A` again, Shift-drag or the wheel goes back to framing by hand. It is never saved.
+- **Which window counts is plain:** the Input tab says *Inspect only · view set in Aim* (click it to go
+  back), turns to the side you are aiming at when you open it, and never changes the drawing. Camera and View
+  settings say they are set in the Aim tab (a new `note` on a settings section).
+
+**Repair Mesh, and models that every tool takes**
+- **Repair Mesh** 1.0.0 (Mesh · Prepare and cut), a new tool: it finds and fixes what stops the sculpting tools.
+  That covers back-to-back faces and crumbs left by decimation, holes, non-manifold edges, parts touching at a point,
+  and flipped or inside-out faces. It repairs in place (no vertex moves), fills holes flat or smooth with even
+  triangles, and rebuilds by resampling only if the model is still not a solid. A rebuilt model comes back in one
+  piece, at about its own face count. Light models take under two seconds; a model of a million faces takes
+  about half a minute, and the log warns before a long rebuild. The report gives a before/after table
+  and the tools the result is **Ready for**; **Problems** marks the bad edges in red.
+- **The solid tools tidy small defects themselves:** Motion Sculpture 0.4.0, Crumble 0.1.1, Stair Sculpt 0.1.1, Surface
+  Eject 0.3.3, Pipe Fill 0.1.1, Surface Stripes 0.2.1 and Developable Surfaces 0.1.1 (also Strata Sculpt's connectors
+  1.1.1, Form Replicator 1.0.2). When an input fails, they first remove debris, separate non-manifold edges, wind faces
+  outward and close pin-holes, without changing the surface. They say so in the Log and at the top of the Report.
+  *Head of Pierre de Wissant · light* and the other light models now run with default settings.
+- **When that is not enough, they say what to do:** the input is marked *Needs repair* as soon as it is added. The
+  error names what is wrong (for example *457 open edges in 15 holes*) and says to run Repair Mesh, or the tool's own
+  resampling option, and it shows no traceback. The Report has an **Open in Repair Mesh** button, which a toast offers
+  too. On the command line, the tool prints the Repair Mesh command to run. Motion Sculpture gains *Open input ›
+  Repair by resampling* like the others. Remesh/Decimate points to Repair Mesh too.
+- **Surface Eject** starts on the whole surface when the remembered painted area belongs to another model.
+- **Motion Sculpture** no longer stops on the slivers a layer cut leaves where it grazes the surface (*A motion piece
+  could not be kept closed…*, or *refinement exceeds Maximum faces*): they hold no material and are left out.
+  **Surface Stripes** tidies the mesh it decimates to its field budget, which could leave the same debris.
+- **The model catalogue, revision 2:** 46 models had shipped with such damage, most of it left by decimation. Every
+  model is now repaired when it is built, and `check` fails any that is not a clean closed solid (the Klein bottle
+  and Boy's surface are non-orientable and stay as they are). Six more had parts touching at a single vertex, which
+  a solid may have but Remesh/Decimate and Developable Surfaces refuse: those vertices are split too. The fossil whale
+  is gone: once its holes were closed, the thinness check could see it was mostly thin bone (96%), which the catalogue
+  does not take. 132 models, now on the `catalogue-2` release.
+- **Remesh/Decimate** 0.2.0: *Uniform* and *Adaptive triangles* take seconds, not minutes or hours. There were three
+  causes. On a scan, *Keep sharp features* took the noise's sharp edges as creases the remesher may not touch, so faces
+  multiplied and every iteration slowed. Projecting onto the source scanned huge leaves of its search tree around a
+  model's poles. And a tolerance the method could not meet doubled the density five times before failing. Now noise is
+  told apart from real creases (a cube's, a chess piece's, which are kept) and set aside, which the log says. The
+  search uses a bounding-volume hierarchy. A tolerance out of reach stops after the first try and says which
+  tolerance or face target works. A 25 000-face bust went from minutes to 2 s, a chess pawn from 150 s to 2 s, and
+  David's head from a 24-minute failure to under 2 s. A million-face scan (Ugolino) takes about 3 minutes instead
+  of 7½, and the log says so up front. *Adaptive triangles* on a million-face scan used to stall for over ten minutes
+  before its first iteration: PMP smoothed its curvature estimate through a million-row matrix even with no smoothing
+  asked for. That is skipped now, and the same run takes under a minute. A run that would need more than Remesh/Decimate
+  makes (two million faces) stops and says which setting to change, rather than retrying denser.
+- **Remesh/Decimate no longer leaves flat faces** ("caps": a corner on the line of the opposite edge). They broke the
+  run near creases, on Adaptive triangles on a scan, Uniform on a chess rook and Decimate on a gyroid. Decimation now
+  refuses collapses that make one, which also makes it faster: the rook went from 160 s to 52 s. A last pass removes
+  any left by remeshing. When a remesh still comes out broken, the tool stops at once and suggests another method;
+  a denser retry only made more broken faces, over minutes. It is no longer reported as an input to repair. (Remesh
+  helper 0.1.2, protocol 2.)
+- For tool authors: `Tool.needs`, `core.errors.ToolError` (message, hint, a tool to open), `ctx.note()` and
+  `Result.notes`, `geom/repair.py`; mesh previews can mark segments in red (`MeshData.marks`).
+
 ## 2.4.0 (2026-11-18)
 
 **The model catalogue: models to try every 3D tool with**

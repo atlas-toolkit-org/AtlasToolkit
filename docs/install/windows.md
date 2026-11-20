@@ -4,11 +4,11 @@ Needs Windows 10 or 11, 64-bit. No administrator rights unless you install for a
 
 Download the installer from [atlas-toolkit.org/download](https://atlas-toolkit.org/download/) or from the
 [latest release](https://github.com/atlas-toolkit-org/AtlasToolkit/releases/latest) on GitHub. The current version is
-**2.4.0**:
+**2.4.1**:
 
 | File |
 |---|
-| [`AtlasToolkit-2.4.0-windows-x64-setup.exe`](https://github.com/atlas-toolkit-org/AtlasToolkit/releases/download/v2.4.0/AtlasToolkit-2.4.0-windows-x64-setup.exe) |
+| [`AtlasToolkit-2.4.1-windows-x64-setup.exe`](https://github.com/atlas-toolkit-org/AtlasToolkit/releases/download/v2.4.1/AtlasToolkit-2.4.1-windows-x64-setup.exe) |
 
 Later versions keep these names with a new number. Each release also lists `SHA256SUMS.txt`, the checksum of
 every file.
@@ -18,14 +18,14 @@ every file.
 Optional, but it proves the file arrived whole and unchanged. In PowerShell, in the folder of the download:
 
 ```powershell
-(Get-FileHash .\AtlasToolkit-2.4.0-windows-x64-setup.exe -Algorithm SHA256).Hash
+(Get-FileHash .\AtlasToolkit-2.4.1-windows-x64-setup.exe -Algorithm SHA256).Hash
 ```
 
 The result must match the line for that file in `SHA256SUMS.txt` (PowerShell prints it in capitals; the letters are the same).
 
 ## Install
 
-1. Run `AtlasToolkit-2.4.0-windows-x64-setup.exe`.
+1. Run `AtlasToolkit-2.4.1-windows-x64-setup.exe`.
 
    The installer is not signed yet, so Windows may say "Windows protected your PC". Choose **More info**, then **Run anyway**.
 2. Choose who it is for:
@@ -73,7 +73,7 @@ The app's **Setup › Components** page can remove the depth environment for you
 ## Unattended install
 
 ```bat
-AtlasToolkit-2.4.0-windows-x64-setup.exe /VERYSILENT /SUPPRESSMSGBOXES /NORESTART /CURRENTUSER /TASKS=association,path
+AtlasToolkit-2.4.1-windows-x64-setup.exe /VERYSILENT /SUPPRESSMSGBOXES /NORESTART /CURRENTUSER /TASKS=association,path
 ```
 
 Use `/ALLUSERS` instead of `/CURRENTUSER` from an elevated prompt. To remove it, run `unins000.exe /VERYSILENT` in the install folder.

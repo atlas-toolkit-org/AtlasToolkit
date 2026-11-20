@@ -170,8 +170,9 @@ class EngineTests(Fixture):
         self.assertIsNone(engine.source_solid(pinched.vertices, pinched.faces))
         pinched.export(self.root / "pinched.stl")
         p = TOOL.values(dict(self.values, count=1, repair_open=False))
-        with self.assertRaisesRegex(ValueError, "not a closed solid"):
-            engine.run(context(), self.root / "pinched.stl", None, p)
+        ctx = context()                            # the safe tidy separates the pinched edge: two closed solids
+        engine.run(ctx, self.root / "pinched.stl", None, p)
+        self.assertTrue(any("Tidied the input" in n for n in ctx.notes), ctx.notes)
         matrices = np.array([np.column_stack((np.eye(3), (0, 0, 0))),
                              np.column_stack((np.eye(3), (.6, .5, 0)))])
         dst = self.root / "old.stl"
@@ -273,10 +274,12 @@ class EngineTests(Fixture):
 
     def test_open_source_is_either_explained_or_repaired(self):
         m = trimesh.load(self.src)
-        m.update_faces(np.arange(len(m.faces) - 1))
+        m = trimesh.Trimesh(*trimesh.remesh.subdivide_to_size(m.vertices, m.faces, 3.0))   # an opening of many edges
+        z = m.triangles_center[:, 2]
+        m.update_faces(z < z.max() - 0.35 * np.ptp(z))          # an opening (a pin-hole would just be tidied)
         m.export(self.root / "open.stl")
         p = TOOL.values(dict(self.values, count=1, repair_open=False))
-        with self.assertRaisesRegex(ValueError, "not a closed solid"):
+        with self.assertRaisesRegex(ValueError, "Repair Mesh"):
             engine.run(context("analyse"), self.root / "open.stl", None, p)
         p["repair_open"] = True
         p["repair_resolution"] = 32

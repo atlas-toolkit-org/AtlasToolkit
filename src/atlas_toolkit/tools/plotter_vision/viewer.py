@@ -1,5 +1,6 @@
 """
-The Vision tab: plotter.vision's way of aiming the camera, inside the toolkit (the tool spec's `viewer`).
+Plotter Vision's live view, the base of every Aim tab (tools/plotter_vision/aim.py): plotter.vision's way of aiming
+the camera, inside the toolkit (the tool spec's `viewer`).
 
 The paper is drawn with its drawing area framed: the camera looks through that frame, so what is inside it is what
 Draw writes (lines outside stay faint). Moving works as on plotter.vision:
@@ -9,8 +10,9 @@ Draw writes (lines outside stay faint). Moving works as on plotter.vision:
     wheel               distance (Ctrl+wheel: field of view)
     1 2 3 4 5           front, side, back, other side, top
     arrows              turn and come closer, like plotter.vision's
-    F / double-click    fit the model in the frame          R  plotter.vision's start view
-    T                   red/blue stereo on/off
+    F / double-click    fit the model in the frame (its picture, centred and as large as the frame allows)
+    A                   always fit: F after every move, until A again, Shift-drag or the wheel
+    R                   plotter.vision's start view          T  red/blue stereo on/off
 
 While the camera moves every candidate edge is drawn (in the accent colour, with an XYZ marker at the look-at
 point); once it rests, hidden lines are removed in a background thread and the visible lines fill in from the middle
@@ -25,7 +27,7 @@ import time
 import numpy as np
 from PySide6.QtCore import QObject, QPointF, QRectF, Qt, QTimer, Signal
 from PySide6.QtGui import QColor, QPainter, QPainterPath, QPen, QRegion
-from PySide6.QtWidgets import QWidget
+from PySide6.QtWidgets import QPushButton, QWidget
 
 from atlas_toolkit.core.params import Params
 from atlas_toolkit.ui.theme import mono, qcolor
@@ -33,7 +35,7 @@ from atlas_toolkit.ui.widgets.plot_view import BLUEPRINT_BG, BLUEPRINT_GRID, blu
 
 from . import model as pm
 from . import plotter_vision as pv
-from .camera import NEAR, Camera, frame_for, wrap
+from .camera import NEAR, Camera, fit_view, frame_for, roll_screen, wrap
 
 try:   # numpy -> QPainterPath in one call
     from pyqtgraph.functions import arrayToQPath
@@ -91,15 +93,18 @@ def _same_camera(a: Camera, b: Camera) -> bool:
 
 
 class VisionView(QWidget):
-    """Plotter Vision's live view. Other tools that draw through the same camera (camera_params) host a subclass
-    to aim (tools/plotter_vision/aim.py); these class attributes are what such a subclass changes."""
-    title = "Vision"
+    """Plotter Vision's live view. Tools that draw through a camera host a subclass to aim
+    (tools/plotter_vision/aim.py); these class attributes are what such a subclass changes."""
+    title = "Aim"
+    sets_view = True                     # this view, and no other tab, sets the drawing's view (ui/widgets/preview)
     info_changed = Signal(str)
     DEFAULTS: dict = {}                  # values for Plotter Vision keys the host tool does not have
+    TRACE: dict = {}                     # values that win over the host's (the light trace of an Aim tab)
     MODEL_KEYS = MODEL_KEYS              # settings that reload the model
     STEREO = True                        # T toggles the red/blue pair
     REDRAW_KEYS = None                   # settings (besides the camera) that recompute the lines; None: any other
-    KEYS = "drag orbit · shift-drag move · wheel distance · 1-5 views · F fit · R reset · T stereo"
+    KEYS = "drag orbit · shift-drag move · wheel distance · 1-5 views · F fit · A always fit · R reset · T stereo"
+    FIT_POINTS = 50_000                  # at most this many vertices are fitted (F, Always fit)
 
     def __init__(self, page):
         super().__init__()
@@ -115,7 +120,7 @@ class VisionView(QWidget):
         self.path: str | None = None
         self.model = None
         self.values = dict(page.values())
-        self.cam = pv.camera_from(self._p(self.values))
+        self.cam = self._camera_from_values(self.values)
         self.cand: list = []            # per eye: (A, B, outline) on screen, nothing hidden
         self.pieces: list = []          # (P0, P1, depth, outline, hidden, eye) batches
         self.state = "empty"            # empty | loading | moving | computing | done | error
@@ -130,16 +135,42 @@ class VisionView(QWidget):
         self._cache = None
         self.idle = QTimer(self, singleShot=True, interval=160, timeout=self._compute)
         self.commit = QTimer(self, singleShot=True, interval=350, timeout=self._commit)
+        self.corner: list = []          # checkable buttons in the bottom-right corner, right to left
+        self.always_fit = False         # view state only: never a setting, off whenever the page opens
+        self.btn_fit = self._corner_button("Always fit · A", "A: fit the model in the frame after every move, as F "
+                                           "does. Shift-drag or the wheel turns it off.", self.set_always_fit)
+
+    def _corner_button(self, text: str, tip: str, slot) -> QPushButton:
+        b = QPushButton(text, self)
+        b.setCheckable(True)
+        b.setFocusPolicy(Qt.NoFocus)
+        b.setCursor(Qt.PointingHandCursor)
+        b.setToolTip(tip)
+        b.toggled.connect(slot)
+        b.adjustSize()
+        self.corner.append(b)
+        return b
 
     def _p(self, values: dict) -> Params:
-        return _params({**self.DEFAULTS, **values})
+        return _params({**self.DEFAULTS, **values, **self.TRACE})
+
+    def _camera_from_values(self, values: dict) -> Camera:
+        """The camera the settings describe (a host with another camera model overrides this and _commit)."""
+        return pv.camera_from(self._p(values))
+
+    def input_view(self) -> tuple[float, float] | None:
+        """The camera's direction as the Input tab's (azimuth, elevation): the 3D viewer's convention, in the file's
+        own coordinates, so the Input tab can turn to the side being aimed at."""
+        _eye, _u, _v, w = self.cam.basis()
+        frame = getattr(self, "_frame", None)
+        if frame is not None:                      # canonical = R @ file: back to the file's axes
+            w = np.asarray(frame.R, dtype=float).T @ w
+        w = w / (np.linalg.norm(w) or 1.0)
+        return math.degrees(math.atan2(w[1], w[0])), math.degrees(math.asin(float(np.clip(w[2], -1.0, 1.0))))
 
     def load_model(self, path: str, p):
         """The model for the view (runs in a thread)."""
         return pm.load(path, int(p.target_faces) if p.decimate else 0, bool(p.fix_winding), None, bool(p.crossings))
-
-    def fit_radius(self, p) -> float:
-        return pv.fit_radius(self.model, self.cam, frame_for(p.paper, p.orientation, p.margin, (p.get("paper_width", 200.), p.get("paper_height", 200.))))
 
     # ================================================================== host interface
     def info_text(self) -> str:
@@ -161,7 +192,7 @@ class VisionView(QWidget):
         if vals != self.values:
             model_changed = any(self.values.get(k) != vals.get(k) for k in self.MODEL_KEYS)
             self.values = vals
-            self.cam = pv.camera_from(self._p(vals))
+            self.cam = self._camera_from_values(vals)
             if self.path is not None and (model_changed or str(path or "") != self.path):
                 self.path = None                 # reload below
             elif self.model is not None:
@@ -185,10 +216,10 @@ class VisionView(QWidget):
             self.update()
             return
         if any(old.get(k) != values.get(k) for k in self.MODEL_KEYS):
-            self.cam = pv.camera_from(self._p(values))
+            self.cam = self._camera_from_values(values)
             self._load_model()
             return
-        cam = pv.camera_from(self._p(values))
+        cam = self._camera_from_values(values)
         # A camera still on its way to the settings is newer than these values, which were already waiting to arrive.
         ahead = self.commit.isActive() or self.last is not None
         moved = not ahead and not _same_camera(cam, self.cam)
@@ -200,18 +231,51 @@ class VisionView(QWidget):
         if (moved or other) and self.model is not None:
             self._candidates()
             self._compute_soon()
+            if self.always_fit and not _same_camera(self._camera_from_values(values), self.cam):
+                self.commit.start()              # the paper changed under Always fit: the new fit goes back
         self.info_changed.emit(self.info_text())
         self.update()
 
     def fit(self) -> None:
-        """Look at the model's centre from a distance that fits it in the frame."""
+        """Fit the model's picture in the frame: centred, as large as it goes (the angles stay)."""
         if self.model is None:
             return
-        p = self._p(self.values)
-        self.cam.lookat = (0.0, 0.0, 0.0)
-        self.cam.radius = round(self.fit_radius(p), 1)
+        self._fit_cam()
         self._moved()
         self._settle()
+
+    def fit_points(self) -> np.ndarray:
+        """What F fits: the model's vertices (a subclass may fit a stage set's whole box instead)."""
+        V = self.model.V
+        return V[:: int(math.ceil(len(V) / self.FIT_POINTS))] if len(V) > self.FIT_POINTS else V
+
+    def _paper_frame(self, p=None):
+        p = p if p is not None else self._p(self.values)
+        return frame_for(p.paper, p.orientation, p.margin, (p.get("paper_width", 200.), p.get("paper_height", 200.)))
+
+    def _fit_cam(self) -> None:
+        if self.model is not None and len(self.model.V):
+            fit_view(self.cam, self.fit_points(), self._paper_frame(), self._roll_deg())
+
+    def _roll_deg(self) -> float:
+        """Roll of the picture about the view axis (a host's `roll` setting; 0 for the others)."""
+        return float(self.values.get("roll", 0.0) or 0.0)
+
+    def set_always_fit(self, on: bool) -> None:
+        on = bool(on)
+        if on != self.always_fit:
+            self.always_fit = on
+            self.btn_fit.blockSignals(True)
+            self.btn_fit.setChecked(on)
+            self.btn_fit.blockSignals(False)
+            if on and self.model is not None:
+                self.fit()
+            self.update()
+
+    def _framing_by_hand(self) -> None:
+        """Shift-drag, the wheel or the arrows frame the view by hand: Always fit lets go."""
+        if self.always_fit:
+            self.set_always_fit(False)
 
     # ================================================================== work
     def _load_model(self) -> None:
@@ -251,6 +315,8 @@ class VisionView(QWidget):
     def _candidates(self) -> None:
         if self.model is None:
             return
+        if self.always_fit:
+            self._fit_cam()
         p = self._p(self.values)
         self.cand = []
         for c in self._cams():
@@ -368,6 +434,7 @@ class VisionView(QWidget):
         c = self.cam
         pan = bool(e.buttons() & (Qt.RightButton | Qt.MiddleButton)) or bool(e.modifiers() & Qt.ShiftModifier)
         if pan:
+            self._framing_by_hand()
             frame, s, _, _ = self._layout()
             per_px = c.radius / (c.k * frame.half * s)       # model units per pixel at the look-at distance
             _, u, v, _ = c.basis()
@@ -390,6 +457,7 @@ class VisionView(QWidget):
         if self.model is None:
             return
         notches = e.angleDelta().y() / 120.0
+        self._framing_by_hand()
         if e.modifiers() & Qt.ControlModifier:
             self.cam.fov = float(np.clip(self.cam.fov * 0.93 ** notches, 1.0, 150.0))
         else:
@@ -409,11 +477,14 @@ class VisionView(QWidget):
             self._moved()
             self._settle()
         elif k in (Qt.Key_Up, Qt.Key_Down):
+            self._framing_by_hand()
             c.radius = float(np.clip(c.radius * (0.9 if k == Qt.Key_Up else 1.1), 1.0, 5000.0))
             self._moved()
             self._settle()
         elif k == Qt.Key_F:
             self.fit()
+        elif k == Qt.Key_A:
+            self.set_always_fit(not self.always_fit)
         elif k == Qt.Key_R:
             c.theta, c.psi, c.radius, c.lookat, c.fov = (START["theta"], START["psi"], START["radius"],
                                                         START["lookat"], START["fov"])
@@ -427,6 +498,11 @@ class VisionView(QWidget):
 
     def resizeEvent(self, e) -> None:
         super().resizeEvent(e)
+        x = self.width() - 10
+        for b in self.corner:
+            x -= b.width()
+            b.move(x, self.height() - b.height() - 6)
+            x -= 6
         self._cache = None
         if self.model is not None and self.state in ("done", "computing"):
             self._compute_soon()
@@ -448,10 +524,13 @@ class VisionView(QWidget):
         cx, cy = x0 + w / 2.0, y0 + h / 2.0
         left, right = (-ox / s - cx) / frame.half, ((self.width() - ox) / s - cx) / frame.half
         top, bottom = (cy - (-oy / s)) / frame.half, (cy - (self.height() - oy) / s) / frame.half
+        if self._roll_deg():                     # turned: anything that could land on screen
+            m = max(abs(left), abs(bottom), abs(right), abs(top)) * 1.42
+            return (-m, -m, m, m)
         return (left, bottom, right, top)
 
     def _to_px(self, S: np.ndarray, frame, s, ox, oy) -> np.ndarray:
-        return frame.to_mm(S) * s + np.array([ox, oy])
+        return frame.to_mm(roll_screen(S, self._roll_deg())) * s + np.array([ox, oy])
 
     def _paths(self, frame, s, ox, oy):
         """[(path, colour, width px, dashed)], cached until the pieces or the layout change."""
@@ -585,17 +664,24 @@ class VisionView(QWidget):
             qp.setPen(QPen(QColor(hexa), 2.2, Qt.SolidLine, Qt.RoundCap))
             qp.drawLine(QPointF(*P[0]), QPointF(*P[i]))
 
+    def _camera_text(self) -> str:
+        c = self.cam
+        look = ", ".join(f"{x:.0f}" for x in c.lookat)
+        return (f"theta {c.theta:.1f}°   psi {c.psi:.1f}°   r {c.radius:.0f}   look ({look})   "     # as plotter.vision
+                f"{c.fov:.0f}° {'ortho' if c.ortho else 'persp'}")
+
+    def _mode_text(self) -> str:
+        """What the lines on screen are (an Aim tab's light trace, or the exact drawing), and Always fit."""
+        return "always fit" if self.always_fit else ""
+
     def _hud(self, qp) -> None:
         th = self.theme
         qp.setFont(mono(11))
         if self.state == "empty":
             qp.setPen(qcolor(th["text-3"]))
-            qp.drawText(self.rect(), Qt.AlignCenter, "Add a model, then aim the camera here.")
+            qp.drawText(self.rect(), Qt.AlignCenter, "Add a model, then aim the drawing's view here.")
             return
-        c = self.cam
-        look = ", ".join(f"{x:.0f}" for x in c.lookat)
-        lines = [f"theta {c.theta:.1f}°   psi {c.psi:.1f}°   r {c.radius:.0f}   look ({look})   "     # as plotter.vision
-                 f"{c.fov:.0f}° {'ortho' if c.ortho else 'persp'}"]
+        lines = [self._camera_text()]
         if self.state == "loading":
             lines.append("loading the model…")
         elif self.state == "error":
@@ -608,10 +694,18 @@ class VisionView(QWidget):
             n = sum(len(b[0]) for b in self.pieces if not b[4])
             lines.append(f"{self.model.faces:,} faces · {self.edges:,} edges · {n:,} pieces · "
                          f"{self.seconds:.2f} s".replace(",", " "))
+        mode = self._mode_text()
+        if mode and len(lines) > 1:
+            lines[1] = f"{mode} · {lines[1]}"
         qp.setPen(qcolor(th["text-2"]))
         for i, t in enumerate(lines):
             qp.drawText(QPointF(12, 20 + 16 * i), t)
         qp.setPen(qcolor(th["text-3"]))
         keys = self.KEYS
+        room = self.width() - 24 - self._corner_width()
         qp.drawText(QPointF(12, self.height() - 10),
-                    qp.fontMetrics().elidedText(keys, Qt.ElideRight, max(self.width() - 24, 40)))
+                    qp.fontMetrics().elidedText(keys, Qt.ElideRight, max(room, 40)))
+
+    def _corner_width(self) -> int:
+        """Width the corner buttons take, so the keys line stops short of them."""
+        return sum(b.width() + 6 for b in self.corner)

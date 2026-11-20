@@ -4,7 +4,7 @@ Plotter Vision: a 3D model drawn as the edges you can see, through a perspective
 
 Outputs <name>_vision.svg, signed <desc>plotter-vision</desc> so Atlas links them to this tool.
 """
-from atlas_toolkit.core import (CAMERA_KEYS, Bool, Choice, Float, Inputs, Int, Output, Section, Tool, camera_params,
+from atlas_toolkit.core import (CAMERA_KEYS, CAMERA_NOTE, Bool, Choice, Float, Inputs, Int, Output, Section, Tool, camera_params,
                                 paper_params)
 
 SIDE_CHOICES = [("auto", "Auto"), ("one", "Front"), ("two", "Both")]
@@ -17,17 +17,18 @@ def depth_on(v):
 TOOL = Tool(
     id="plotter-vision",
     name="Plotter Vision",
-    version="1.4.2",
+    version="1.5.0",
     category="mesh2svg",
     icon="eye",
     action="Draw",
     summary="Draw a 3D model as the edges you can see, through a perspective camera, hidden lines removed.",
     tagline="plotter.vision in the toolkit: aim the camera live, then draw the visible wireframe in mm.",
     description=(
-        "Drag in the Vision tab to orbit the model, wheel to come closer, Shift-drag (or right-drag) to move the "
-        "look-at point; keys 1-5 give the front, side, back, other side and top views, F fits the model in the "
-        "frame. While you move, every candidate edge shows; when you stop, the hidden lines are removed, as on "
-        "plotter.vision. The frame is the paper's drawing area: what you see in it is what gets drawn. Edges "
+        "Aim the camera in the Aim tab: drag to orbit the model, wheel to come closer, Shift-drag (or right-drag) to "
+        "move the look-at point; keys 1-5 give the front, side, back, other side and top views, F fits the model in "
+        "the frame. The frame is the paper's drawing area: what you see in it is what gets drawn. Aim shows a light "
+        "trace of the model (outline and creases), quick on any model; Exact lines (E) shows the drawing itself, "
+        "live, as plotter.vision did, and Preview or Draw makes it in the Drawing tab. Edges "
         "between faces flatter than an angle are left out (0.01° is plotter.vision; a few degrees cleans "
         "low-poly curves; 30° or more leaves only creases and outlines). Optional decimation, depth pens, an "
         "outline pen, hidden lines and the red/blue stereo pair."),
@@ -38,10 +39,10 @@ TOOL = Tool(
     runs_in="process",
     preview="svg",
     columns=("strokes",),
-    viewer=".viewer:VisionView",
+    viewer=".aim:VisionAimView",
     preset_skip=CAMERA_KEYS,
     params=[
-        Section("Camera", *camera_params()),
+        Section("Camera", *camera_params(), note=CAMERA_NOTE),
         Section(
             "Edges",
             Choice('edge_mode', 'Draw edges', 'features', [('features', 'Features'), ('mesh', 'Mesh edges')],

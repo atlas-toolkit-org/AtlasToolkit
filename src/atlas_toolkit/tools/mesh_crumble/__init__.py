@@ -33,9 +33,10 @@ def fusing(v):
 
 
 TOOL = Tool(
+    needs="solid",
     id="mesh-crumble",
     name="Crumble",
-    version="0.1.0",
+    version="0.1.1",
     category="mesh",
     icon="crumble",
     action="Crumble",

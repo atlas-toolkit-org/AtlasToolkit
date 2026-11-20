@@ -9,6 +9,7 @@ import numpy as np
 from atlas_toolkit.core import Result, Stat
 from atlas_toolkit.geom import frame3d
 from atlas_toolkit.geom import mesh as gm
+from atlas_toolkit.geom import repair as R
 from atlas_toolkit.geom.mesh_export import publish_meshes
 from . import TOOL
 from . import pipe_fill as pf
@@ -41,7 +42,7 @@ def run(ctx, src, dst, p):
         raise ValueError("The output must not replace the input model.")
     started = time.perf_counter()
     ctx.progress(.01, "Loading pipe envelope")
-    mesh = gm.load_mesh(src)
+    mesh = R.tidy_input(ctx, gm.load_mesh(src))
     if not np.isfinite(mesh.vertices).all() or np.max(mesh.extents) <= 0:
         raise ValueError("The envelope must have finite coordinates and nonzero size.")
     up, front, rotate, _ = frame3d.resolve_axes(src, p, mesh.extents)
@@ -51,15 +52,14 @@ def run(ctx, src, dst, p):
     repaired = not closed
     if repaired:
         if not p.repair:
-            raise ValueError("The input must be a closed, consistently oriented solid. Close it first or enable "
-                             "Repair open mesh; inferred repair can soften detail and close openings.")
+            raise R.needs_repair(mesh, TOOL, "Repair open mesh")
         ctx.warn(f"Inferring a closed volume at {p.repair_resolution} samples; fine detail and openings may change.")
         v, f = holes.closed_copy(body.vertices, body.faces, int(p.repair_resolution),
                                 lambda t, m='': ctx.progress(.02+.13*t, 'Repair: '+m))
         body = trimesh.Trimesh(v, f, process=True)
         if (not body.is_watertight or not body.is_winding_consistent or
                 holes.solid(body.vertices, body.faces) is None):
-            raise ValueError("Repair could not infer a valid closed volume. Close the model before packing it.")
+            raise R.needs_repair(mesh, TOOL)
     if body.volume < 0:
         body.invert()
     rotation = frame3d.euler_xyz(p.pattern_rotate)

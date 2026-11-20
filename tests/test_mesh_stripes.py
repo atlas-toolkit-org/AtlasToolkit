@@ -317,7 +317,8 @@ class EngineTests(unittest.TestCase):
         trimesh.util.concatenate([a, b]).export(self.src)
         res = self.run_engine(spacing=30., solve_faces=1500)
         self.assertEqual(res.data["components"], 2)
-        a.update_faces(np.arange(len(a.faces)) != 0)
+        z = a.triangles_center[:, 2]
+        a.update_faces(z < z.max() - 0.35 * np.ptp(z))           # an opening (a pin-hole would just be tidied)
         a.export(self.src)
         with self.assertRaisesRegex(ValueError, "Repair open mesh"):
             self.run_engine()

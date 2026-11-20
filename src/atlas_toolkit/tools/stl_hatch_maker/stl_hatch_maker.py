@@ -2,7 +2,7 @@
 stl_hatch_maker.py - Turn a 3D model into a pen-plotter drawing: hatching that shades its form, its outline and
 its creases, seen from any angle, with hidden lines removed (from "STL 3D Hatch Maker" v2.1, v3, C-v4 and v5).
 
-    scene      the model seen by an orthographic camera and laid out on paper in mm      (scene.py)
+    scene      the model seen by the shared orbit camera, orthographic, on paper in mm    (scene.py)
     styles     seven ways to hatch, from v5's surface strokes to v2.1's isophotes       (styles.py)
     lines      true silhouettes (or v5's grazing band) and creases, cut by visibility
     layers     one pen per feature, strokes joined end to end and ordered to cut pen travel
@@ -20,15 +20,18 @@ import numpy as np
 
 from atlas_toolkit.geom.svgout import Layer, join_segments, order_polylines, simplify_all, travel
 
-from .scene import Scene, crease_edges, edge_polylines, silhouette_edges
+from atlas_toolkit.tools.contour_lines.contour_lines import clip_rect
+
+from .scene import Scene, crease_edges, edge_polylines, silhouette_edges, view_camera
 from .styles import STYLES
 
 
-def render(mesh, p, progress=None, log=None) -> dict:
-    """Layers (paper mm) and numbers for one model and one set of parameters."""
+def render(mesh, p, progress=None, log=None, bounds=None) -> dict:
+    """Layers (paper mm) and numbers for one model and one set of parameters. `bounds` (lo, hi): the full model's,
+    when `mesh` is a lighter copy of it (a draft), so the picture sits where Draw puts it."""
     say = progress or (lambda *_: None)
     say(0.05, "setting up the view")
-    scene = Scene(mesh, p.azimuth, p.elevation, p.roll, p.paper, p.orientation, p.margin, p.light)
+    scene = Scene(mesh, view_camera(p), p.roll, p.paper, p.orientation, p.margin, p.light, bounds=bounds)
     rng = np.random.default_rng(int(p.seed))
     layers = []
     fn = STYLES.get(p.style, (None, None))[1]
@@ -50,6 +53,8 @@ def render(mesh, p, progress=None, log=None) -> dict:
     raw_travel, final_travel = 0.0, 0.0
     for layer in layers:
         pls = [pl for pl in join_segments(layer.polylines, 1e-4) if len(pl) >= 2]
+        pls = [[tuple(map(float, pt)) for pt in q] for pl in pls                 # cut at the frame
+               for q in clip_rect(np.asarray(pl, dtype=float), scene.area) if len(q) >= 2]
         pls = [pl for pl in simplify_all(pls, p.simplify) if len(pl) >= 2]
         raw_travel += travel(pls)
         if p.optimise:

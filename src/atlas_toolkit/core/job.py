@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Callable
 
 from .params import Params, resolve_auto
+from .errors import ToolError
 from .tool import InputInfo, Result
 
 
@@ -44,6 +45,7 @@ class JobContext:
         self.cache_dir = Path(cache_dir) if cache_dir else None
         self.job_id = job_id
         self._last = 0.0
+        self.notes: list[str] = []
         self.last_phase='starting'
 
     @property
@@ -69,6 +71,11 @@ class JobContext:
     def warn(self, msg: str) -> None:
         self.log(msg, "warning")
 
+    def note(self, msg: str) -> None:
+        """A warning that also goes at the top of the Report (Result.notes), e.g. "tidied the input: …"."""
+        self.notes.append(str(msg))
+        self.warn(msg)
+
     def check_cancel(self) -> None:
         if self._cancelled():
             raise Cancelled()
@@ -88,7 +95,18 @@ def inspect_input(tool, src: str) -> InputInfo | None:
     fn = tool.inspect_fn()
     if fn is None and tool.inputs.kind in DEFAULT_INSPECT:
         fn = tool.resolve(DEFAULT_INSPECT[tool.inputs.kind])
-    return fn(Path(src)) if fn else None
+    info = fn(Path(src)) if fn else None
+    if info is not None and getattr(tool, "needs", None) and info.kind == "mesh":
+        # say at once whether the input is usable as it is, will be tidied, or needs Repair Mesh first
+        from ..geom import repair
+        try:
+            check = repair.input_check(Path(src), tool.needs)
+        except Exception:                        # an unreadable mesh is reported by the run itself
+            check = None
+        if check and check["state"] != "ok":
+            info.values["input_check"] = check
+            info.summary = f"{info.summary} · {check['short']}"
+    return info
 
 
 def run_job(job: Job, emit: Callable[[str, tuple], None], cancelled: Callable[[], bool], reg=None) -> None:
@@ -135,6 +153,8 @@ def execute(tool, job: Job, emit: Callable[[str, tuple], None], cancelled: Calla
         result = tool.engine_fn()(ctx, Path(job.src), dst, values)
         if not isinstance(result, Result):
             raise TypeError(f"{tool.id}: engine returned {type(result).__name__}, expected Result")
+        if ctx.notes:
+            result.notes = list(ctx.notes) + [n for n in (result.notes or []) if n not in ctx.notes]
         result.data = result.data if result.data is not None else {}
         if isinstance(result.data, dict):
             result.data.setdefault("seconds", time.perf_counter() - t0)
@@ -149,4 +169,16 @@ def execute(tool, job: Job, emit: Callable[[str, tuple], None], cancelled: Calla
         if ctx is not None and heightfield:ctx.log(f'job {job.id} · {job.mode} · failed after {diagnostic["seconds"]:.2f}s · {diagnostic["phase"]}', 'warning')
         expected=heightfield and isinstance(e,ValueError) and any(part in str(e).lower() for part in
                    ('locked terrain','custom plate','clearance','diagonal point contacts','budget','paper size','estimated peak ram'))
+        if isinstance(e, ToolError):             # a problem the user can fix: the message, then what to do
+            diagnostic.update(hint=e.hint, suggest_tool=e.suggest_tool)
+            emit("error", (error_text(e), '', diagnostic))
+            return
         emit("error", (f"{type(e).__name__}: {e}", '' if expected else traceback.format_exc(),diagnostic))
+
+
+def error_text(e: Exception) -> str:
+    """How an error reads in the report, the queue's tooltip and the log: a ToolError as its message and, on a line
+    of its own, what to do; anything else as "Type: message"."""
+    if isinstance(e, ToolError):
+        return e.message + (f"\n\nWhat to do: {e.hint}" if e.hint else "")
+    return f"{type(e).__name__}: {e}"

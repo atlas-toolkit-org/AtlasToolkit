@@ -8,13 +8,19 @@ a 2D plot view or a 3D mesh view, and a small toolbar. What it shows comes from 
 Inputs bring their own views (from inspect), results add theirs. A tool may also bring an interactive widget (its
 spec's `viewer`), shown as {"title": ..., "kind": "widget", "widget": QWidget}: the stage hosts it, passes it the
 theme, the art mode and Fit, and shows its info_text() in the toolbar.
+
+A widget with `sets_view = True` (an Aim tab, tools/plotter_vision/aim.py) is the one place the drawing's view is
+set: its tab carries the aim glyph, a 3D tab beside it says "Inspect only" with a way back, and when the user opens
+that 3D tab it turns to the side being aimed at (the widget's input_view() -> (azimuth, elevation) or None). Only
+that way round: orbiting the 3D tab never changes the settings.
 """
 from __future__ import annotations
 
 from PySide6.QtCore import Qt, Signal
-from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel, QStackedWidget, QTabBar, QVBoxLayout, QWidget
+from PySide6.QtWidgets import (QFrame, QHBoxLayout, QLabel, QPushButton, QStackedWidget, QTabBar, QVBoxLayout,
+                               QWidget)
 
-from ..theme import mono
+from ..theme import icon, mono
 from .common import apply_icon, icon_button
 from .plot_view import PlotView
 
@@ -42,6 +48,15 @@ class PreviewStage(QFrame):
         self.tabs.currentChanged.connect(self._tab_changed)
         bar.addWidget(self.tabs)
         bar.addStretch(1)
+        self.btn_inspect = QPushButton("Inspect only · view set in Aim")
+        self.btn_inspect.setProperty("variant", "ghost")
+        self.btn_inspect.setFont(mono(11))
+        self.btn_inspect.setCursor(Qt.PointingHandCursor)
+        self.btn_inspect.setToolTip("Orbit this 3D view to look the model over: it does not change the drawing. "
+                                    "The drawing's view is set in the Aim tab.")
+        self.btn_inspect.clicked.connect(self.show_aim)
+        self.btn_inspect.setVisible(False)
+        bar.addWidget(self.btn_inspect)
         self.info = QLabel("")
         self.info.setFont(mono(11))
         self.info.setProperty("class", "mono")
@@ -80,6 +95,7 @@ class PreviewStage(QFrame):
             self.tabs.removeTab(0)
         for v in self.views:
             self.tabs.addTab(v["title"])
+        self._mark_aim()
         titles = [v["title"] for v in self.views]
         pick = prefer if prefer in titles else (current if current in titles else (titles[-1] if titles else None))
         self.tabs.setCurrentIndex(titles.index(pick) if pick else -1)
@@ -95,17 +111,38 @@ class PreviewStage(QFrame):
         self.stack.setCurrentWidget(self.plot)
         self.plot.show_drawing(None, message=message)
         self.info.setText("")
+        self.btn_inspect.setVisible(False)
 
     def _tab_changed(self, _i: int) -> None:
-        self._show_current(keep_view=True)
+        self._show_current(keep_view=True, follow=True)
         self.view_changed.emit(self.tabs.tabText(self.tabs.currentIndex()))
 
-    def _show_current(self, keep_view: bool = False) -> None:
+    # ------------------------------------------------------------------ the Aim tab
+    def aim_widget(self):
+        """The hosted widget that sets the drawing's view, if any."""
+        return next((v["widget"] for v in self.views
+                     if v["kind"] == "widget" and getattr(v["widget"], "sets_view", False)), None)
+
+    def show_aim(self) -> None:
+        for i, v in enumerate(self.views):
+            if v["kind"] == "widget" and getattr(v["widget"], "sets_view", False):
+                self.tabs.setCurrentIndex(i)
+                return
+
+    def _mark_aim(self) -> None:
+        for i, v in enumerate(self.views):
+            if v["kind"] == "widget" and getattr(v["widget"], "sets_view", False):
+                self.tabs.setTabIcon(i, icon("aim", self.theme["text-2"], 14))
+                self.tabs.setTabToolTip(i, "Aim sets the drawing's view: what the frame shows is what gets drawn.")
+
+    def _show_current(self, keep_view: bool = False, follow: bool = False) -> None:
         i = self.tabs.currentIndex()
         if i < 0 or i >= len(self.views):
             self.clear()
             return
         v = self.views[i]
+        aim = self.aim_widget()
+        self.btn_inspect.setVisible(aim is not None and v["kind"] == "mesh")
         if v["kind"] == "widget":
             w = v["widget"]
             if w not in self.hosted:
@@ -126,6 +163,9 @@ class PreviewStage(QFrame):
             mv = self._ensure_mesh_view()
             self.stack.setCurrentWidget(mv)
             mv.show_mesh(v.get("mesh"), keep_view=keep_view, wire=self.btn_wire.isChecked())
+            angles = aim.input_view() if (follow and aim is not None and hasattr(aim, "input_view")) else None
+            if angles is not None:                       # turn to the side being aimed at
+                mv.set_camera(*angles)
             self.btn_travel.setVisible(False)
             self.btn_wire.setVisible(True)
             m = v.get("mesh")
@@ -187,6 +227,7 @@ class PreviewStage(QFrame):
                 w.set_theme(theme)
         for b in (self.btn_travel, self.btn_wire, self.btn_fit):
             apply_icon(b, theme)
+        self._mark_aim()
 
     def set_art(self, art: str) -> None:
         self.art = art

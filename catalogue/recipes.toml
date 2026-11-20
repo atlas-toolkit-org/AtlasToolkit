@@ -18,8 +18,8 @@
 # name, category and triangles (Light & quick holds them: every tool runs on them in seconds).
 
 [catalogue]
-revision = 1
-base_url = "https://github.com/atlas-toolkit-org/AtlasToolkit/releases/download/catalogue-1/"
+revision = 2
+base_url = "https://github.com/atlas-toolkit-org/AtlasToolkit/releases/download/catalogue-2/"
 # Shapes & forms: these simple solids ship in the app (bundled = true); the more complex shapes download
 simple_shapes = ["sphere", "cube", "tetrahedron", "octahedron", "dodecahedron", "icosahedron", "pyramid", "cylinder",
                  "cone", "capsule", "torus", "rounded-cube"]
@@ -821,19 +821,6 @@ tags = ["fossil", "ammonite", "spiral"]
 triangles = 300000
 
 [[model]]
-id = "fossil-whale"
-name = "Fossil whale excavation"
-category = "nature"
-view = { azimuth = -28, elevation = 55 }
-rotate = [-90, 0, 180]
-commons = "Whale-mpc-677-150k (Smithsonian Institution).stl"
-license = "CC0-1.0"
-credit = "Smithsonian Institution"
-description = "A fossil whale skeleton as it lay when dug up, Cerro Ballena, Chile."
-tags = ["fossil", "whale", "skeleton"]
-triangles = 150000
-
-[[model]]
 id = "aquilops-skull"
 name = "Aquilops skull"
 category = "nature"
@@ -1160,6 +1147,7 @@ id = "klein-bottle"
 name = "Klein bottle"
 category = "shapes"
 generator = "klein_bottle"
+open = "non-orientable: one surface with no inside, so no tool can take it as a solid"
 description = "A bottle with no inside: one surface that passes through itself."
 tags = ["one-sided", "topology", "surface"]
 
@@ -1168,6 +1156,7 @@ id = "boys-surface"
 name = "Boy's surface"
 category = "shapes"
 generator = "boys_surface"
+open = "non-orientable: one surface with no inside, so no tool can take it as a solid"
 description = "The projective plane in space, with threefold symmetry."
 tags = ["one-sided", "topology", "surface"]
 
@@ -1579,5 +1568,5 @@ from = "lagoa-santa"
 name = "Lagoa Santa woman · light"
 category = "light"
 tags = ["light"]
-triangles = 40000
+triangles = 34000            # its cut base is closed when built: about 42 000 shipped
 bundled = true
