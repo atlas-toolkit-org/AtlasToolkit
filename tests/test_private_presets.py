@@ -32,6 +32,40 @@ class PrivatePacks(unittest.TestCase):
         self.assertTrue(tools <= set(self.reg.tools), tools - set(self.reg.tools))
         self.assertGreater(n, 300)
 
+    def test_every_tool_has_presets(self):
+        """A new tool needs its presets before the next pack (Repair Mesh shipped in 2.4.1 without any); the pack
+        tool's `check` holds the exact counts per tier."""
+        have = {p.tool for pk in _presets._packs() for p in pk.presets}
+        missing = [t.id for t in self.reg.ordered() if t.id not in have]
+        self.assertEqual(missing, [], "tools with no preset in the packs")
+
+    def test_presets_use_current_names(self):
+        """Renamed or dropped keys and choices still load through `former` / `former_values`, but the official packs
+        are kept current: a preset that leans on them (Motion Sculpture's Painted area, gone in 0.5.0) is redone."""
+        stale = []
+        for tool in self.reg.ordered():
+            params = {q.key: q for q in tool.param_list}
+            formers = {old: q.key for q in tool.param_list for old in q.former}
+            for p in _presets.pack_presets(tool):
+                for k, v in p.values.items():
+                    if k in formers:
+                        stale.append(f"{tool.id} / {p.name}: {k} is now {formers[k]}")
+                    q = params.get(k)
+                    if q is not None and isinstance(v, str) and v in q.former_values:
+                        stale.append(f"{tool.id} / {p.name}: {k}={v!r} is now {q.former_values[v]!r}")
+        self.assertEqual(stale, [], "\n".join(stale))
+
+    def test_no_preset_paints_an_area(self):
+        """A painted area is a face mask of one model: an official preset never stores one or selects Paint
+        (Crumble's Area, Stair Sculpt's Opening, Surface Eject's Extract from). Band and Sphere regions are % of the
+        model's size and carry over."""
+        painted = []
+        for tool in self.reg.ordered():
+            for p in _presets.pack_presets(tool):
+                if p.values.get("selection") or "paint" in p.values.values():
+                    painted.append(f"{tool.id} / {p.name}")
+        self.assertEqual(painted, [], "presets that use a painted area")
+
     def test_packs_store_no_paths(self):
         for tool in self.reg.ordered():
             files = {p.key for p in tool.param_list if isinstance(p, FileRef)}

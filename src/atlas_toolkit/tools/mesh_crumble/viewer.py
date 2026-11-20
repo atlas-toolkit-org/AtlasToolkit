@@ -9,7 +9,7 @@ from PySide6.QtWidgets import QDialog, QHBoxLayout, QLabel, QMessageBox, QPushBu
 from atlas_toolkit.geom import frame3d
 from atlas_toolkit.geom import mesh as gm
 from atlas_toolkit.tools.mesh_surface_eject import mesh_surface_eject as se
-from atlas_toolkit.tools.mesh_surface_eject.viewer import SelectionDialog
+from atlas_toolkit.ui.widgets.face_paint import SelectionDialog
 from atlas_toolkit.ui.widgets.mesh_view import MeshView, gl
 
 from . import TOOL
@@ -92,7 +92,7 @@ class SelectionView(QWidget):
             except (ValueError, OSError) as exc:
                 selected = np.zeros(len(original.faces), bool)
                 warning = str(exc) + " Start a new selection below."
-            dialog = SelectionDialog(original, display, selected, self.theme, self)
+            dialog = SelectionDialog(original, display, selected, self.theme, self, codec=(se.encode_selection, se.decode_selection))
             dialog.setWindowTitle("Crumble — paint the area")
             if warning:
                 dialog.instructions.setText(warning + "\n" + dialog.instructions.text())

@@ -1,4 +1,4 @@
-# Motion Sculpture 0.3.0
+# Motion Sculpture 0.5.0
 
 Make a still mesh express motion through layered silhouettes, trailing fins and splintered bars.
 The visual references are stacks of glass rods and elongated bronze or glass laminae. This is a procedural
@@ -6,49 +6,6 @@ interpretation of their motion language, operating on your own input model rathe
 
 Open a closed STL/OBJ/PLY in **Motion Sculpture**, choose **Wind-carved bronze** or **Glass runner**, and Preview.
 Send the output to **Sketch Hatching**, **Plotter Vision** or **Contour Lines** for a pen drawing.
-
-## Paint a motion area
-
-Choose **Region → Acts on → Painted area**, then use **Selection → Paint / select area…**.
-The modal uses the same editor as Surface Eject: left-drag paints visible source triangles, Shift erases,
-Alt+left-drag or Orbit rotates, and the wheel zooms. Undo, Clear, Select all, Load and Export are available.
-Rotate the model to paint other sides; hidden faces remain unselected. Click **Use selected area**, then
-**Preview motion**. Travel heading still determines the pulling direction.
-
-**Painted geometry → Sliced layers** is the default. It samples the whole source silhouette into closed
-plates or bars with real gaps. Only painted, outward-facing section edges grow wakes. Travel heading points
-in the travel direction, so the wake grows opposite it. If the painted faces do not face that wake direction,
-the report warns that no outward roots were found. Change heading or paint a larger area.
-
-The unextended silhouette is a layer-resolution approximation, rather than the original surface: increase
-Layers to retain smaller features. Layer gap controls actual plate thickness; Bar gap separates bars.
-Zero gaps retain a microscopic minimum clearance so an STL reload does not weld neighbouring caps.
-Selected-edge sweeps preserve the original section and extend it into tapered wakes; they do not need
-global deformation backtracking. Leading form moderates the leading side without suppressing the entire
-painted front. Paint feather softens extension inside the selection.
-
-Choose **Connected surface** for strict unpainted-skin preservation. It blends neighbouring layer gestures,
-uses corrugations instead of open slots, and pins unpainted source skin. Both modes use the same selection.
-Selection precision follows the original source triangles. Changing the source mesh requires repainting; rotating the Model frame
-does not invalidate a selection. Empty, malformed and wrong-mesh masks fail before publication.
-
-The selection is embedded in settings/history/workflows. Selection file optionally overrides it, using the
-same exported JSON format as Surface Eject. File content participates in workflow cache keys. In Workflows,
-use Aim in tool, paint, then Back to workflow. Artistic UI presets preserve an existing painted area;
-the Held portrait preset explicitly switches to its height band.
-
-Paint weights use exact distances to painted and unpainted source triangles. Sliced layers takes native
-cross-sections and intersects source triangles to identify painted roots; polygon unions on a 0.0001%-height
-precision grid combine the section with tapered edge sweeps before closed extrusion. Holes and disconnected
-limbs are retained. This avoids fragile 3D boolean seams and dense skin refinement. Previews use shape-preserving
-reduction to retain thin fins. Wake length responds directly, subject to feather, rhythm, base hold and seed.
-
-Connected surface uses conforming surface refinement. Local triangle orientation checks now reduce only
-offending vertex neighbourhoods, leaving safe painted areas strong. Motion retained reports the average
-retained displacement. If protection limits the result, expand the selection, increase Paint feather or
-reduce reach/curl/taper. The guard does not certify absence of distant self-intersections.
-Bounded file-precision stabilization may adjust sub-format edges. Export is staged,
-reloaded and checked for a closed, oriented positive-volume solid before replacing an existing output.
 
 ## Shape controls
 
@@ -65,7 +22,7 @@ reloaded and checked for a closed, oriented positive-volume solid before replaci
 | Layers / Layer gap | More layers make finer lines; gap compresses entire slabs, preserving all source intervals. |
 | Bars / Bar gap | More parallel bars per slab. Bar gap narrows each deformed bar about its rest centre. |
 | Hold base | Prevents sweep below the selected stack percentage, with a smooth 10% transition. Layers remain sliced and gapped. |
-| Region | Whole model, feathered height band or sphere (per slab); or Painted area with Sliced layers / Connected surface. |
+| Region | Whole model, feathered height band or sphere (per slab). Painted area was removed in 0.5.0; settings saved with it act on the whole model. |
 | Amount | Blends sweep, taper and gaps. Exactly zero returns the untouched input mesh. |
 
 Lengths use source height, not the expanded output's bounds. Frame controls follow Atlas's shared Up, Front
@@ -97,7 +54,7 @@ closure, winding, finite coordinates and positive volume. It does not silently r
 the source first if cuts encounter invalid geometry. Maximum faces is a hard total budget; a second guard limits
 Splinters to 5,000 layer/bar cells. Cancellation is checked during cuts, refinement and every piece.
 
-The original whole/band/sphere modes produce separate sculptural shells, without a boolean union, supports or structural certification. Curl can
+The output is separate sculptural shells, without a boolean union, supports or structural certification. Curl can
 make bars within a layer overlap; zero gaps can leave touching surfaces. Treat the output as drawing geometry
 or prepare supports/fusion separately for fabrication. No physics, optical flow or motion capture is implied.
 

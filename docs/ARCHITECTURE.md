@@ -66,6 +66,8 @@ src/atlas_toolkit/
     workflow/      the Workflows page: canvas (steps, ports, arrows), step library, inspector, page (check, run)
     theme/         tokens.json and icons.json (synced from the studio design system), Geist fonts, qss.py stylesheet
     widgets/       spin (the one number field: triangles, steps that fit the parameter), param_form, file_queue, preview (stage), plot_view (2D), mesh_view (3D), common
+                   face_paint: the shared paint-a-face-area dialog (Surface Eject, Crumble, Stairs); it picks
+                   in screen space through a face-id buffer (geom/screen_pick.py), so big meshes paint as fast as small
                    (a tool's own interactive view, spec `viewer`, is hosted by the stage as a "widget" view)
   tools/     one folder per tool = one Atlas code unit
 ```

@@ -59,7 +59,8 @@ presets; seeded; no Blender or new libraries. See [Crumble](CRUMBLE.md).
 **Surface Eject 0.3.1** extracts real pieces of the model surface with cube, box, sphere, ellipsoid or cylinder
 samplers and floats them along the area-weighted outward normal, preserving orientation and leaving matching
 cavities. Independent seeded size/depth/gap ranges, certified full detachment, whole surface / clipped height
-band / visible-face painting in a modal selection editor. Optional cylinders, square bars or organic stems
+band / visible-face painting in a modal selection editor (shared with Crumble and Stair Sculpt;
+it picks what the screen shows, so it stays quick on meshes of millions of faces). Optional cylinders, square bars or organic stems
 connect fragments back to their cavities, with bounded forks, curvature, taper, spread and thickness controls.
 Choose 0–100% connected fragments: an exact seeded random subset, or largest/smallest first. Independent
 connection seed, stable subsets and floating unselected pieces. Up to 100 extra branches, fixed or random

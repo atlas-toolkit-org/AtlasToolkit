@@ -1,5 +1,33 @@
 # Changelog
 
+## 2.4.2 (2026-11-20)
+
+**Painting on big models**
+- **Painting an area is fast on big models.** The paint window of Surface Eject, Crumble and Stair Sculpt used to cast a ray for every face under the brush, so it slowed down above ~10 000 faces and froze above
+  ~100 000: one click on a 330 000-face model took 77 s. It now picks what the screen shows, from a face-id image
+  drawn once per view, and paints a stroke at most once a frame. One click takes about 0.03 s on 330 000 faces and
+  0.04 s on 1.3 million, and the window keeps answering while you paint. Hidden faces still stay unpainted. The
+  selection is saved exactly as before, so earlier selections, presets and workflows are unchanged.
+- **A large painted area works.** The settings form cut text at 32 767 characters (Qt's default), so a big selection
+  arrived as broken JSON: Stair Sculpt and Crumble said *Invalid selection JSON*, and Surface
+  Eject went back to *Whole surface*. Text settings are never cut now, and a selection is stored as packed bits
+  (`atlas.surface-selection.v2`): a painted cap on 330 000 faces is under 1 KB. Selections saved before (v1) still
+  load; selections and exported selection files saved by 2.4.2 do not load in older versions.
+- **Stair Sculpt** 0.1.2 exports big painted areas. On a 500 000-face head, the weld before saving could fold a
+  sliver into two faces back to back, which a loader halves into a hole; the pair is now dropped (*edges too fine to
+  export* before). Outputs that already saved are unchanged.
+- **Motion Sculpture** 0.5.0 no longer has *Painted area* under Region › Acts on (nor the Selection tab, Painted
+  geometry, Paint feather and the selection settings): it ran, but its wakes did not look right. Whole model, Height
+  band and Sphere are unchanged. A preset, history entry or workflow saved with a painted area now acts on the whole
+  model, and the form notes the painting settings it no longer uses.
+- **Repair Mesh** 1.0.1 rebuilds again: *Always rebuild*, and *Repair, rebuild only if needed* on a model that
+  needed it, stopped with a TypeError (the resampler's progress message). `test_mesh_repair` now runs a rebuild
+  through the tool.
+- `tests/test_painted_selection.py` checks that each of the three tools changes the model where it was painted and
+  not elsewhere, and follows the paint to the other side.
+- The paint window is now one shared widget (`ui/widgets/face_paint.py`, picking in `geom/screen_pick.py`);
+  `scripts/dev/paint_perf.py` measures it on spheres of 20 000 to 5 million faces or on your own models.
+
 ## 2.4.1 (2026-11-20)
 
 **One Aim for every Mesh → SVG tool**

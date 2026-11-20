@@ -105,9 +105,25 @@ class GeometryTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "empty"):
             se.decode_selection(model, se.encode_selection(model, np.zeros(len(mask), bool)))
         data = json.loads(text)
-        data["ranges"] = [[0, len(mask)]]
+        self.assertEqual(data["format"], "atlas.surface-selection.v2")
+        data["mask"] = data["mask"][:-8]
         with self.assertRaisesRegex(ValueError, "Invalid selected"):
             se.decode_selection(model, json.dumps(data))
+        # v1 (face ranges, before 2.4.2) still loads, and its bad ranges are refused.
+        ids = np.flatnonzero(mask)
+        v1 = {"format": "atlas.surface-selection.v1", "mesh": data["mesh"], "faces": len(mask),
+              "ranges": [[int(i), int(i)] for i in ids]}
+        np.testing.assert_array_equal(se.decode_selection(model, json.dumps(v1)), mask)
+        v1["ranges"] = [[0, len(mask)]]
+        with self.assertRaisesRegex(ValueError, "Invalid selected"):
+            se.decode_selection(model, json.dumps(v1))
+
+    def test_a_large_scattered_selection_stays_short(self):
+        model = trimesh.creation.icosphere(subdivisions=7)          # 327 680 faces
+        mask = np.random.default_rng(1).random(len(model.faces)) < .4   # the worst case: no runs at all
+        text = se.encode_selection(model, mask)
+        self.assertLess(len(text), 32767 // 2 * 4)
+        np.testing.assert_array_equal(se.decode_selection(model, text), mask)
 
     def test_independent_depth_samplers_reach_requested_depth(self):
         for shape in ("box", "ellipsoid", "cylinder"):
@@ -274,13 +290,16 @@ class SelectionUITests(unittest.TestCase):
         dialog.show()
         self.app.processEvents()
         canvas = dialog.canvas
+        if not canvas.pick_view():
+            self.skipTest("no OpenGL drawing here: " + (canvas.gl_failure or "the view is not valid"))
         dialog.remember()
         dialog.paint(canvas.width() / 2, canvas.height() / 2)
         self.assertTrue(dialog.selected.any())
         selected = np.flatnonzero(dialog.selected)
         projected = canvas.project(model.triangles_center[selected])
         origins, directions = canvas.rays(projected[:, :2])
-        ids, indexes = dialog.ray.intersects_id(origins, directions, multiple_hits=False)
+        ray = trimesh.ray.ray_triangle.RayMeshIntersector(model)
+        ids, indexes = ray.intersects_id(origins, directions, multiple_hits=False)
         np.testing.assert_array_equal(ids, selected[indexes])
         dialog.undo()
         self.assertFalse(dialog.selected.any())

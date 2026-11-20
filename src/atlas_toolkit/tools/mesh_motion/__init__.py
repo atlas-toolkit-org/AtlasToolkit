@@ -1,26 +1,17 @@
 """Motion Sculpture. Atlas signature: atlas-toolkit:mesh-motion."""
-from atlas_toolkit.core import (Choice, FileRef, Float, Inputs, Int, Output, Section, Seed, Text, Tool,
-                               frame_params, influence_params)
+from dataclasses import replace
+
+from atlas_toolkit.core import Choice, Float, Inputs, Int, Output, Section, Seed, Tool, frame_params, influence_params
 
 
 def region_params():
     params = influence_params()
-    params[0] = Choice("influence", "Acts on", "all", [("all", "Whole model"), ("band", "Height band"),
-                       ("sphere", "Sphere"), ("paint", "Painted area")],
-                       help="Painted area: open Selection and Paint / select area. In Workflows use Aim in tool, then Back to workflow.")
-    return params + [
-        Choice("paint_style", "Painted geometry", "layers", [("layers", "Sliced layers"), ("connected", "Connected surface")],
-               visible_if={"influence": "paint"}, help="Sliced layers samples the whole silhouette into solid plates/bars; only painted outward section edges grow wakes. Connected surface keeps unpainted skin fixed."),
-        Float("paint_feather", "Paint feather", 8., unit="% h", min=.5, max=50., step=1., decimals=1,
-              visible_if={"influence": "paint"}, help="Softens wake strength at painted boundaries. Smaller values give more of the selected area full intensity."),
-        FileRef("selection_file", "Selection file", "", exts=(".json",), visible_if={"influence": "paint"},
-                help="Optional Surface Eject-compatible selection JSON. Overrides the embedded mask; tied to the exact source mesh."),
-        Text("selection", "Embedded selection", "", advanced=True, visible_if={"influence": "paint"},
-             help="Face mask written by the paint editor, saved with settings, history and Workflows."),
-    ]
+    # 0.5.0 dropped Painted area: a file or workflow saved with it acts on the whole model.
+    params[0] = replace(params[0], former_values={"paint": "all"})
+    return params
 
 TOOL = Tool(
-    id="mesh-motion", name="Motion Sculpture", version="0.4.0", category="mesh",
+    id="mesh-motion", name="Motion Sculpture", version="0.5.0", category="mesh",
     icon="motion-sculpture", action="Sculpt",
     summary="Stretch a silhouette into swept laminae, splintered bars or a rising vortex of motion.",
     tagline="Give a still form a wake. Carve time into the silhouette.",
@@ -29,16 +20,14 @@ TOOL = Tool(
                  "Heading is the direction of travel: the wake extends behind it. Pulse, gust and vortex fields "
                  "change the gesture through the stack. Preserve the leading face, anchor the feet, and use a "
                  "feathered region to isolate the motion. Preview and Run use identical geometry. "
-                 "Painted area uses the Selection tab's visible-face editor. Sliced layers makes real slabs or bars; "
-                 "Connected surface keeps the skin continuous. Local protection retains strong motion in safe areas. "
                  "Closed, consistently oriented input is required: small defects are tidied automatically, and "
                  "Repair Mesh fixes the rest (or Open input › Repair by resampling). Source units and placement are retained. "
-                 "Unpainted modes output separate closed shells, not a fused printable assembly. No Blender is needed."),
+                 "The output is separate closed shells, not a fused printable assembly. No Blender is needed."),
     inputs=Inputs("mesh", exclude=(r"(?i)_motion\.(stl|obj|ply)$",)),
     output=Output("{stem}_motion.stl", "mesh", formats=(".stl", ".obj", ".ply")),
     signature="atlas-toolkit:mesh-motion", engine=".engine:run", runs_in="process", preview="mesh",
-    sample=".engine:make_sample", columns=("pieces", "faces"), viewer=".viewer:SelectionView",
-    preset_inputs=("influence", "selection", "selection_file", "paint_feather", "paint_style", "repair"),
+    sample=".engine:make_sample", columns=("pieces", "faces"),
+    preset_inputs=("influence", "repair"),
     needs="solid",
     params=[
         Section("Motion",
@@ -53,7 +42,7 @@ TOOL = Tool(
             Float("heading", "Travel heading", 0., unit="°", min=-180., max=180., step=5., slider=True,
                   help="In the layer plane: 0° travels toward +X for horizontal layers; the wake trails toward −X."),
             Float("preserve", "Leading form", 40., unit="%", min=0., max=90., step=5., slider=True,
-                  help="Leading share retained in whole-model modes. Painted wakes retain the original section and use this control to moderate extension near the leading side."),
+                  help="Leading share of each piece kept unstretched."),
             Float("taper", "Tail taper", 70., unit="%", min=0., max=95., step=5., slider=True,
                   help="Narrows both depth and layer thickness toward the trailing tip; tips stay finite."),
             Float("curl", "Sideways curl", 8., unit="% h", min=-60., max=60., step=2., slider=True,

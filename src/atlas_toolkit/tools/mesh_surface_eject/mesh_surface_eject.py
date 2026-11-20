@@ -3,10 +3,13 @@
 Manifold's Split returns both sides of the same cut. Original triangle provenance identifies the actual
 outer skin, supplies its area-weighted normal and prevents a painted selection from leaking onto other faces.
 """
+import base64
+import binascii
 from collections import Counter
 from dataclasses import dataclass, field
 import hashlib
 import json
+import zlib
 
 import manifold3d as mf
 import numpy as np
@@ -21,26 +24,39 @@ def fingerprint(mesh):
 
 
 def encode_selection(mesh, selected):
-    ids = np.flatnonzero(selected)
-    starts = ids[np.r_[True, np.diff(ids) != 1]] if len(ids) else []
-    ends = ids[np.r_[np.diff(ids) != 1, True]] if len(ids) else []
-    return json.dumps({"format": "atlas.surface-selection.v1", "mesh": fingerprint(mesh),
-                       "faces": len(mesh.faces), "ranges": [[int(a), int(b)] for a, b in zip(starts, ends)]},
-                      separators=(",", ":"))
+    """The painted faces of this exact mesh as compact JSON: a zlib-packed bit per face (format v2).
+
+    Kept small on purpose: the text lives in settings, history, presets and workflows."""
+    mask = np.asarray(selected, dtype=bool)
+    packed = base64.b64encode(zlib.compress(np.packbits(mask).tobytes(), 9)).decode("ascii")
+    return json.dumps({"format": "atlas.surface-selection.v2", "mesh": fingerprint(mesh),
+                       "faces": len(mesh.faces), "mask": packed}, separators=(",", ":"))
 
 
 def decode_selection(mesh, text):
+    """A face mask from `encode_selection`'s JSON, v2 (packed bits) or v1 (face ranges, before 2.4.2)."""
     try:
         data = json.loads(text)
-        if data.get("format") != "atlas.surface-selection.v1":
+        kind = data.get("format")
+        if kind not in ("atlas.surface-selection.v1", "atlas.surface-selection.v2"):
             raise ValueError("Unsupported selection format.")
         if data.get("mesh") != fingerprint(mesh) or data.get("faces") != len(mesh.faces):
             raise ValueError("Painted selection belongs to a different mesh. Open Selection and repaint this input.")
         mask = np.zeros(len(mesh.faces), dtype=bool)
-        for a, b in data["ranges"]:
-            if type(a) is not int or type(b) is not int or not 0 <= a <= b < len(mask):
-                raise ValueError("Invalid selected face range.")
-            mask[a:b + 1] = True
+        if kind.endswith("v2"):
+            try:
+                bits = np.unpackbits(np.frombuffer(zlib.decompress(base64.b64decode(data["mask"], validate=True)),
+                                                   dtype=np.uint8))
+            except (binascii.Error, zlib.error, ValueError) as exc:
+                raise ValueError("Invalid selected face mask.") from exc
+            if len(bits) != (len(mask) + 7) // 8 * 8 or bits[len(mask):].any():
+                raise ValueError("Invalid selected face mask.")
+            mask[:] = bits[:len(mask)].astype(bool)
+        else:
+            for a, b in data["ranges"]:
+                if type(a) is not int or type(b) is not int or not 0 <= a <= b < len(mask):
+                    raise ValueError("Invalid selected face range.")
+                mask[a:b + 1] = True
         if not mask.any():
             raise ValueError("Painted selection is empty. Paint an area before ejecting.")
         return mask
