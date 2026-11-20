@@ -10,6 +10,7 @@ import numpy as np
 from atlas_toolkit.core import Result, Stat
 from atlas_toolkit.geom import frame3d
 from atlas_toolkit.geom import mesh as gm
+from atlas_toolkit.geom import repair as R
 from atlas_toolkit.geom.stages import Publisher
 from atlas_toolkit.tools.mesh_holes.engine import closed_copy, solid
 from atlas_toolkit.tools.mesh_holes.mesh_holes import from_manifold
@@ -49,7 +50,7 @@ def run(ctx, src: Path, dst: Path | None, p) -> Result:
     composition = fr.plan(p)                 # reject impossible layouts before loading a large source
     copies = len(composition.transforms)
     ctx.progress(0.02, "loading source model")
-    mesh = gm.load_mesh(src)
+    mesh = R.tidy_input(ctx, gm.load_mesh(src))
     up, front, rotate, axes_source = frame3d.resolve_axes(src, p, mesh.extents)
     frame = frame3d.fit_frame(mesh.vertices, up, front, rotate, mode="height", size=frame3d.MODEL_HEIGHT)
     original_v = frame.apply(mesh.vertices)
@@ -65,7 +66,7 @@ def run(ctx, src: Path, dst: Path | None, p) -> Result:
     repaired = False
     if model is None:
         if not p.repair_open:
-            raise ValueError("the source is not a closed solid; enable Close open source or close it before replication")
+            raise R.needs_repair(mesh, TOOL, "Close open source")
         else:
             resolution = min(p.repair_resolution, 96) if ctx.draft else p.repair_resolution
             ctx.warn(f"the source is not a closed solid: closing it at {resolution} samples; fine detail may soften")
@@ -74,7 +75,7 @@ def run(ctx, src: Path, dst: Path | None, p) -> Result:
             model = source_solid(V, F)
             repaired = True
             if model is None:
-                raise ValueError("the source could not be closed into a solid; close it before replication")
+                raise R.needs_repair(mesh, TOOL)
     if detail and len(F) > detail:
         # A decimator's smallest target can pinch thin features (notably fractals). Increase its target until
         # an exportable solid survives, respecting the user's total budget; never silently export the pinch.

@@ -4,7 +4,7 @@ without Blender.
 
 Outputs <name>_contours.svg, signed <desc>contour-lines</desc> so Atlas links them to this tool.
 """
-from atlas_toolkit.core import (CAMERA_KEYS, FRAME_KEYS, Bool, Float, Inputs, Int, Output, Section, Tool,
+from atlas_toolkit.core import (CAMERA_KEYS, CAMERA_NOTE, FRAME_KEYS, Bool, Float, Inputs, Int, Output, Section, Tool,
                                 camera_params, frame_params, paper_params)
 
 TOOL = Tool(
@@ -33,7 +33,7 @@ TOOL = Tool(
     viewer="atlas_toolkit.tools.plotter_vision.aim:AimView",
     preset_skip=CAMERA_KEYS + FRAME_KEYS,
     params=[
-        Section("Camera", *camera_params(theta=72.4, psi=148.0, radius=262.0, fov=36.2)),
+        Section("Camera", *camera_params(theta=72.4, psi=148.0, radius=262.0, fov=36.2), note=CAMERA_NOTE),
         Section("Contours",
                 Float("spacing_mm", "Line spacing", 2.0, unit="mm", min=0.3, max=20.0, step=0.1, decimals=2,
                       slider=True,

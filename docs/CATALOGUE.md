@@ -78,6 +78,12 @@ Every kind ends up as `<catalogue folder>/<Category>/<Name>.ply` (binary PLY, Z 
 Limits (`check` enforces them): 8,000 to 1.6 million triangles, at most 20 MB compressed per model, at most 40% of
 the surface thinner than 3% of the model's size, and only the simple shapes bundled in Shapes & forms.
 
+Every model ships as a **clean closed solid**, so every tool takes it as it is. `prepare` repairs each model after
+decimating it (`geom/repair.py`, the Repair Mesh tool's repair without resampling): back-to-back faces and crumbs that
+decimation leaves, holes left by cropping or scanning, non-manifold edges and flipped faces. `check` fails a model that is
+still not a solid. A model that cannot be one says why in its recipe: `open = "non-orientable: …"` (the Klein bottle,
+Boy's surface). Revision 2 rebuilt the 46 models revision 1 had shipped with such damage.
+
 ## Hosting
 
 Remote models live on a GitHub release of the public repository, tag `catalogue-<revision>`, one `<id>.ply.gz` per

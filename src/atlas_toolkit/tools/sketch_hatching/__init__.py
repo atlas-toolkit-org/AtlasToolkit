@@ -5,7 +5,7 @@ Blender.
 
 Outputs <name>_sketch.svg, signed <desc>sketch-hatching</desc> so Atlas links them to this tool.
 """
-from atlas_toolkit.core import (CAMERA_KEYS, FRAME_KEYS, Bool, Choice, Float, Inputs, Int, Output, Section, Seed,
+from atlas_toolkit.core import (CAMERA_KEYS, CAMERA_NOTE, FRAME_KEYS, Bool, Choice, Float, Inputs, Int, Output, Section, Seed,
                                 Tool, camera_params, frame_params, paper_params)
 
 FIELDS = [("principal", "The form"), ("slice", "Cross-sections"), ("isophote", "Bands of light"),
@@ -49,7 +49,7 @@ TOOL = Tool(
     viewer="atlas_toolkit.tools.plotter_vision.aim:AimView",
     preset_skip=CAMERA_KEYS + FRAME_KEYS,
     params=[
-        Section("Camera", *camera_params(theta=80.0, psi=155.0, radius=262.0, fov=38.0)),
+        Section("Camera", *camera_params(theta=80.0, psi=155.0, radius=262.0, fov=38.0), note=CAMERA_NOTE),
         Section(
             "Drawing",
             Float("complexity", "Complexity", 0.5, min=0.0, max=1.0, step=0.05, decimals=2, slider=True,

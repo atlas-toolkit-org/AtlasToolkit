@@ -45,6 +45,7 @@ VENUS = ("3d_models_db", "venus_milo.stl")
 DAVID = ("3d_models_db", "david_15k_reshape.stl")
 PHOTO = ("imgs_db", "viana", "ponte_crop_resize.jpg")
 DEM = ("code", "R", "generators", "3d_DEM", "dem_vc.tif")
+DAMAGED = ("damaged", "venus_milo.stl")      # Venus with the usual damage: an uncapped base, decimation debris
 
 PAPER = (247, 245, 240)
 INK = (24, 30, 44)
@@ -58,7 +59,7 @@ PROGRESS = re.compile(r"^\s*\S.*:\s+\d+(\.\d+)?%")
 TOO_SLOW = "timed out"
 FAILED = re.compile(r"\bERROR\b|^Traceback|error:", re.M)
 THETA = 78.0                    # slightly from above
-PSI = {VENUS: 155.0, DAVID: -125.0}     # a front three-quarter view of each sample
+PSI = {VENUS: 155.0, DAVID: -125.0, DAMAGED: 155.0}     # a front three-quarter view of each sample
 
 
 @dataclass
@@ -124,6 +125,7 @@ RECIPES = [
     Recipe("remesh-decimate", VENUS, "Flowing quad grid", draw=vision("Remeshed network")),
     Recipe("plane-cut", DAVID, "Closed cut", draw=sketch()),
     Recipe("mesh-mirror", VENUS, "Mirror a copy", draw=edges()),
+    Recipe("mesh-repair", DAMAGED, None, draw=contour()),
     # Deform
     Recipe("mesh-bend", VENUS, "Sculptural arc", draw=hatch()),
     Recipe("mesh-twist", DAVID, "Single twist", draw=hatch()),
@@ -171,6 +173,22 @@ HERO = ("sketch-hatching", "mesh-twist", "mesh-peel", "dpt-hatching")
 
 
 def sample(parts: tuple) -> Path:
+    if parts[0] == "damaged":                    # a workspace sample, damaged the way scans and decimation do
+        path = QA / "samples" / f"damaged_{Path(parts[1]).stem}.stl"
+        if not path.is_file():
+            import numpy as np
+            import trimesh
+            m = trimesh.load(sample(("3d_models_db", parts[1])), process=False)
+            V, F = np.asarray(m.vertices, float), np.asarray(m.faces, np.int64)
+            z = V[F].mean(1)[:, 2]
+            F = F[z > z.min() + 0.06 * np.ptp(z)]                # the base cut away, not capped
+            for k in range(0, len(F), max(1, len(F) // 12)):     # back-to-back sheets standing on a few edges
+                a, b = F[k][0], F[k][1]
+                V = np.vstack([V, (V[a] + V[b]) / 2 * 1.002])
+                F = np.vstack([F, [[a, b, len(V) - 1], [b, a, len(V) - 1]]])
+            path.parent.mkdir(parents=True, exist_ok=True)
+            trimesh.Trimesh(V, F, process=False).export(path)
+        return path
     path = devpaths.workspace_path(*parts)
     if path is None or not path.is_file():
         sys.exit(f"Missing sample {'/'.join(parts)}: set the workspace in dev.local.toml.")
@@ -443,17 +461,11 @@ def build(recipe: Recipe, force: bool = False) -> Path:
 
 def camera_args(tool: str, theta: float, psi: float) -> tuple:
     """One view for every drawing tool, in each tool's own terms. Both samples stand on +Z."""
-    if tool == "plotter-vision":
+    if tool in ("plotter-vision", "stl-hatch-maker"):
         return ("--theta", theta, "--psi", psi, "--orientation", "portrait")
-    if tool == "stl-hatch-maker":   # azimuth 0 looks from +X, -90 from the front
-        return (f"--azimuth={wrap_angle(90 - psi)}", f"--elevation={90 - theta}", "--orientation", "portrait")
     if tool in ("contour-lines", "sketch-hatching", "stipple", "flowrep-sketch"):
         return ("--theta", theta, "--psi", psi, "--orientation", "portrait", "--up-axis", "+z")
     return ()
-
-
-def wrap_angle(degrees: float) -> float:
-    return (degrees + 180) % 360 - 180
 
 
 CANDIDATES = {      # the drawing tools a mesh tool's output is tried with

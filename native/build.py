@@ -230,8 +230,10 @@ def notice_stripes() -> str:
 
 def notice_remesh() -> str:
     pmp = DEPS / "pmp"
-    notices = ["Atlas Remesh/Decimate helper 0.1.1, PMP " + LOCK["pmp"]["revision"] + " (MIT).\n"
-               "Atlas additions: boundary locks, regional density, progress and intermediate size guard.\n",
+    notices = ["Atlas Remesh/Decimate helper 0.1.2, PMP " + LOCK["pmp"]["revision"] + " (MIT).\n"
+               "Atlas additions: boundary locks, regional density, progress and intermediate size guard, feature-noise\n"
+               "pruning and guard, a bounding-volume hierarchy for projection, cap (flat face) removal, no curvature\n"
+               "smoothing pass when no smoothing is asked for.\n",
                (pmp / "LICENSE.txt").read_text(encoding="utf-8")]
     for path in by_name((pmp / "external/eigen-3.4.0").glob("COPYING.*")):
         notices += ["\nEigen " + path.name + "\n", path.read_text(encoding="utf-8")]

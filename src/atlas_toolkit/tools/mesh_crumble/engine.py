@@ -10,6 +10,7 @@ import trimesh
 from atlas_toolkit.core import Result, Stat
 from atlas_toolkit.geom import frame3d
 from atlas_toolkit.geom import mesh as gm
+from atlas_toolkit.geom import repair as R
 from atlas_toolkit.geom.mesh_export import publish_meshes
 from atlas_toolkit.geom.surface import from_mesh
 from atlas_toolkit.tools.mesh_surface_eject import mesh_surface_eject as se
@@ -51,6 +52,7 @@ def run(ctx, src, dst, p) -> Result:
         raise ValueError("Input exceeds Maximum faces. Simplify the model or raise the limit.")
     if not len(original.faces) or not np.isfinite(original.vertices).all():
         raise ValueError("Input has no finite surface.")
+    original = R.tidy_input(ctx, original, painted=p.area == "paint")
     selected = None
     if p.area == "paint":
         text = selection_text(p)
@@ -66,11 +68,9 @@ def run(ctx, src, dst, p) -> Result:
     try:
         body, _ = se.solid(mesh)
     except ValueError:
-        if p.repair == "strict":
-            raise
-        if selected is not None:
-            raise ValueError("Repair changes the painted faces. Repair and save this model first, then paint the "
-                             "closed input.")
+        if p.repair == "strict" or selected is not None:
+            raise R.needs_repair(original, TOOL, "Open input › Repair by resampling",
+                                 painted=selected is not None) from None
         from atlas_toolkit.tools.mesh_holes.engine import closed_copy
         ctx.warn("Resampling repair changes the original surface and may soften detail.")
         v, f = closed_copy(mesh.vertices, mesh.faces, int(p.repair_resolution),

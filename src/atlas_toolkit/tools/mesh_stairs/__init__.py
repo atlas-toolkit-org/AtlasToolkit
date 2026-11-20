@@ -41,9 +41,10 @@ def turning(v):
 
 
 TOOL = Tool(
+    needs="solid",
     id="mesh-stairs",
     name="Stair Sculpt",
-    version="0.1.0",
+    version="0.1.1",
     category="mesh",
     icon="stairs",
     action="Sculpt",

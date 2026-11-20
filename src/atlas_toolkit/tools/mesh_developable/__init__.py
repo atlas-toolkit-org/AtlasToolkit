@@ -2,7 +2,8 @@
 from atlas_toolkit.core import Choice, Float, Inputs, Int, Output, Section, Tool
 
 TOOL = Tool(
-    id="mesh-developable", name="Developable Surfaces", version="0.1.0", category="mesh",
+    needs="manifold",
+    id="mesh-developable", name="Developable Surfaces", version="0.1.1", category="mesh",
     icon="developable", action="Develop", runs_in="process", preview="mesh", requires=("developable",),
     summary="Evolve a model into flowing, approximately developable surfaces for line art.",
     tagline="Broad folds, smooth seams and nearly straight rulings from a triangle mesh.",

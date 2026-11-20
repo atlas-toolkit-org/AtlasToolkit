@@ -4,7 +4,7 @@ shadows, empty in the light (the sphere of Digital divide, projects/blender3d_pr
 
 Outputs <name>_stipple.svg, signed <desc>stipple</desc> so Atlas links them to this tool.
 """
-from atlas_toolkit.core import (CAMERA_KEYS, FRAME_KEYS, Bool, Choice, Float, Inputs, Int, Output, Section, Seed,
+from atlas_toolkit.core import (CAMERA_KEYS, CAMERA_NOTE, FRAME_KEYS, Bool, Choice, Float, Inputs, Int, Output, Section, Seed,
                                 Tool, camera_params, frame_params, paper_params)
 
 
@@ -38,7 +38,7 @@ TOOL = Tool(
     viewer="atlas_toolkit.tools.plotter_vision.aim:AimView",
     preset_skip=CAMERA_KEYS + FRAME_KEYS,
     params=[
-        Section("Camera", *camera_params(theta=72.4, psi=148.0, radius=262.0, fov=36.2)),
+        Section("Camera", *camera_params(theta=72.4, psi=148.0, radius=262.0, fov=36.2), note=CAMERA_NOTE),
         Section(
             "Dots",
             Float("min_spacing", "Darkest spacing", 0.85, unit="mm", min=0.3, max=5.0, step=0.05, decimals=2,

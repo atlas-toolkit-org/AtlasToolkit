@@ -6,8 +6,9 @@ A Float or Int with `suggest` accepts the value AUTO: it is then computed per in
 InputInfo (for example a voxel edge of max_dim / 50), right before the engine runs.
 
 Settings, workflows and presets outlive the schema that wrote them. When a parameter is renamed, list its old keys in
-`former=("old_key",)`; when a choice value is renamed, map it in `former_values={"old": "new"}`. resolve() applies
-both, so every saved file keeps working without a version check (see docs/PRESETS.md).
+`former=("old_key",)`; when a choice value is renamed, map it in `former_values={"old": "new"}`; when the old
+setting meant the same thing in other numbers, `former_convert=fn(old_value) -> new_value`. resolve() applies them,
+so every saved file keeps working without a version check (see docs/PRESETS.md).
 """
 from __future__ import annotations
 
@@ -35,6 +36,7 @@ class Param:
     unit: str = field(default="", kw_only=True)
     former: tuple = field(default=(), kw_only=True)                 # keys this parameter had before a rename
     former_values: dict = field(default_factory=dict, kw_only=True)  # renamed values: {"old": "new"}
+    former_convert: Callable | None = field(default=None, kw_only=True)  # old key's value -> this one's
     kind = "param"
 
     # --------------------------------------------------------------- values
@@ -55,7 +57,7 @@ class Param:
         if v is None:
             for old in self.former:
                 if values.get(old) is not None:
-                    return values[old]
+                    return self.former_convert(values[old]) if self.former_convert else values[old]
         return v
 
     def to_json(self, v: Any) -> Any:
@@ -274,10 +276,11 @@ class Section:
     title: str
     params: list
     collapsed: bool = False
-    help: str = ""
+    help: str = ""                      # tooltip on the section's header
+    note: str = ""                      # a short line shown at the top of the section, e.g. where its values come from
 
-    def __init__(self, title: str, *params: Param, collapsed: bool = False, help: str = ""):
-        self.title, self.params, self.collapsed, self.help = title, list(params), collapsed, help
+    def __init__(self, title: str, *params: Param, collapsed: bool = False, help: str = "", note: str = ""):
+        self.title, self.params, self.collapsed, self.help, self.note = title, list(params), collapsed, help, note
 
 
 def flatten(items: Iterable) -> list[Param]:
@@ -362,12 +365,28 @@ def paper_params(default: str = "A3", orientation: str = "portrait", margin: flo
 
 
 CAMERA_KEYS = ("theta", "psi", "radius", "lookat", "fov", "projection")
+# The note on a camera section: the Aim tab sets the drawing's view, these fields only show (and fine-tune) it.
+CAMERA_NOTE = "Set by aiming in the Aim tab; these numbers are its camera."
 
 
 def camera_params(theta: float = 70.0, psi: float = -150.0, radius: float = 170.0, fov: float = 60.0,
-                  projection: str = "perspective", lookat: tuple = (0.0, 0.0, 0.0)) -> list[Param]:
+                  projection: str = "perspective", lookat: tuple = (0.0, 0.0, 0.0),
+                  ortho_only: bool = False) -> list[Param]:
     """plotter.vision's orbit camera (geom/camera.py), shared by every tool that draws a model through a camera. The
-    keys are the ones Plotter Vision's live view reads and writes, so any such tool can host that view to aim."""
+    keys are the ones Plotter Vision's live view reads and writes, so any such tool can host that view to aim.
+    ortho_only: a tool that draws orthographically only (the Hatch Maker) has no field of view or projection; its
+    Aim tab supplies the fixed ones (fov 60°, orthographic)."""
+    if ortho_only:
+        return [
+            Float("theta", "Tilt (θ)", theta, unit="°", min=-180, max=180, step=1, decimals=1,
+                  help="Angle from straight above: 90 is on the horizon, 0 looks down, more than 90 looks up."),
+            Float("psi", "Turn (ψ)", psi, unit="°", min=-180, max=180, step=1, decimals=1,
+                  help="Angle around the vertical (Z) axis."),
+            Float("radius", "Distance", radius, min=1.0, max=5000.0, step=5, decimals=1,
+                  help="How far the camera stands back, in plotter.vision's units (the model's largest side is "
+                       "100): smaller draws the model larger. The view is orthographic, so it only sets the size."),
+            Vec3("lookat", "Look at", tuple(lookat), help="The point the camera turns around (same units)."),
+        ]
     return [
         Float("theta", "Tilt (θ)", theta, unit="°", min=-180, max=180, step=1, decimals=1,
               help="Angle from straight above: 90 is on the horizon, 0 looks down, more than 90 looks up."),

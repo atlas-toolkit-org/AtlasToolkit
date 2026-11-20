@@ -20,7 +20,7 @@ def region_params():
     ]
 
 TOOL = Tool(
-    id="mesh-motion", name="Motion Sculpture", version="0.3.0", category="mesh",
+    id="mesh-motion", name="Motion Sculpture", version="0.4.0", category="mesh",
     icon="motion-sculpture", action="Sculpt",
     summary="Stretch a silhouette into swept laminae, splintered bars or a rising vortex of motion.",
     tagline="Give a still form a wake. Carve time into the silhouette.",
@@ -31,13 +31,15 @@ TOOL = Tool(
                  "feathered region to isolate the motion. Preview and Run use identical geometry. "
                  "Painted area uses the Selection tab's visible-face editor. Sliced layers makes real slabs or bars; "
                  "Connected surface keeps the skin continuous. Local protection retains strong motion in safe areas. "
-                 "Closed, consistently oriented input is required; source units and placement are retained. "
+                 "Closed, consistently oriented input is required: small defects are tidied automatically, and "
+                 "Repair Mesh fixes the rest (or Open input › Repair by resampling). Source units and placement are retained. "
                  "Unpainted modes output separate closed shells, not a fused printable assembly. No Blender is needed."),
     inputs=Inputs("mesh", exclude=(r"(?i)_motion\.(stl|obj|ply)$",)),
     output=Output("{stem}_motion.stl", "mesh", formats=(".stl", ".obj", ".ply")),
     signature="atlas-toolkit:mesh-motion", engine=".engine:run", runs_in="process", preview="mesh",
     sample=".engine:make_sample", columns=("pieces", "faces"), viewer=".viewer:SelectionView",
-    preset_inputs=("influence", "selection", "selection_file", "paint_feather", "paint_style"),
+    preset_inputs=("influence", "selection", "selection_file", "paint_feather", "paint_style", "repair"),
+    needs="solid",
     params=[
         Section("Motion",
             Choice("structure", "Structure", "laminae", [("laminae", "Laminae"), ("splinters", "Splinters")],
@@ -87,6 +89,13 @@ TOOL = Tool(
                 help="Maximum longitudinal edge span is piece length divided by this number. Conforming refinement."),
             Int("max_faces", "Maximum faces", 1500000, min=10000, max=4000000, advanced=True,
                 help="Hard output budget. Reduce layers, bars or wake resolution when exceeded."),
+            Choice("repair", "Open input", "strict", [("strict", "Require closed solid"),
+                   ("resample", "Repair by resampling")],
+                   help="Small defects (decimation debris, pin-holes, flipped faces) are always tidied without "
+                        "changing the surface. For larger holes use Repair Mesh, or resample here: it changes the "
+                        "surface and may soften detail."),
+            Int("repair_resolution", "Repair resolution", 128, min=64, max=320, step=16, advanced=True,
+                visible_if={"repair": "resample"}),
         ),
     ],
     preset_skip=("up_axis", "front", "rotate"),

@@ -23,7 +23,7 @@
   <img src="docs/images/readme/hero.webp" alt="Four drawings made with Atlas Toolkit: a sketched bust, a twisted head in cross-hatching, a head peeling open like a plant, and a hatched photograph of a bridge" width="100%">
 </p>
 
-Atlas Toolkit is a desktop app for pen-plotter art. It gathers 48 tools for transforming and sculpting 3D models, turning models and
+Atlas Toolkit is a desktop app for pen-plotter art. It gathers 49 tools for transforming and sculpting 3D models, turning models and
 images into line drawings, and preparing those drawings for the plotter.
 
 **Aim.** To take a drawing from first idea to a file the plotter can draw well, without leaving one app.
@@ -210,7 +210,7 @@ scaling, masks and adaptive detail. No GIS software needed.
 
 ### Transform and sculpt
 
-Thirty-three tools transform a model and return real geometry as STL, OBJ or PLY, in the model's own units. Many can also
+Thirty-four tools transform a model and return real geometry as STL, OBJ or PLY, in the model's own units. Many can also
 save a sequence of stages, which the drawing tools frame alike for a series of plates.
 
 #### Prepare and cut
@@ -241,7 +241,13 @@ keep one side or both.
 **[Mirror](docs/MIRROR.md)**<br>
 Reflects a model through a plane you position. Keep the original or only the reflection, as one file or separate files.
 </td>
-<td></td>
+<td valign="top">
+<img src="docs/images/readme/mesh-repair.webp" alt="Venus with an open base, closed by Repair Mesh" width="100%">
+
+**[Repair Mesh](docs/REPAIR_MESH.md)**<br>
+Fixes what stops the sculpting tools: holes, decimation debris, non-manifold edges, flipped faces. It keeps the
+surface where it can and rebuilds only if it must.
+</td>
 </tr>
 </table>
 

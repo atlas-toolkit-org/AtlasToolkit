@@ -136,7 +136,11 @@ class MotionTests(unittest.TestCase):
             mesh = gm.load_mesh(src)
             mesh.update_faces(np.arange(len(mesh.faces)-1))
             mesh.export(src)
-            with self.assertRaisesRegex(ValueError, "closed"):
+            run(context(), src, None, TOOL.values(dict(layers=6, resolution=4)))   # a pin-hole is tidied
+            z = mesh.triangles_center[:, 2]
+            mesh.update_faces(z < z.max() - 0.15 * np.ptp(z))                  # a real opening is not
+            mesh.export(src)
+            with self.assertRaisesRegex(ValueError, "Repair Mesh"):
                 run(context(), src, None, TOOL.values())
 
 

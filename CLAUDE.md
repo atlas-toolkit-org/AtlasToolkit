@@ -69,6 +69,9 @@ One PySide6 app for pen-plotter tools, in its own repository. `README.md` is the
   `ATLAS_STUDIO_WORKSPACE` / `ATLAS_DESIGN_DIR` variables. Tests that need them skip without them. Platform
   specifics go behind `sys.platform` checks: the app targets Windows x64, Linux x86-64 and macOS 15+ on Apple Silicon
   (`docs/dev/multi-os-port.md`), and `test_portability` catches on Windows what would break elsewhere.
+- **A tool that needs a solid input declares `needs="solid"`** (or `"manifold"`), runs `geom.repair.tidy_input` on its
+  input and raises `geom.repair.needs_repair(...)` when it still fails, so the user is told what is wrong and offered the
+  Repair Mesh tool. Never a bare `ValueError` for a broken input, and never a tool-specific repair in `core/` or `ui/`.
 - **Every 3D canvas mixes in `GuardedGL`** (`ui/widgets/gl_guard.py`), so a driver that cannot draw gets a message and not an
   error for every frame (`test_gl_failure` checks). PyOpenGL must not load before `_match_opengl_to_qt` in `ui/app.py`.
 - **Keep `docs/PLATFORMS.md` true.** It says what has really been proven on each OS, no more: for macOS, exactly what

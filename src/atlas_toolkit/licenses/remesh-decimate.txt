@@ -1,5 +1,7 @@
-Atlas Remesh/Decimate helper 0.1.1, PMP f2fb04f4a4188a5c1ab137e83b96e62fa99c639f (MIT).
-Atlas additions: boundary locks, regional density, progress and intermediate size guard.
+Atlas Remesh/Decimate helper 0.1.2, PMP f2fb04f4a4188a5c1ab137e83b96e62fa99c639f (MIT).
+Atlas additions: boundary locks, regional density, progress and intermediate size guard, feature-noise
+pruning and guard, a bounding-volume hierarchy for projection, cap (flat face) removal, no curvature
+smoothing pass when no smoothing is asked for.
 
 MIT License with employer disclaimer
 

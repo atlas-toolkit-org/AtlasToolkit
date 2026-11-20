@@ -19,7 +19,7 @@ def remesh(vertices, faces, weights, settings, ctx):
         raise RuntimeError('Remesh backend missing. Build it with native/build.py --only remesh or locate atlas-remesh-core.')
     from atlas_toolkit.core import procs
     from atlas_toolkit.core.runtimes import check_helper
-    check_helper(exe, 'atlas-remesh-core', 1)
+    check_helper(exe, 'atlas-remesh-core', 2)
     with tempfile.TemporaryDirectory(prefix='atlas-remesh-') as folder:
         src, dst = Path(folder)/'in.bin', Path(folder)/'out.bin'
         with src.open('wb') as stream:
@@ -54,11 +54,24 @@ def remesh(vertices, faces, weights, settings, ctx):
                     ctx.progress(float(fraction), message)
                 elif line.startswith('PEAK_MB '):
                     ctx.native_peak_mb = float(line.split()[1])
+                elif line.startswith('FEATURES_NOISY '):
+                    # the model's sharp edges blocked the remesher (scan noise): the helper went on without them
+                    ctx.features_noisy = tuple(int(x) for x in line.split()[1:3])
+                elif line.startswith('FEATURES_DROPPED '):
+                    # sharp edges in short, scattered chains (scan noise) that would block the remesher
+                    ctx.features_dropped = getattr(ctx, 'features_dropped', 0) + int(line.split()[1])
                 elif line:
                     tail = (tail + [line])[-20:]
             code = proc.wait()
             ctx.check_cancel()
             if code:
+                too_many = next((t for t in tail if t.startswith('ATLAS_TOO_MANY_FACES')), None)
+                if too_many:
+                    from atlas_toolkit.core.errors import ToolError
+                    raise ToolError(f"This surface would need more than {int(too_many.split()[1]) // 1_000_000} million "
+                                    "faces at these settings, more than Remesh/Decimate makes.",
+                                    hint='Raise the Minimum edge factor (Adaptive triangles) or Surface-error tolerance, '
+                                         'or lower the face target; Uniform triangles keep close to the target.')
                 raise ValueError('Native remeshing failed: ' + '\n'.join(tail))
             with dst.open('rb') as stream:
                 version, nv, nf = struct.unpack('<III', stream.read(12))

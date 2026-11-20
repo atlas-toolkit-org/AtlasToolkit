@@ -57,6 +57,10 @@ def working_mesh(mesh, spacing, budget, check=lambda: None):
     simplified = len(F) > budget
     if simplified:
         V, F = simplify_faces(V, F, max(1000, budget // 2))
+        # decimation can leave back-to-back faces and pinched edges: tidy them, the surface unchanged
+        from atlas_toolkit.geom import repair
+        if not repair.is_solid(V, F):
+            V, F, _notes = repair.tidy_arrays(np.asarray(V, float), np.asarray(F, np.int64))
     check()
     target = spacing / 3.
     passes = 0

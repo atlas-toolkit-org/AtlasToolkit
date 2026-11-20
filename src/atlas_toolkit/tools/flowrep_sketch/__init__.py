@@ -1,5 +1,5 @@
 """Atlas adapter for FlowRep Sketch. Outputs carry <desc>flowrep-sketch</desc>."""
-from atlas_toolkit.core import (CAMERA_KEYS, FRAME_KEYS, Bool, Choice, Float, Inputs, Int,
+from atlas_toolkit.core import (CAMERA_KEYS, CAMERA_NOTE, FRAME_KEYS, Bool, Choice, Float, Inputs, Int,
                                 Output, Section, Tool, camera_params, frame_params, paper_params)
 
 TOOL = Tool(
@@ -28,7 +28,7 @@ TOOL = Tool(
     viewer="atlas_toolkit.tools.plotter_vision.aim:AimView",
     preset_skip=CAMERA_KEYS+FRAME_KEYS,
     params=[
-        Section("Camera", *camera_params()),
+        Section("Camera", *camera_params(), note=CAMERA_NOTE),
         Section("FlowRep",
                 Float("dmax","Descriptiveness",20.,unit="°",min=1,max=80,step=1,decimals=1,
                       help="Maximum 90th-percentile normal-prediction error per patch. Lower retains more curves."),

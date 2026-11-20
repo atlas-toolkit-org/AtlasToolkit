@@ -1,9 +1,11 @@
 """
 The Hatch Maker's scene: a mesh seen by an orthographic camera, laid out on paper in millimetres.
 
-Camera: azimuth / elevation in degrees, the 3D viewer's (pyqtgraph) convention, so a view picked on screen is the
-view drawn: the camera sits at centre + d·(cos el·cos az, cos el·sin az, sin el), Z up; roll turns the picture.
-Camera space: x right, y up, z towards the viewer. Paper space: mm, y down, fitted inside the margins.
+Camera: the shared orbit camera (geom/camera.Camera: Tilt θ, Turn ψ, Distance, Look at, in plotter.vision's units
+where the model's largest side is 100), always orthographic, with a fixed 60° field of view (FOV) that turns the
+distance into a size: the Aim tab shows exactly this picture. Roll turns the picture about the view axis.
+Camera space: x right, y up, z towards the viewer, in the model's own units. Paper space: mm, y down; the paper's
+drawing area (sheet minus margins) is the frame, and lines are cut at it.
 
 Visibility: rays cast towards the model (embree when installed, else trimesh's own) answer, for any paper point,
 which face is seen there and how deep. Every line style, outline and crease is cut by the same test, so hidden
@@ -15,7 +17,8 @@ import math
 
 import numpy as np
 
-from atlas_toolkit.geom.paper import fit, sheet
+from atlas_toolkit.geom.camera import Camera, frame_for
+from atlas_toolkit.geom.paper import sheet
 from atlas_toolkit.geom.polylines import trails
 
 LIGHTS = {   # camera space; z towards the viewer
@@ -28,8 +31,29 @@ LIGHTS = {   # camera space; z towards the viewer
 }
 
 
+FOV = 60.0           # the Hatch Maker's fixed field of view: with an orthographic camera it only sets the scale
+SIZE = 100.0         # plotter.vision's units: the model's largest side
+TOO_FAR_IN = 30.0    # the model's picture may cover at most this many frames (hatching grows with the area drawn)
+
+
+def view_camera(p) -> Camera:
+    """The Hatch Maker's camera from its settings."""
+    look = tuple(float(x) for x in (p.lookat or (0.0, 0.0, 0.0)))
+    return Camera(float(p.theta), float(p.psi), float(p.radius), look, FOV, True)
+
+
+def view_basis(cam: Camera, roll: float = 0.0) -> np.ndarray:
+    """Rows: right, up, towards-viewer (world -> camera rotation) of an orbit camera, turned by roll."""
+    _eye, u, v, w = cam.basis()
+    if roll:
+        rl = math.radians(roll)
+        u, v = u * math.cos(rl) + v * math.sin(rl), -u * math.sin(rl) + v * math.cos(rl)
+    return np.stack([u, v, w])
+
+
 def camera_basis(azimuth: float, elevation: float, roll: float = 0.0) -> np.ndarray:
-    """Rows: right, up, towards-viewer (world -> camera rotation)."""
+    """Rows: right, up, towards-viewer for the 3D viewer's (pyqtgraph) azimuth / elevation: the same as
+    view_basis(Camera(theta=90 - elevation, psi=90 - azimuth)), which the Input tab uses to follow Aim."""
     az, el, rl = (math.radians(a) for a in (azimuth, elevation, roll))
     f = np.array([math.cos(el) * math.cos(az), math.cos(el) * math.sin(az), math.sin(el)])
     r = np.array([-math.sin(az), math.cos(az), 0.0])
@@ -40,12 +64,14 @@ def camera_basis(azimuth: float, elevation: float, roll: float = 0.0) -> np.ndar
 
 
 class Scene:
-    def __init__(self, mesh, azimuth=-90.0, elevation=10.0, roll=0.0, paper="A3", orientation="portrait",
-                 margin=20.0, light="front"):
+    def __init__(self, mesh, cam: Camera | None = None, roll=0.0, paper="A3", orientation="portrait",
+                 margin=20.0, light="front", bounds=None):
         import trimesh
-        R = camera_basis(azimuth, elevation, roll)
+        cam = cam if cam is not None else Camera(80.0, 180.0, 130.0, (0.0, 0.0, 0.0), FOV, True)
+        R = view_basis(cam, roll)
         self.R = R
-        self.V = np.asarray(mesh.vertices, dtype=np.float64) @ R.T
+        V0 = np.asarray(mesh.vertices, dtype=np.float64)
+        self.V = V0 @ R.T
         self.F = np.asarray(mesh.faces, dtype=np.int64)
         self.tm = trimesh.Trimesh(self.V, self.F, process=False)
         self.tm.metadata.update(mesh.metadata)
@@ -56,10 +82,23 @@ class Scene:
         self.L = L / np.linalg.norm(L)
         self.vtone = np.clip(self.VN @ self.L, 0.0, 1.0)
         self.ftone = np.clip(self.FN @ self.L, 0.0, 1.0)
-        x, y = self.V[:, 0], self.V[:, 1]
         self.sheet = sheet(paper, orientation)
-        self.s, self.tx, self.ty = fit((x.min(), -y.max(), x.max(), -y.min()), paper, orientation, margin)
+        frame = frame_for(paper, orientation, margin)
+        self.area = frame.area                       # the drawing area (x0, y0, w, h) mm: lines are cut at it
+        lo, hi = (V0.min(0), V0.max(0)) if bounds is None else (np.asarray(bounds[0]), np.asarray(bounds[1]))
+        unit = SIZE / (float((hi - lo).max()) or 1.0)                 # plotter.vision units per model unit
+        s_n = frame.half * cam.k / max(cam.radius, 1e-9)              # mm per plotter.vision unit
+        self.s = s_n * unit                                           # mm per model unit
+        centre = R @ ((lo + hi) / 2.0)                                # where plotter.vision's origin sits
+        look = R @ np.asarray(cam.lookat, dtype=np.float64)           # the look-at point, plotter.vision units
+        x0, y0, w, h = frame.area
+        self.tx = x0 + w / 2.0 - self.s * centre[0] - s_n * look[0]
+        self.ty = y0 + h / 2.0 + self.s * centre[1] + s_n * look[1]
         self.P = self.to_paper(self.V)
+        span = np.ptp(self.P, axis=0)
+        if span[0] * span[1] > TOO_FAR_IN * w * h:
+            raise ValueError(f"the model's picture is {span[0] * span[1] / (w * h):.0f} times the drawing area: "
+                             "move the camera back (Distance, or the wheel in the Aim tab; F fits)")
         ext = np.ptp(self.V, axis=0)
         self.diag = float(np.linalg.norm(ext)) or 1.0
         self.eps = self.diag * 4e-3              # depth tolerance of the visibility test
@@ -67,6 +106,10 @@ class Scene:
         self.rays = 0
 
     # ------------------------------------------------------------------ coordinates
+    def world_to_paper(self, P: np.ndarray) -> np.ndarray:
+        """Model points (model units) to paper mm."""
+        return self.to_paper(np.asarray(P, dtype=float).reshape(-1, 3) @ self.R.T)
+
     def to_paper(self, cam: np.ndarray) -> np.ndarray:
         cam = np.asarray(cam, dtype=float)
         return np.column_stack([self.s * cam[..., 0] + self.tx, -self.s * cam[..., 1] + self.ty])

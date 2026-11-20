@@ -121,6 +121,7 @@ def sculpt(mesh, p, ctx, painted=None):
         raise ValueError("Use at most 5,000 layer/bar cells. Reduce Layers or Bars per layer.")
     n, a, b = basis(p.layer_axis, p.tilt)
     lo, hi = cutting.span(mesh, n)
+    model_volume = abs(float(mesh.volume)) or 1.0
     pitch = (hi-lo) / p.layers
     if pitch < 1e-10:
         raise ValueError("Model has no thickness along the layer direction.")
@@ -154,6 +155,10 @@ def sculpt(mesh, p, ctx, painted=None):
                 # zero-area cap triangle. Do not delete degenerate bridge faces
                 # from closed components: they retain the cap's shared topology.
                 if piece.area < 1e-18:
+                    continue
+                # Slivers a cut leaves where a plane grazes the surface (a few faces, no volume to speak of) would
+                # turn inside out under the wake: they are not material, leave them out.
+                if abs(piece.volume) < 1e-6 * model_volume and len(piece.faces) < 64:
                     continue
                 centre = piece.bounds.mean(axis=0)
                 rng = np.random.default_rng(np.random.SeedSequence([int(p.seed), k, j, component_index]))

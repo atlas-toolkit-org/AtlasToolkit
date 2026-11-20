@@ -227,7 +227,8 @@ class Carving(Base):
 class Inputs(Base):
     def test_an_open_model_is_refused_until_repair_is_asked_for(self):
         model = blob()
-        model.update_faces(np.arange(len(model.faces)) != 0)
+        z = model.triangles_center[:, 2]
+        model.update_faces(z < z.max() - 0.15 * np.ptp(z))      # an opening (a pin-hole would just be tidied)
         path = self.folder / "open.ply"
         model.export(path)
         values = dict(mode="treads", stair_type="helix", steps=20, flights=1)

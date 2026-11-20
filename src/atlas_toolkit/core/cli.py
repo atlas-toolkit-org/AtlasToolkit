@@ -315,10 +315,15 @@ def run(t, args) -> int:
         if "error" in box:
             failures += 1
             print(f"{src.name}: ERROR {box['error'][0]}", file=sys.stderr)
+            diag = box["error"][2] if len(box["error"]) > 2 and isinstance(box["error"][2], dict) else {}
+            if diag.get("suggest_tool"):
+                print(f"  try: atlas-toolkit --tool {diag['suggest_tool']} \"{src}\"", file=sys.stderr)
             hist.append(RunRecord(t.id, t.version, "error", str(src), values=_jsonable(values), seconds=secs,
                                   message=box["error"][0], toolkit_version=__version__))
             continue
         res = box["done"][0]
+        for note in getattr(res, "notes", None) or []:
+            print(f"  note: {note}", file=sys.stderr)
         print(res.report.rstrip() if res.report else f"{src.name}: done")
         if res.outputs:
             for o in res.outputs:

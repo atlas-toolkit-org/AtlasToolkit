@@ -139,13 +139,6 @@
   "sha256": "d30dfe35acf04db216d6949e8d7e1d0df136f85ce528d2c5f9b1b81c9093b394",
   "url": "https://upload.wikimedia.org/wikipedia/commons/6/67/Elephas_maximus_%28skull%29_3d_scan_Natural_History_Museum_University_of_Pisa_C_1449.stl"
  },
- "fossil-whale": {
-  "bytes": 7500034,
-  "file": "Whale-mpc-677-150k_(Smithsonian_Institution).stl",
-  "page": "https://commons.wikimedia.org/wiki/File:Whale-mpc-677-150k_(Smithsonian_Institution).stl",
-  "sha256": "0375afad5436fc154fa7a57efa677c6f6ccc1320bf15338803b5db9f03e7a44e",
-  "url": "https://upload.wikimedia.org/wikipedia/commons/4/49/Whale-mpc-677-150k_%28Smithsonian_Institution%29.stl"
- },
  "fracastoro": {
   "bytes": 49982084,
   "file": "Girolamo_Fracastoro.stl",

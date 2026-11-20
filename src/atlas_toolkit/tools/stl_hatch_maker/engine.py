@@ -18,11 +18,12 @@ def run(ctx, src: Path, dst: Path | None, p) -> Result:
     import trimesh
     m = gm.load_mesh(src)
     faces = len(m.faces)
+    bounds = (m.vertices.min(0), m.vertices.max(0))      # the full model's: a draft keeps Draw's framing
     if ctx.draft and faces > p.draft_faces:
         v, f = gm.decimate(m.vertices, m.faces, int(p.draft_faces))
         m = gm.clean(trimesh.Trimesh(v, f, process=False))
         ctx.log(f"draft: {faces:,} → {len(m.faces):,} faces".replace(",", " "))
-    out = hm.render(m, p, ctx.progress, ctx.log)
+    out = hm.render(m, p, ctx.progress, ctx.log, bounds=bounds)
     W, H = out["sheet"]
     outputs = []
     if dst is not None:
@@ -40,7 +41,8 @@ def run(ctx, src: Path, dst: Path | None, p) -> Result:
              Stat("time", "Plot time", fmt_duration(st.seconds()), fmt="{}"),
              Stat("layers", "Pens", len(pens))]
     lines = [src.name,
-             f"  view       azimuth {p.azimuth:g}°, elevation {p.elevation:g}°, roll {p.roll:g}°; light {p.light}",
+             f"  view       θ {p.theta:g}°, ψ {p.psi:g}°, distance {p.radius:g}, look at "
+             f"({', '.join(f'{x:g}' for x in p.lookat)}), roll {p.roll:g}°, orthographic; light {p.light}",
              f"  paper      {p.paper} {p.orientation}, margin {p.margin:g} mm" + ("  (draft)" if ctx.draft else ""),
              f"  style      {hm.STYLES[p.style][0]}"]
     for l in out["layers"]:

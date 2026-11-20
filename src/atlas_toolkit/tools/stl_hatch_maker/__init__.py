@@ -4,7 +4,10 @@ lines removed (v6 of "STL 3D Hatch Maker", bringing together v2.1, v3, C-v4 and 
 
 Outputs <name>_hatch.svg, signed <desc>stl-hatch-maker</desc> so Atlas links them to this tool.
 """
-from atlas_toolkit.core import Bool, Choice, Float, Inputs, Int, Output, Section, Seed, Tool, paper_params
+import dataclasses
+
+from atlas_toolkit.core import (CAMERA_NOTE, Bool, Choice, Float, Inputs, Int, Output, Section, Seed, Tool,
+                                camera_params, paper_params)
 
 STYLE_CHOICES = [("streamlines", "Surface strokes"), ("screen", "Straight lines"), ("contours", "Depth contours"),
                  ("stipple", "Stipple"), ("directional", "Normal strokes"), ("regions", "Tone regions"),
@@ -17,17 +20,35 @@ def style_is(*names):
     return {"style": names}
 
 
+def _theta_from_elevation(el):        # 6.x: the 3D viewer's elevation
+    return 90.0 - float(el)
+
+
+def _psi_from_azimuth(az):            # 6.x: the 3D viewer's azimuth (-90: the front)
+    return (90.0 - float(az) + 180.0) % 360.0 - 180.0
+
+
+def view_params() -> list:
+    """The shared orbit camera without field of view or projection (always orthographic), front and a little above;
+    6.x's Azimuth and Elevation carry over (its own fit-to-paper framing does not: F in the Aim tab fits)."""
+    theta, psi, radius, lookat = camera_params(80.0, 180.0, 130.0, ortho_only=True)
+    return [dataclasses.replace(theta, former=("elevation",), former_convert=_theta_from_elevation),
+            dataclasses.replace(psi, former=("azimuth",), former_convert=_psi_from_azimuth), radius, lookat]
+
+
 TOOL = Tool(
     id="stl-hatch-maker",
     name="Hatch Maker",
-    version="6.0.2",
+    version="7.0.0",
     category="mesh2svg",
     icon="hatch",
     action="Draw",
     summary="Draw a 3D model for the plotter: hatching that shades its form, its outline and creases.",
     tagline="Engraving-style line drawings of sculptures, from any angle, hidden lines removed.",
     description=(
-        "Pick the view by orbiting the model in the Input tab and pressing “Use the 3D view”. Seven hatching "
+        "Aim the camera in the Aim tab, as in the other drawing tools: drag to orbit, Shift-drag to move, wheel "
+        "for distance, 1-5 views, F fits, A fits after every move. The camera is orthographic; what the frame "
+        "shows is what gets drawn. Seven hatching "
         "styles shade the form by the light's direction: strokes that follow the surface, straight or crossed "
         "lines, depth contours, stipple, short strokes along the normals, tone regions and isophotes. Outlines "
         "and creases are added on their own pens. Everything is cut where the model hides it, fitted to the "
@@ -39,22 +60,18 @@ TOOL = Tool(
     runs_in="process",
     preview="svg",
     columns=("strokes",),
-    panel=".panel:ViewPanel",
-    panel_after="View",
-    preset_skip=("azimuth", "elevation", "roll"),
+    viewer=".aim:HatchAimView",
+    preset_skip=("theta", "psi", "radius", "lookat", "roll"),
     params=[
         Section(
-            "View",
-            Float("azimuth", "Azimuth", -90.0, unit="°", min=-180, max=180, step=5, decimals=1,
-                  help="Camera direction around the vertical (Z) axis, as in the 3D viewer. -90: from the front "
-                       "(the -Y side)."),
-            Float("elevation", "Elevation", 10.0, unit="°", min=-90, max=90, step=5, decimals=1,
-                  help="Camera height above the horizon. 90 looks straight down."),
+            "Camera",
+            *view_params(),
             Float("roll", "Roll", 0.0, unit="°", min=-180, max=180, step=5, decimals=1,
                   help="Turns the drawing on the paper."),
             Choice("light", "Light", "front", LIGHT_CHOICES,
                    help="Where the light comes from, seen from the camera. It sets the tone: darker where the "
                         "surface turns away from it."),
+            note=CAMERA_NOTE,
         ),
         Section("Paper", *paper_params("A3", "portrait", 20.0)),
         Section(

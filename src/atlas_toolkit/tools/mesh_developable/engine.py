@@ -7,6 +7,7 @@ import numpy as np
 from atlas_toolkit.core import Result, Stat
 from atlas_toolkit.core.paths import cache_dir
 from atlas_toolkit.geom import mesh as gm
+from atlas_toolkit.geom import repair as R
 from . import TOOL
 from .mesh_developable import develop, load_input
 
@@ -36,7 +37,9 @@ def run(ctx, src, dst, p):
         raise ValueError('The output must not replace the input model.')
     started=time.perf_counter()
     ctx.progress(0.01, 'Loading surface')
-    source=load_input(src)
+    source=R.tidy_input(ctx, load_input(src), "manifold")
+    if not R.diagnose(source).manifold:
+        raise R.needs_repair(source, TOOL, need="manifold")
     settings=dict(p)
     if ctx.draft:
         settings.update(target_faces=min(p.target_faces,500), subdivisions=min(p.subdivisions,1), iterations=min(p.iterations,100))

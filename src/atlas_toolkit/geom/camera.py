@@ -167,3 +167,46 @@ def frame_for(paper: str, orientation: str, margin: float, custom: tuple | None 
     W, H = sheet(paper, orientation, custom)
     m = max(0.0, min(margin, min(W, H) / 2.0 - 1.0))
     return Frame((W, H), (m, m, W - 2 * m, H - 2 * m))
+
+
+def roll_screen(S: np.ndarray, roll: float) -> np.ndarray:
+    """Screen points turned by `roll` degrees about the look-at axis, as a camera with roll sees them: the picture's
+    right becomes right·cos + up·sin (the Hatch Maker's Roll)."""
+    if not roll:
+        return np.asarray(S, dtype=float)
+    c, s = math.cos(math.radians(roll)), math.sin(math.radians(roll))
+    S = np.asarray(S, dtype=float)
+    return np.stack([S[..., 0] * c + S[..., 1] * s, -S[..., 0] * s + S[..., 1] * c], axis=-1)
+
+
+def fit_view(cam: Camera, points: np.ndarray, frame: Frame, roll: float = 0.0, margin: float = 1.02) -> None:
+    """Move the look-at point and the distance (not the angles) so the points' picture fills the frame, centred:
+    the Aim tab's F and Always fit. Exact for orthographic; perspective converges in a few steps."""
+    P = np.asarray(points, dtype=float).reshape(-1, 3)
+    if not len(P):
+        return
+    _, _, hx, hy = frame.screen
+    cam.lookat = tuple(float(a) for a in 0.5 * (P.min(0) + P.max(0)))
+    cam.radius = max(fit_radius_points(P, cam, frame, margin), 1.0)      # a safe start: everything in front
+    for _ in range(12):
+        _eye, u, v, _w = cam.basis()
+        C = cam.to_camera(P)
+        if not cam.ortho and (C[:, 2] <= NEAR * 2).any():
+            cam.radius *= 1.5
+            continue
+        S = roll_screen(cam.project(C), roll)
+        lo, hi = S.min(0), S.max(0)
+        cx, cy = (lo + hi) / 2.0
+        ratio = max((hi[0] - lo[0]) / 2.0 / hx, (hi[1] - lo[1]) / 2.0 / hy, 1e-9) * margin
+        c, s = math.cos(math.radians(roll)), math.sin(math.radians(roll))
+        ux, uy = cx * c - cy * s, cx * s + cy * c                # the middle, back in the unrolled picture
+        if cam.ortho:
+            unit = cam.radius / cam.k                            # model units per screen unit
+            cam.lookat = tuple(float(a) for a in np.asarray(cam.lookat) + (ux * u + uy * v) * unit)
+            cam.radius *= ratio
+            return
+        depth = float(np.median(C[:, 2]))
+        cam.lookat = tuple(float(a) for a in np.asarray(cam.lookat) + (ux * u + uy * v) * depth / cam.k)
+        cam.radius = max(cam.radius + depth * (ratio - 1.0), 1.0)
+        if abs(ratio - 1.0) < 2e-3 and abs(cx) < 2e-3 and abs(cy) < 2e-3:
+            return

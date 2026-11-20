@@ -6,6 +6,8 @@ from pathlib import Path
 import tempfile
 import numpy as np
 
+from atlas_toolkit.core.errors import ToolError
+
 from atlas_toolkit.geom.surface import Surface, from_arrays, from_mesh, triangulate
 from . import backend
 
@@ -19,15 +21,29 @@ class SubContext:
         self.ctx.check_cancel()
 
 
-def validate(mesh):
+def _needs_repair(mesh):
+    from atlas_toolkit.geom import repair as R
+    e = R.NeedsRepair(R.diagnose(mesh), "manifold", tool_name="Remesh/Decimate")
+    e.hint += " Voxel reconstruction (Method) also rebuilds it, as a volume."
+    return e
+
+
+def validate(mesh, output=False):
+    """The input must be a clean surface (if not, Repair Mesh fixes it). For the remesher's own output the same test
+    says the remesh went wrong, which the caller retries at a higher density."""
     import igl
     v, f = np.asarray(mesh.vertices), np.asarray(mesh.faces, dtype=np.int64)
+    problem = None
     if not len(f) or not np.isfinite(v).all() or not mesh.nondegenerate_faces().all():
-        raise ValueError('Mesh contains empty, nonfinite or degenerate geometry; clean it before remeshing.')
-    if not igl.is_edge_manifold(f)[0] or not np.all(igl.is_vertex_manifold(f)):
-        raise ValueError('Non-manifold surface: repair it first, or choose Voxel reconstruction for a volume rebuild.')
-    if not mesh.is_winding_consistent:
-        raise ValueError('Inconsistent face winding: orient the surface before remeshing.')
+        problem = 'it has empty, non-finite or degenerate faces'
+    elif not igl.is_edge_manifold(f)[0] or not np.all(igl.is_vertex_manifold(f)):
+        problem = 'it is not manifold'
+    elif not mesh.is_winding_consistent:
+        problem = 'its faces are not wound consistently'
+    if problem:
+        if output:
+            raise UnusableOutput(f'The remeshed surface is not usable: {problem}.')
+        raise _needs_repair(mesh)
 
 
 def topology(mesh):
@@ -174,7 +190,26 @@ def blender_surface(surface, values, ctx):
 
 
 class ResolutionError(ValueError):
-    """The selected method needs more elements to meet preservation constraints."""
+    """The selected method needs more elements to meet preservation constraints. A surface-error miss carries the
+    measured error and the tolerance (fractions of the diagonal) and the face count it was measured at."""
+    sample_max = tolerance = faces = None
+
+
+class UnusableOutput(ValueError):
+    """The remesher's own result is broken (degenerate or non-manifold faces). A denser retry makes more of them."""
+
+
+class SurfaceError(ValueError):
+    def __init__(self, message, sample_max, tolerance):
+        super().__init__(message)
+        self.sample_max, self.tolerance = sample_max, tolerance
+
+
+# How a remesh's largest surface error falls as its faces grow: about faces^-0.75 on scans (1.53% -> 0.17% over 16
+# times the faces on a 25 000-face bust), slower than smooth theory (^-1) because of fine scan detail.
+ERROR_EXPONENT = 0.75
+MAX_BOOST = 16
+MAX_FACES = 2_000_000       # the most a remesh may make (_process refuses more): a retry past it is never tried
 
 
 def _process(surface: Surface, values, ctx, frame=None):
@@ -215,6 +250,13 @@ def _process(surface: Surface, values, ctx, frame=None):
             raise ValueError('Voxel grid is too dense; increase Voxel size.')
     p['_target'] = target
     p['_length'] = length
+    if method in ('uniform', 'adaptive', 'directional', 'cells') and p.get('iterations'):
+        # measured: about 12 s per iteration on 1.2 million faces (projection included), plus the first pass
+        seconds = (target + len(surface.faces)) * (int(p['iterations']) + 4) * 6e-6
+        if seconds > 60:
+            ctx.warn(f"{method.capitalize()} triangles at about {f'{int(target):,}'.replace(',', ' ')} faces take about "
+                     f"{max(1, round(seconds / 60))} minute{'s' if seconds >= 90 else ''}. Cancel stops it at any time; "
+                     "fewer Iterations or a lower face target are faster.")
     if method == 'decimate' and target >= len(surface.faces):
         output = from_arrays(surface.vertices.copy(), surface.faces)
         return output, dict(method=method,target=requested,processing_target=target,polygons=len(output.faces),
@@ -285,13 +327,19 @@ def _process(surface: Surface, values, ctx, frame=None):
                     transformed_area = trimesh.Trimesh(v@transform.T, f, process=False).area
                     settings['length'] *= np.sqrt(transformed_area/part.area)
                 vv, ff = backend.remesh(v@transform.T, f, weights, settings, sub)
+                if getattr(sub, 'features_noisy', None):
+                    reached, expected = sub.features_noisy
+                    counts = f'{reached:,} faces where about {expected:,} were due'.replace(',', ' ')
+                    ctx.warn("Keep sharp features: this model's sharp edges are mostly scan noise. They stopped the "
+                             f'remesher from simplifying ({counts}), so it was remeshed without them. Raise Sharp '
+                             'feature angle to keep only the strongest edges.')
                 vv = vv @ np.linalg.inv(transform).T
                 result = from_arrays(vv, ff)
                 if method == 'cells':
                     result = dual_cells(result.as_trimesh(), p['preserve_features'], p['feature_angle'], p['irregularity'], p['seed'])
             sub.check_cancel()
             out = result.as_trimesh()
-            validate(out)
+            validate(out, output=True)
             if method != 'voxel':
                 if topology(part) != topology(out):
                     raise ValueError('Remeshing changed surface topology. Increase density or select another method.')
@@ -300,10 +348,17 @@ def _process(surface: Surface, values, ctx, frame=None):
                         raise ValueError('This remesher moved the protected boundary. Increase density or use uniform/adaptive triangles.')
             measurement = surface_distances(part, out)
             if method != 'voxel' and measurement['sample_max'] > error*1.05 + 1e-8:
-                raise ValueError(f"Surface error {100*measurement['sample_max']:.3g}% exceeds {p['surface_error']:g}%. "
-                                 'Increase density or Surface-error tolerance.')
-        except ValueError as error:
-            raise ResolutionError(str(error)) from error
+                raise SurfaceError(f"Surface error {100*measurement['sample_max']:.3g}% exceeds {p['surface_error']:g}%. "
+                                   'Increase density or Surface-error tolerance.', measurement['sample_max'], error)
+        except ToolError:                    # already says what to do (too many faces, say): no retry
+            raise
+        except ValueError as failure:
+            raised = ResolutionError(str(failure))
+            raised.unusable = isinstance(failure, UnusableOutput)
+            if isinstance(failure, SurfaceError):
+                raised.sample_max, raised.tolerance = failure.sample_max, failure.tolerance
+                raised.faces = requested
+            raise raised from failure
         diagnostics.append(measurement)
         measurement['native_peak_mb'] = getattr(sub, 'native_peak_mb', 0.)
         outputs.append(result)
@@ -325,9 +380,13 @@ def _process(surface: Surface, values, ctx, frame=None):
 
 
 def process(surface: Surface, values, ctx, frame=None):
+    """Remesh; when the result strays further from the surface than the tolerance, try again denser. A surface-error
+    miss says how much denser it must be (ERROR_EXPONENT): one retry at that density, or, when it would take more
+    than MAX_BOOST times the faces, stop at once and say what would work, instead of doubling for minutes."""
     p = dict(values)
+    boost = 1.0
     for attempt in range(5):
-        p['_density_boost'] = 2**attempt
+        p['_density_boost'] = boost
         try:
             output, diagnostics = _process(surface, p, ctx, frame)
             diagnostics['density_attempts'] = attempt+1
@@ -335,5 +394,29 @@ def process(surface: Surface, values, ctx, frame=None):
         except ResolutionError as error:
             if p['method'] in ('decimate','planar','voxel') or attempt == 4:
                 raise ValueError(str(error)) from error
-            ctx.warn(f'{error} Retrying {p["method"]} with a denser mesh to preserve the surface.')
+            if getattr(error, 'unusable', False):
+                from atlas_toolkit.core.errors import ToolError
+                raise ToolError(f"{p['method'].capitalize()} triangles left a broken surface on this model ({error})",
+                                hint='Use Uniform triangles or Decimate for it. A denser retry only makes more broken '
+                                     'faces, so the tool does not try one.') from error
+            if error.sample_max:
+                need = boost * (error.sample_max / error.tolerance) ** (1 / ERROR_EXPONENT) * 1.15
+                faces = int(error.faces or 0)                           # the target asked for, before any boost
+                if need > MAX_BOOST or faces * need > MAX_FACES:
+                    from atlas_toolkit.core.errors import ToolError
+                    at_target = error.sample_max * boost ** ERROR_EXPONENT
+                    asked, needed = (f'{n:,}'.replace(',', ' ') for n in (faces, int(faces * need)))
+                    raise ToolError(
+                        f"{p['method'].capitalize()} triangles at about {asked} faces stay within "
+                        f"{100*at_target:.2g}% of the surface, and the Surface-error tolerance asks for "
+                        f"{100*error.tolerance:.2g}%.",
+                        hint=(f"Raise Surface-error tolerance (Preservation) to about {100*at_target*1.1:.2g}%, or the "
+                              f"face target to about {needed} faces (more than {MAX_BOOST} times this one, or more "
+                              f"than {MAX_FACES // 1_000_000} million faces, which Remesh/Decimate does not try by "
+                              "itself).")) from error
+                boost = max(need, boost * 1.5)
+                ctx.warn(f'{error} Retrying {p["method"]} at {boost:.1f} times the density, which should meet it.')
+            else:
+                boost *= 2
+                ctx.warn(f'{error} Retrying {p["method"]} with a denser mesh to preserve the surface.')
     raise AssertionError('unreachable')

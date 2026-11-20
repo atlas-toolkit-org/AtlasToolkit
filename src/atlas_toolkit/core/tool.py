@@ -129,6 +129,7 @@ class Result:
     changed: bool = True                             # False: nothing to do for this input (not written)
     status: str = ""                                 # short status for the queue ("Ready", "Nothing to cut")
     data: Any = None                                 # tool-specific payload (picklable)
+    notes: list = field(default_factory=list)        # warnings shown above the report, e.g. "tidied the input: …"
 
     def stat(self, key: str):
         return next((s for s in self.stats if s.key == key), None)
@@ -192,6 +193,9 @@ class Tool:
     requires_if: tuple = ()                      # (runtime, {parameter: value or tuple of values}), AND within a rule
     optional: tuple = ()                         # runtimes it can use but runs without: (key, what it adds) pairs,
                                                  # e.g. (("blender", "Settle in Blender: a cloth simulation"),)
+    needs: str | None = None                     # what a mesh input must be: "solid" (closed, outward) or "manifold"
+                                                 # (clean, openings allowed). Inspecting warns early when it is not,
+                                                 # and the engine calls geom.repair.prepare (docs/ADDING_A_TOOL.md)
     package: str = ""                            # filled by the registry
 
     # ------------------------------------------------------------------ schema

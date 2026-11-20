@@ -10,6 +10,7 @@ import numpy as np
 from atlas_toolkit.core import Result, Stat
 from atlas_toolkit.geom import frame3d, influence, stages
 from atlas_toolkit.geom import mesh as gm
+from atlas_toolkit.geom import repair as R
 
 from . import TOOL
 from . import mesh_strata as ms
@@ -26,8 +27,10 @@ def run(ctx, src: Path, dst: Path | None, p) -> Result:
     ctx.progress(0.02, "loading model")
     mesh = gm.load_mesh(src)
     connectors.validate(p)
+    if p.connectors:
+        mesh = R.tidy_input(ctx, mesh)
     if p.connectors and not mesh.is_volume:
-        raise ValueError("Connectors require an outward-oriented closed solid. Repair the input first.")
+        raise R.needs_repair(mesh, TOOL)
     if p.connectors and len(mesh.faces) > p.max_faces:
         raise ValueError("Input exceeds Maximum faces. Simplify the model before adding connectors.")
     if not mesh.is_watertight:

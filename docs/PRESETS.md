@@ -282,8 +282,10 @@ copy a pack. A signature proves only that a pack is the publisher's own and unch
 Saved presets, settings and workflows outlive the settings that wrote them. In order:
 
 1. **A renamed setting:** declare its old key on the parameter, `Float("width", …, former=("breadth",))`. A renamed
-   choice value: `Choice(…, former_values={"old": "new"})`. `params.resolve()` applies both everywhere, with no
-   version check, and a value already in the new form is left alone.
+   choice value: `Choice(…, former_values={"old": "new"})`. An old setting in other numbers:
+   `former_convert=fn(old) -> new` with `former` (the Hatch Maker's Elevation became Tilt, `90 - elevation`).
+   `params.resolve()` applies them everywhere, with no version check, and a value already in the new form is left
+   alone.
 2. **A change that needs logic:** `Tool.migrate = ".module:fn"`, where `fn(values, from_version) -> values` gets a
    preset's values and the tool version that wrote them. `core/presets.older()` compares versions, padded so 1.1
    equals 1.1.0.

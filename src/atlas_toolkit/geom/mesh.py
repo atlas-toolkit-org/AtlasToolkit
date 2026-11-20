@@ -26,6 +26,7 @@ class MeshData:
     bounds: tuple                 # ((x0, y0, z0), (x1, y1, z1)) of the full mesh
     edge_segments: np.ndarray | None = None  # native polygon edges, independent of the display triangle proxy
     native_faces_total: int | None = None
+    marks: np.ndarray | None = None          # (N, 2, 3) segments drawn on top in the danger colour (problems)
 
 
 def load_mesh(path, merge: bool = True):

@@ -109,7 +109,7 @@ class WorkflowTests(unittest.TestCase):
         from atlas_toolkit.core import presets as P
         hm = self.reg.get("stl-hatch-maker")
         contours = P.Preset("Contours", hm.id, {"spacing": 2.0, "cross": True})
-        v = dict(P.apply(hm, contours)[0], azimuth=33.0)
+        v = dict(P.apply(hm, contours)[0], psi=33.0)
         self.assertIs(P.match(hm, v, [contours]), contours)
         changed = dict(v, spacing=3.3)
         self.assertIsNone(P.match(hm, changed, [contours]))

@@ -60,8 +60,9 @@ TOOL = Tool(
 | `Text` | |
 | `FileRef` | a second input file |
 | `paper_params()` | size, orientation and margin |
-| `camera_params()` | plotter.vision's orbit camera (θ, ψ, distance, look-at, field of view, projection) |
+| `camera_params()` | plotter.vision's orbit camera (θ, ψ, distance, look-at, field of view, projection); put it in `Section("Camera", ..., note=CAMERA_NOTE)` so the form says the Aim tab sets it |
 | `frame_params()` | how a model stands (Up, Front, Extra turn) and, for drawings, which models share one frame |
+| `Section(title, ..., note="…")` | a group of settings; `help` is its header's tooltip, `note` a short line shown at its top |
 | `influence_params()` | where a mesh tool acts: whole model, a feathered height band or a sphere (`geom/influence.weights`) |
 
 **Shared options:**
@@ -72,7 +73,7 @@ TOOL = Tool(
 - `inspect=".module:fn"` reads an input and returns an `InputInfo` (summary line, values for `suggest`, first
   preview). SVG and mesh inputs have defaults (`geom/svg.py:inspect`, `geom/mesh.py:inspect`).
 - `panel=".panel:MyPanel"` with `panel_after="Section title"` adds your own Qt widget to the inspector. It receives
-  the page. See `stl_hatch_maker/panel.py`.
+  the page. See `mesh_texture/panel.py`.
 - `viewer=".viewer:MyView"` adds an interactive preview tab (a QWidget built with the page, after the inspector).
   The page calls `set_input(path, info)` for the selected file and `values_changed(values)` after settings change;
   the stage calls `set_theme`, `set_art`, `fit` and shows `info_text()` (emit `info_changed` to update it). Write
@@ -104,10 +105,20 @@ TOOL = Tool(
   on the tool page and workflow inspector. Native polygon consumers can use `geom.surface.Surface`; legacy triangle
   consumers keep using `geom.mesh.load_mesh`. Native face loops, derived triangles and ownership travel together.
 - **3D drawing tools** reuse the shared pieces rather than their own: `camera_params()` + `frame_params()` and
-  `viewer="atlas_toolkit.tools.plotter_vision.aim:AimView"` give the Aim tab; `geom/frame3d.frame_for` the model's
+  `viewer="atlas_toolkit.tools.plotter_vision.aim:AimView"` give the Aim tab (a light trace; `sets_view = True` makes
+  it the one tab that sets the drawing's view: the stage marks it, and the Input tab says "Inspect only" and turns
+  to `input_view()`; an orthographic-only tool uses `camera_params(ortho_only=True)` and a LightAim with a fixed
+  field of view, as `stl_hatch_maker/aim.py` does); `geom/frame3d.frame_for` the model's
   frame (a stage set shares one); `geom/raycast` embree visibility; `geom/shading.View3D` + `trace` a G-buffer with
   light, shadows and feature lines. Mesh tools that make sequences publish with `geom/stages.StageOutput` (stage
   files plus `stages.json`, all or nothing).
+- `needs="solid"` (or `"manifold"`: clean, openings allowed) says what a mesh input must be. As soon as a file is
+  added, the page checks it and marks one that will not do *Needs repair*, with **Open in Repair Mesh**. In the
+  engine, `geom.repair.tidy_input(ctx, mesh)` first fixes what can be fixed without moving the surface (decimation
+  debris, non-manifold edges, flipped faces, pin-holes) and says so in the log and report (`ctx.note`). If the input
+  still fails, raise `geom.repair.needs_repair(mesh, TOOL, "<your own repair option>")`: a `ToolError` that says what
+  is wrong and what to do, shown without a traceback and with a button to the Repair Mesh tool. Any expected
+  problem the user can fix can raise a `core.errors.ToolError(message, hint=, suggest_tool=)`.
 - `sample=".engine:make_sample"` writes a typical input for the tests and self-test.
 - `input_dependencies=".engine:input_dependencies"` optionally returns additional input paths from `(src, values)`.
   Workflow cache keys include these files; use this for masks or metadata sidecars read implicitly by a library.

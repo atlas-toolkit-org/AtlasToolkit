@@ -21,7 +21,8 @@ def has_branches(v):
 
 
 TOOL = Tool(
-    id="mesh-surface-eject", name="Surface Eject", version="0.3.2", category="mesh", icon="surface-eject",
+    needs="solid",
+    id="mesh-surface-eject", name="Surface Eject", version="0.3.3", category="mesh", icon="surface-eject",
     action="Eject", summary="Lift actual pieces of a model's surface out of matching cavities, along their outward normals.",
     tagline="A recognizable form, crisp missing patches and floating fragments of its own skin.",
     description=("Intersect surface-aligned solid samplers with the remaining model, keep the actual sampled "
