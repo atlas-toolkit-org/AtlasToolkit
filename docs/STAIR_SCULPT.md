@@ -1,4 +1,4 @@
-# Stair Sculpt 0.1.0
+# Stair Sculpt 0.1.2
 
 Stair Sculpt turns a closed model into a staircase. It either builds stairs inside a cavity or makes the stair out of
 the model itself. Every result is one closed, fused solid in the model's own units, ready for Plotter Vision, Contour

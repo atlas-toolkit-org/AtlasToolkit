@@ -1,4 +1,4 @@
-# Crumble 0.1.0
+# Crumble 0.1.1
 
 Crumble makes a closed model come down like a building. Part of it breaks into solid blocks, the body keeps a jagged
 hollow where they were, and the blocks fall under gravity, striking each other, the body and the floor. You choose the

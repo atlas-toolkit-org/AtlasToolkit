@@ -12,13 +12,12 @@ preset packs, loaded separately from the app; see [Presets](PRESETS.md).
 
 ## Tools
 
-**Motion Sculpture 0.3.0** turns a still model into swept laminae or splintered bars, inspired by layered glass
+**Motion Sculpture 0.5.0** turns a still model into swept laminae or splintered bars, inspired by layered glass
 and wind-carved bronze sculptures. Stream, Pulse, Gust and Vortex fields stretch tapered wakes behind a retained
 leading silhouette. Seven presets, seeded irregularity, layer tilt, base hold, feathered regions and bounded
 conforming refinement. Final-geometry previews and signed STL/OBJ/PLY, original units, UI/CLI/Workflows;
-no Blender or new dependencies. **Region → Painted area** reuses Surface Eject's visible-face painter in a
-Selection tab. Sliced layers builds real plates/bars with strong painted wakes and gaps;
-Connected surface preserves unpainted skin with local boundary protection.
+no Blender or new dependencies. **Region** acts on the whole model, a height band or a sphere (Painted area was
+removed in 0.5.0; older settings that used it act on the whole model).
 See [controls and method](MOTION_SCULPTURE.md),
 [motion contours](workflows/motion_contours.atlasflow) and
 [motion sketch](workflows/motion_sketch.atlasflow).
@@ -38,7 +37,7 @@ Before/After previews and signed SVG, UI/CLI/Workflows, no new dependencies. See
 [controls, limitations and research](LINE_SIMPLIFY.md) and
 [SVG simplification workflow](workflows/line_simplify.atlasflow).
 
-**Stair Sculpt 0.1.0** turns a model into a linear, turning or helical staircase. Carve a cavity on a chosen side or
+**Stair Sculpt 0.1.2** turns a model into a linear, turning or helical staircase. Carve a cavity on a chosen side or
 where you paint, and build one staircase or an ensemble of flights, landings, piers and arches inside it. Or make the
 whole model the stair: as treads whose ends keep its silhouette, or as a flight, groove or square ramp cut into the
 body. Fifteen presets; one closed, signed solid in the model's units; closed inputs by default, with optional repair.
@@ -50,13 +49,13 @@ as a thin shell that lets go cell by cell. It reads the model as a surface, so t
 fused into one printable solid. Eighteen presets; seeded; no Blender or new libraries. See
 [Skeleton Shell](SKELETON_SHELL.md).
 
-**Crumble 0.1.0** fractures part of a closed model into solid blocks of rock, shards, slabs or bricks, on a chosen side,
+**Crumble 0.1.1** fractures part of a closed model into solid blocks of rock, shards, slabs or bricks, on a chosen side,
 a round patch, a painted area or the whole model, and leaves a jagged crater with cracks around it. The blocks let go in
 a staggered order and fall in a built-in rigid-body solver, colliding with each other, the body and the floor. Collapse
 picks the moment shown, from just cracked to settled rubble. Output is loose closed solids or one fused solid. Ten
 presets; seeded; no Blender or new libraries. See [Crumble](CRUMBLE.md).
 
-**Surface Eject 0.3.1** extracts real pieces of the model surface with cube, box, sphere, ellipsoid or cylinder
+**Surface Eject 0.3.3** extracts real pieces of the model surface with cube, box, sphere, ellipsoid or cylinder
 samplers and floats them along the area-weighted outward normal, preserving orientation and leaving matching
 cavities. Independent seeded size/depth/gap ranges, certified full detachment, whole surface / clipped height
 band / visible-face painting in a modal selection editor (shared with Crumble and Stair Sculpt;
@@ -84,7 +83,7 @@ reports the achieved angle. Signed STL/OBJ/PLY and shared-frame stage sets, orig
 no Blender. Draw with Contour Lines or Sketch Hatching. See [Bend controls and drawing recipes](BEND.md),
 [Bend Contours](workflows/bend_contours.atlasflow) and [Bend Sketch](workflows/bend_sketch.atlasflow).
 
-**Surface Texture 0.1.0** wraps a model in real raised, engraved or balanced relief. Twelve bundled CC0
+**Surface Texture 0.1.1** wraps a model in real raised, engraved or balanced relief. Twelve bundled CC0
 heightmaps cover scales, rock, sand, soil, leaf veins, fallen leaves, bricks, bark, leather, cracked earth,
 cobbles and wood grain; custom grayscale PNG/TIFF includes 16-bit heights. Automatic surface-following
 charts, cylindrical wrapping or triplanar mapping; element size, relief, grain suppression, crispness,
@@ -95,7 +94,7 @@ See [controls and drawing recipes](SURFACE_TEXTURE.md), [method and research](SU
 [texture sketch](workflows/texture_sketch.atlasflow) and
 [textured band features](workflows/texture_band.atlasflow).
 
-**Pipe Fill 0.1.0** replaces a model with tubes throughout its interior: organic repulsive curves or
+**Pipe Fill 0.1.1** replaces a model with tubes throughout its interior: organic repulsive curves or
 orthogonal pipes with rounded elbows, independent strands or closed loops, solid or hollow. Eight presets
 include airy/dense plotter sculptures and architectural pipe mazes. Diameter, spacing, gaps, thickness
 variation and seed control the result; the original body is omitted. Closed input by default, optional
@@ -129,7 +128,7 @@ surface topology, Automatic safe clearance handles diagonal mask contacts, and a
 input-specific preparation and mask settings. Budget checks use occupied geometry and complete-solid costs.
 No Blender, QGIS or R is needed. See [DEM methods, scaling and examples](RASTER_DEM_TO_MESH.md).
 
-**Remesh/Decimate 0.1.0** prepares large scans or rebuilds their topology for pen drawings: constrained quadric
+**Remesh/Decimate 0.2.0** prepares large scans or rebuilds their topology for pen drawings: constrained quadric
 decimation, uniform/adaptive triangles, flowing quads, elongated directional triangles, dual cells, planar
 dissolve and voxel reconstruction. Ten presets cover faithful preparation through bold facets and organic
 networks. Native OBJ/PLY polygons survive wireframe preview and drawing; STL explicitly triangulates them.
@@ -140,7 +139,7 @@ See [methods, controls and examples](REMESH_DECIMATE.md).
 Plotter Vision's **Remeshed network** preset draws every native mesh edge, including coplanar cell boundaries,
 without polygon triangulation diagonals. FlowRep accepts preserved polygons from OBJ and PLY.
 
-**Repair Mesh 1.0.0** fixes the mesh errors that stop the sculpting tools: back-to-back faces and crumbs left by
+**Repair Mesh 1.0.1** fixes the mesh errors that stop the sculpting tools: back-to-back faces and crumbs left by
 decimation, holes, non-manifold edges and bow-tie vertices, wrongly wound or inside-out faces. It repairs in place
 (no vertex moves), fills holes flat or smooth, and rebuilds by resampling only if the model is still not a solid.
 The report gives a before/after table and the tools the result is **Ready for**; **Problems** marks the bad edges in
@@ -153,12 +152,12 @@ side, making an adjacent copy. Keep the original or save only the reflection; ex
 or separate files. The live Plane tab shares Plane Cut's drawing, arrows, rings, numeric controls and maximizable
 editor. See [Mirror controls and output behavior](MIRROR.md).
 
-**Plane Cut 0.1.0** trims or splits a mesh with a manually placed plane. Draw a line in the **Plane** tab, then
+**Plane Cut 0.1.1** trims or splits a mesh with a manually placed plane. Draw a line in the **Plane** tab, then
 refine it with XYZ arrows/rings or numeric controls; **Expand** opens a maximizable editor. Choose the kept side,
 flip it, cap the cut or leave it open, and save both halves together or separately. UI, CLI and Workflows use the
 same settings. See [Plane Cut controls and limitations](PLANE_CUT.md).
 
-**Developable Surfaces 0.1.0** evolves triangle meshes into approximately developable pieces with flowing
+**Developable Surfaces 0.1.1** evolves triangle meshes into approximately developable pieces with flowing
 seams and nearly straight rulings. Five presets range from recognisable sculpture to broad folds and abstract
 form. Open boundaries stay fixed; STL/OBJ/PLY outputs keep source units. The separately licensed headless
 C++ helper is bundled, with corresponding source; no Blender or MATLAB is required. Draw with Plotter Vision's
@@ -169,7 +168,7 @@ See [method, setup and examples](DEVELOPABLE_SURFACES.md).
 roundness, retained relief, directional expansion, anchors and seeded broad lobes shape six presets for
 Contour Lines and Plotter Vision. One final mesh per run, available in the UI, CLI and Workflows, without Blender.
 
-**Surface Stripes 0.2.0** adds raised bands to a mesh or exports only closed ribbons, using Crane's stripe-pattern
+**Surface Stripes 0.2.1** adds raised bands to a mesh or exports only closed ribbons, using Crane's stripe-pattern
 method through Geometry Central. Plotter broad and Plotter dense presets cover the form with flowing bands or
 finer stripes. Send its signed STL/OBJ/PLY to Plotter Vision (Features) or Hatch Maker for pen-plotter SVGs.
 See [Surface Stripes](SURFACE_STRIPES.md) for controls, build instructions and limitations.
@@ -178,15 +177,15 @@ See [Surface Stripes](SURFACE_STRIPES.md) for controls, build instructions and l
 |---|---|---|---|
 | **Line Smooth** 0.1.0 | SVG → SVG | new | Arc-length curvature fairing and compensated Taubin filtering for jagged strokes. Physical span/blend/displacement, persistent corner protection and all-pen swept-region checks. No vertex reduction. `<name>_smoothed.svg` |
 | **[Skeleton Shell](SKELETON_SHELL.md)** 0.1.0 | Mesh → mesh | new | A hollow wire or plate sculpture on the model's skin: wire cells, a triangle net, flowing strands, airframe ribs and stringers, or a cut plate, in up to two layers, with optional kept skin and a fused printable result. Eighteen presets. Signed `<name>_skeleton.stl`. |
-| **[Crumble](CRUMBLE.md)** 0.1.0 | Mesh → mesh | new | Part of a model breaks into solid blocks that collapse under gravity with real rigid-body physics, on a side, a patch, a painted area or everywhere, frozen at any moment and leaving a hollow. Ten presets. Signed `<name>_crumble.stl`. |
-| **[Stair Sculpt](STAIR_SCULPT.md)** 0.1.0 | Mesh → mesh | new | Linear, turning or helical stairs, built in a carved or painted cavity (one stair or an ensemble with landings and arches), made from the model's own material as treads, or cut into its body. Fifteen presets. Signed `<name>_stairs.stl`. |
-| **Surface Eject** 0.3.1 | Mesh → mesh | new | Actual surface-volume extraction with five samplers and whole/band/painted regions. Connect 0–100% of fragments; cylinders, bars or organic trees with up to 100 fixed/random extra branches, origin zones, generations, thickness and extent controls. Nineteen presets; combined assemblies or separate body/fragments/connectors in signed STL/OBJ/PLY. |
+| **[Crumble](CRUMBLE.md)** 0.1.1 | Mesh → mesh | new | Part of a model breaks into solid blocks that collapse under gravity with real rigid-body physics, on a side, a patch, a painted area or everywhere, frozen at any moment and leaving a hollow. Ten presets. Signed `<name>_crumble.stl`. |
+| **[Stair Sculpt](STAIR_SCULPT.md)** 0.1.2 | Mesh → mesh | new | Linear, turning or helical stairs, built in a carved or painted cavity (one stair or an ensemble with landings and arches), made from the model's own material as treads, or cut into its body. Fifteen presets. Signed `<name>_stairs.stl`. |
+| **Surface Eject** 0.3.3 | Mesh → mesh | new | Actual surface-volume extraction with five samplers and whole/band/painted regions. Connect 0–100% of fragments; cylinders, bars or organic trees with up to 100 fixed/random extra branches, origin zones, generations, thickness and extent controls. Nineteen presets; combined assemblies or separate body/fragments/connectors in signed STL/OBJ/PLY. |
 | **Bend** 0.1.0 | Mesh → mesh | new | Arc-length spine bending with transported sections, arcs/S-bends/waves, active range and anchors, spatial sweep and roll, local fold protection, conforming refinement and stage sequences. Signed `<name>_bend.stl` / OBJ / PLY. |
-| **Surface Texture** 0.1.0 | Mesh → mesh | new | Twelve offline CC0 heightmaps or custom PNG/TIFF to real surface relief; surface-following, cylindrical and triplanar mapping, feathered regions, collision protection and plotter presets. Signed `<name>_textured.stl` / OBJ / PLY. |
+| **Surface Texture** 0.1.1 | Mesh → mesh | new | Twelve offline CC0 heightmaps or custom PNG/TIFF to real surface relief; surface-following, cylindrical and triplanar mapping, feathered regions, collision protection and plotter presets. Signed `<name>_textured.stl` / OBJ / PLY. |
 | **Voxelize Fill** 0.1.0 | Mesh → mesh | new | Full volumetric occupancy as cubes, adaptive blocks or directional bars; joined boundaries, cutaways, exploded strata, depth bands and seeded erosion. Nine presets. Signed `<name>_voxel-fill.obj` (also PLY or triangulated STL). |
 | **Raster DEM to Mesh** 0.3.1 | Image → mesh | R 3d_DEM prototype | Geographic numeric DEM to faithful, smooth, faceted or terraced terrain. CRS, elevation units and masks; adaptive detail, plate sizing and validated printable solids or open drawing surfaces. `<name>_dem_solid.stl` / `<name>_dem_surface.stl` |
 | **Image to Mesh** 0.1.1 | Image → mesh | DEM heightfield foundation | Non-geographic photos and grayscale images to calibrated relief. Grayscale/channel selection, tonal preparation, alpha masks, neutral placement and seven presets; printable solids or open surfaces for pen drawings. `<name>_image_solid.stl` / `<name>_image_surface.stl` |
-| **Remesh/Decimate** 0.1.0 | Mesh → mesh | new | Constrained decimation, uniform/adaptive and directional triangles, aligned quads, native dual cells, planar dissolve and voxel rebuilding. Regional detail, source projection, measured surface error, ten presets. Signed `<name>_remesh.obj` (also PLY or triangulated STL). |
+| **Remesh/Decimate** 0.2.0 | Mesh → mesh | new | Constrained decimation, uniform/adaptive and directional triangles, aligned quads, native dual cells, planar dissolve and voxel rebuilding. Regional detail, source projection, measured surface error, ten presets. Signed `<name>_remesh.obj` (also PLY or triangulated STL). |
 | **Line Simplify** 0.1.0 | SVG → SVG | new | Native distance-based or heap effective-area reduction, physical error cap, corner/reversal/length/area controls and conservative all-pen topology guards. `<name>_simplified.svg` |
 | **Overlap Cleaner** 1.2.1 | SVG → SVG | SVG Overlap Cleaner v1, SVG Join Paths v1/v2, svg_dedup | Cuts ink drawn twice, so every line is plotted once. Optional: join stroke ends, whole-duplicates mode, rect/circle/ellipse, stroke width as part of the pen. `<name>--nooverlap.svg` |
 | **Shape Cutter** 2.0 | SVG → SVG | svg_shape_cutter | Keeps the lines inside (or outside) a closed shape: the element or layer named “shape”, a chosen layer or another SVG. Every island and hole counts. `<name>_cutout.svg` |
@@ -197,25 +196,25 @@ See [Surface Stripes](SURFACE_STRIPES.md) for controls, build instructions and l
 | **Sketch Hatching** 1.0.2 | Mesh → SVG | new | A model as an illustrator's pen sketch: lost-and-found outline, suggestive contours, valleys, creases, and hatching that follows the form in tone bands, with cast shadows and ambient occlusion; a focus point and a portrait light for a face. Two pens. `<name>_sketch.svg` |
 | **Stipple** 1.0 | Mesh → SVG | Digital divide's sphere (`projects/blender3d_project/digital_divide_1`) | A model in dots only: blue-noise stippling of its ray-cast light and shade, an empty highlight, edge darkening instead of an outline, a dot budget. `<name>_stipple.svg` |
 | **FlowRep Sketch** 0.1.2 | Mesh → SVG | new (FlowRep, Gori et al. 2017) | A model as a sparse network of curvature-aligned curves that describe its form, seen through a camera with hidden lines removed, plus an optional silhouette. Triangle meshes are remeshed into quads (Instant Meshes); quad-dominant OBJ/PLY keeps its topology. Descriptiveness sets how many curves remain (presets Clean, Detailed, Sparse); the 3D network is cached, so aiming again only redraws. `<name>_flowrep.svg` |
-| **Photo Hatching** 1.0 | Image → SVG | the DPT notebooks (a–d) in `google_colab` | Engraving-style hatching of a photo, guided by depth from a transformer (MiDaS 3.1 BEiT-L-512, DPT-Large or Depth Anything V2 Large on the GPU): strokes wrap the forms, ink density follows the tone, crossing layers only in the shadows, occlusion outlines. Also the notebooks' patches (mosaic) and depth contours, fixed. `<name>_photohatch.svg` |
-| **Cubic Replicator** 3.0 | Mesh → mesh | STL Cubic Replicator v2 | Copies of a model on a 3D grid, mirrored and turned at random (seeded). `<name>_replicated_3x3x1.stl` |
-| **Form Replicator** 1.0 | Mesh → mesh | new | Compose one model into planar/spatial crosses and stars, clock rings, rosettes, sea urchins, sunflower spirals, helices, toroidal wreaths, trefoil knots and Möbius bands. Aim, stretch, taper and roll copies with seeded variation; touching copies are always fused into solids. `<name>_forms_star2d.stl` |
+| **Photo Hatching** 1.1.0 | Image → SVG | the DPT notebooks (a–d) in `google_colab` | Engraving-style hatching of a photo, guided by depth from a transformer (MiDaS 3.1 BEiT-L-512, DPT-Large or Depth Anything V2 Large on the GPU): strokes wrap the forms, ink density follows the tone, crossing layers only in the shadows, occlusion outlines. Also the notebooks' patches (mosaic) and depth contours, fixed. `<name>_photohatch.svg` |
+| **Cubic Replicator** 3.1 | Mesh → mesh | STL Cubic Replicator v2 | Copies of a model on a 3D grid, mirrored and turned at random (seeded). `<name>_replicated_3x3x1.stl` |
+| **Form Replicator** 1.0.2 | Mesh → mesh | new | Compose one model into planar/spatial crosses and stars, clock rings, rosettes, sea urchins, sunflower spirals, helices, toroidal wreaths, trefoil knots and Möbius bands. Aim, stretch, taper and roll copies with seeded variation; touching copies are always fused into solids. `<name>_forms_star2d.stl` |
 | **Grid Slicer** 3.1.1 | Mesh → mesh | cube_grid_slicer-v2 | Cuts a model into n × n × n capped blocks and pushes them apart; optionally shuffles them (blocks trade places, anywhere, in their layer or column) and shifts them at random. `<name>_grid3.stl` |
-| **[Strata Sculpt](STRATA_SCULPT.md)** 1.1 | Mesh → mesh | new | Cuts a model into a stack of capped slabs (horizontal, front to back or side to side, optionally tilted) and dislocates them: thinner wafers lifted apart, a sideways or orbiting wave, a spiral turn, seeded slips and tilts; whole model, a height band or a sphere; one stage or a sequence. Optional randomly spaced cylinders, square bars or organic branching supports fuse neighbouring slabs; independent seeds and three connected presets. Pair with Plotter Vision. `<name>_strata.stl` |
+| **[Strata Sculpt](STRATA_SCULPT.md)** 1.1.1 | Mesh → mesh | new | Cuts a model into a stack of capped slabs (horizontal, front to back or side to side, optionally tilted) and dislocates them: thinner wafers lifted apart, a sideways or orbiting wave, a spiral turn, seeded slips and tilts; whole model, a height band or a sphere; one stage or a sequence. Optional randomly spaced cylinders, square bars or organic branching supports fuse neighbouring slabs; independent seeds and three connected presets. Pair with Plotter Vision. `<name>_strata.stl` |
 | **Porous Forms** 1.0 | Mesh → mesh | new | Turns a closed model into a continuous labyrinth inside its own silhouette: gyroid, diamond, Schwarz P or Neovius walls or struts, or seeded Voronoi cells (foam, trabecular bone), cut by the envelope from a signed-distance volume (libigl) and extracted closed (marching cubes). Cell and wall in % of the height, a solid core behind the openings, a protected band or sphere (an intact face), cell grading; one stage or a sequence from solid to porous. Pair with Sketch Hatching, or Plotter Vision's Features. `<name>_porous.stl` |
 | **Holes** 1.0.2 | Mesh → mesh | new | Pierces a closed model with through tubes, blind bores (flat, round or pointed end), bubbles (closed voids, craters where they reach the skin) or wandering, swelling wormholes, on a lattice (one to three axes, square or hex, woven), radially (spokes around an axis or from a point; rings or shells of bubbles), at random or spread over the surface. Circle, polygon, pillow or seeded blob profiles; sizes fixed or drawn from a range (mostly small for cheese); one Irregularity slider from a regular perforation to chaos with the same seed; a minimum wall that shrinks or drops holes. Exact cut (manifold3d), crisp rims. Pair with Sketch Hatching or Contour Lines. `<name>_holes.stl` |
 | **Rods** 1.0 | Mesh → mesh | new | The mirror of Holes: adds rods, hollow pipes, drooping cables or spikes to a closed model in one exact union, Through it (sticking out both ends) or Outward from it (rooted inside). Holes' layouts (lattice, radial, random, surface), profiles (circle, n-sided polygon, pillow, blob) and Irregularity; width and reach in % of the height, fixed or from a range; flat, round, pointed or flared ends; collars; pipe bores open through the model or plugged. Pair with Sketch Hatching or Contour Lines. `<name>_rods.stl` (and `<name>_rods_tubes.stl`, the rods alone) |
-| **Surface Peel** 1.0 | Mesh → mesh | new | Cuts the skin into petals (sectors about a bloom axis, in staggered rows with scalloped tips) or scales (seeded geodesic patches) and peels each back about a fixed root: unroll, open at the hinge, curl tighter toward the tip. Panels become closed shells (built in, or Blender's Complex Solidify); nested layers that open less and an intact core make a rose of heads; whole model, a height band or a sphere; one stage or a sequence with panels opening in turn. Pair with Plotter Vision or Sketch Hatching. `<name>_peel.stl` |
+| **Surface Peel** 1.0.1 | Mesh → mesh | new | Cuts the skin into petals (sectors about a bloom axis, in staggered rows with scalloped tips) or scales (seeded geodesic patches) and peels each back about a fixed root: unroll, open at the hinge, curl tighter toward the tip. Panels become closed shells (built in, or Blender's Complex Solidify); nested layers that open less and an intact core make a rose of heads; whole model, a height band or a sphere; one stage or a sequence with panels opening in turn. Pair with Plotter Vision or Sketch Hatching. `<name>_peel.stl` |
 | **Shape Fusion** 1.0 | Mesh → mesh | new | Transformations between different shapes, no matching vertices needed: Morph a model into another model, itself (turned, moved, repeated around its axis) or a built-in torus, sphere, block or column; Fuse them with a smooth fillet, Carve one out of the other or Intersect them. Both are signed-distance volumes on one grid (libigl), so holes open and pieces join; the change can sweep across the model as a soft front, or stay in a band or a sphere; one stage or a sequence whose ends are the two shapes themselves. Pair with Contour Lines. `<name>_fusion.stl` |
 | **Dual Fusion** 1.1 | Mesh → mesh | new | Two models fused into one sculpture: the second normalised to the first's height with a Size ratio, then Convergence (they glide together, bridge and melt into one hybrid, face-to-face pairs turning to the viewer), Emergence (one pushes through the other, a wall or the floor under a stretched membrane that can tear), Split with seam (halves of each, a carved groove, a raised suture or pulled apart), Interleaved strata (slabs of each, graded), Liquid bridge (sagging filaments that reach out and join), Disintegration (a front crumbles the first into drifting cubes or shards, revealing the second), Motion echo (the passage from one to the other frozen in fused moments), Cellular patchwork (Voronoi cells of each, grouted, exploded) or Chrysalis shell (the second as a cocoon round the first that cracks into plates or opens into a lattice). Each model is a signed-distance field sampled once and moved by pose, so sequences keep their detail. Pair with Contour Lines, or Plotter Vision for strands, fragments and cells. `<name>_dual.stl` |
-| **Ribbon Wrap** 1.0 | Mesh → mesh | new | Wraps a model in a ribbon of silk, satin, velvet, cotton or gauze: a spiral bandage about an axis (full cover to gaps between turns, passes crossing in X's), parcel bands (meridians, rings, seeded planes) or a loose drape walking round the form. The ribbon rides the outer skin, bridges hollows with Tension and stacks in layers where it crosses itself; its start and end tails fall outside the form (Lift, Gravity, Sway, Twist, a corkscrew Curl), rest on the floor and end cut, tapered or frayed. Threads, weave, ripples and pillowed edges are geometry; optional Blender cloth settle. Pair with Sketch Hatching. `<name>_ribbon.stl` |
+| **Ribbon Wrap** 1.0.1 | Mesh → mesh | new | Wraps a model in a ribbon of silk, satin, velvet, cotton or gauze: a spiral bandage about an axis (full cover to gaps between turns, passes crossing in X's), parcel bands (meridians, rings, seeded planes) or a loose drape walking round the form. The ribbon rides the outer skin, bridges hollows with Tension and stacks in layers where it crosses itself; its start and end tails fall outside the form (Lift, Gravity, Sway, Twist, a corkscrew Curl), rest on the floor and end cut, tapered or frayed. Threads, weave, ripples and pillowed edges are geometry; optional Blender cloth settle. Pair with Sketch Hatching. `<name>_ribbon.stl` |
 | **Reaction-Diffusion Growth** 1.0 | Mesh → mesh | new | Grows a Gray-Scott reaction-diffusion pattern over the surface itself (coral ridges, fingerprint channels, a maze, dividing cells, a honeycomb of pits, pebbles, lichen) and raises or engraves it as relief along the rest normals. Wavelength in % of the height on a mesh fitted to it, so the scale holds across models and densities; channels can wrap around the model or run up it, a second pattern can take over up the height, and the pattern stops at a natural edge outside a band or sphere. One stage or a sequence of moments of one simulation, scattered or creeping from the crown, face or base. Pair with Sketch Hatching or Contour Lines. `<name>_growth.stl` |
 | **Mesh Shatter** 4.1 | Mesh → mesh | Mesh shatter v3 | Breaks the surface into shards along its creases and blows them apart (seeded), optionally tied to a central hub by stems or a branching tree. `<name>_shattered_25pcs.obj` |
 | **Disintegrate** 1.1.0 | Mesh → mesh | new | Progressively subdivides a model and pushes every triangle corner on its own until the surface comes apart into loose triangles (formerly Mesh Morph; `mesh-morph` still works). Seeded, directional controls, final or combined progression, optional stage files. `<name>_disintegrate_progression_2steps.stl` |
 | **Twist** 1.1 | Mesh → mesh | new | Wrings a model: an undulating torsion about its up axis, an S-sway, a (spiral) ripple; one stage or a sequence from intact to full, each stage saved in place for Contour Lines. No Blender needed. `<name>_twist.stl` |
-| **Surface Stripes** 0.2.0 | Mesh → mesh | new (Knöppel et al. 2015) | Flowing surface bands, fused to the body or exported as closed ribbons alone (off by default). Plotter broad and Plotter dense presets, measured skin coverage, spacing, width, thickness, rotation, crossing families and seed. Bundled Geometry Central/Eigen helper. Draw with Plotter Vision (Features) or Hatch Maker. `<name>_stripes.stl` |
+| **Surface Stripes** 0.2.1 | Mesh → mesh | new (Knöppel et al. 2015) | Flowing surface bands, fused to the body or exported as closed ribbons alone (off by default). Plotter broad and Plotter dense presets, measured skin coverage, spacing, width, thickness, rotation, crossing families and seed. Bundled Geometry Central/Eigen helper. Draw with Plotter Vision (Features) or Hatch Maker. `<name>_stripes.stl` |
 | **Compress** 0.1.0 | Mesh → mesh | new | Compresses a model in one step. Free: two press plates (tilted for a shear press, or onto the floor), a tube tightening around an axis, or pressure from every side. Into a shape: a cube, sphere, cylinder, cone, pyramid, prism, octahedron, icosahedron or dodecahedron mould (any aspect ratio) closes on it, or the model morphs onto the shape with its features in relief. Physical modes are a quasi-static projective-dynamics solve on a near-uniform copy (elastic or plastic skin, bending stiffness, internal pressure that keeps or gives up the volume, friction, approximate self-collision, seeded imperfections) whose motion carries the full-detail model. Pair with Contour Lines or Plotter Vision. `<name>_compress.stl` |
-| **Developable Surfaces** 0.1.0 | Mesh → mesh | Stein, Grinspun & Crane (2018) | Coarse-to-fine developability optimisation; field-aligned remeshing with checked coarsening fallback, fixed open boundaries and five aesthetic presets. `<name>_developable.stl` (also OBJ/PLY). |
+| **Developable Surfaces** 0.1.1 | Mesh → mesh | Stein, Grinspun & Crane (2018) | Coarse-to-fine developability optimisation; field-aligned remeshing with checked coarsening fallback, fixed open boundaries and five aesthetic presets. `<name>_developable.stl` (also OBJ/PLY). |
 | **Dilate** 0.1.0 | Mesh → mesh | new | Pressure-driven expansion with elastic stretching and bending resistance, per-part volume targets, adjustable softness, roundness and relief, seeded broad lobes, global or feathered local influence, and base/boundary anchors. Open meshes keep their openings and use outward surface swelling with a warning. Triangle contact checks and backtracking limit new crossings. One signed `<name>_dilate.stl` (also OBJ/PLY); pair with Contour Lines or Plotter Vision. |
 | **Flow Warp** 1.0 | Mesh → mesh | new | Pulls a model through turbulent currents. Curl-noise eddies, a vortex and a streaming pull carry every vertex along one smooth field (Runge-Kutta), so the surface folds without tearing. Base anchor; whole model, a height band or a sphere; one stage or a sequence on the same trajectories. Pair with Contour Lines. `<name>_flow.stl` |
 | **Melt** 1.1 | Mesh → mesh | new | Melts a model like ice cream or molten metal: softening, sag, a pool at its base, drips and rivulets, up to dissolving; generic or head-aware; one stage or a sequence whose drips grow in place. Runs in the installed Blender (4.2+), in the background. `<name>_melt.stl` |

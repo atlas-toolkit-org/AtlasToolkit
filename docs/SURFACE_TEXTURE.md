@@ -1,4 +1,4 @@
-# Surface Texture 0.1.0
+# Surface Texture 0.1.1
 
 Surface Texture adds actual relief to a model. Send its STL, OBJ or PLY to Contour Lines, Sketch Hatching or
 Plotter Vision to draw that relief. The tool keeps the original model's units, position and silhouette apart

@@ -1,4 +1,4 @@
-# Surface Eject 0.3.1
+# Surface Eject 0.3.3
 
 Surface Eject lifts actual pieces of a model out of matching cavities. It keeps a recognizable body between
 the cuts and preserves the orientation and sculpted skin of every fragment. Mesh Shatter partitions the
@@ -138,7 +138,8 @@ The report records any stabilization tolerance. Separate cavity-body and fragmen
 - **Height band** clips samplers at Band from/to, measured from the original lowest point. Entire extracted
   volumes and cavities stay inside this band.
 - **Painted area** opens the Selection tab's modal editor. Paint with left-drag, Shift to erase, Alt+left-drag
-  or Orbit mode to rotate, and wheel to zoom. Exact nearest-hit ray tests protect hidden faces. Undo restores
+  or Orbit mode to rotate, and wheel to zoom. Only faces you can see are painted: the editor picks them on screen
+  through a face-id and depth buffer, so large models paint about as quickly as small ones. Undo restores
   up to 20 strokes; Clear and Select all are available. Painting follows source triangles; refine a coarse
   mesh first when a finer selection boundary is needed. A sample touching any unselected original surface
   face is rejected, including along coplanar painted/unpainted boundaries.
