@@ -1,4 +1,4 @@
-# Pipe Fill 0.1.0
+# Pipe Fill 0.1.1
 
 Replace a closed 3D model with a sculpture made of tubes throughout its interior.
 The model defines the envelope but is omitted from the output. Gaps are intentional;

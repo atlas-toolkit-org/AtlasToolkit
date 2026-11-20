@@ -1,4 +1,4 @@
-# Developable Surfaces 0.1.0
+# Developable Surfaces 0.1.1
 
 Convert a mesh into an approximately piecewise developable surface for projected pen-plotter drawings.
 This adapts the original solver by Oded Stein, Eitan Grinspun and Keenan Crane, *Developability of Triangle

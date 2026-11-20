@@ -1,4 +1,4 @@
-# Remesh/Decimate 0.1.0
+# Remesh/Decimate 0.2.0
 
 One mesh in, one signed mesh out, available from the tool page, CLI and Workflows. Coordinates, model units and
 placement are retained. Outputs default to `<name>_remesh.obj`. OBJ and PLY retain native quads/cells; STL

@@ -1,6 +1,6 @@
 # Repair Mesh
 
-Atlas Toolkit 2.4.1, Repair Mesh 1.0.0. It makes a damaged model a clean, closed solid that the sculpting tools
+Atlas Toolkit 2.4.2, Repair Mesh 1.0.1. It makes a damaged model a clean, closed solid that the sculpting tools
 accept, keeps the surface where it can, and says what it changed.
 
 ## Why models fail

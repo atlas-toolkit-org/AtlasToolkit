@@ -310,7 +310,7 @@ Elastic or plastic skin, stiffness, pressure and friction.
 
 **[Motion Sculpture](docs/MOTION_SCULPTURE.md)**<br>
 Stretches a still model into swept laminae or splintered bars. Stream, Pulse, Gust and Vortex fields draw tapered wakes
-behind a retained silhouette, over a region you can paint.
+behind a retained silhouette, over the whole model, a height band or a sphere.
 </td>
 <td valign="top">
 <img src="docs/images/readme/mesh-developable.webp" alt="David evolved into flowing folded surfaces" width="100%">
