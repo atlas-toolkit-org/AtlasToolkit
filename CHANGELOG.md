@@ -1,6 +1,6 @@
 # Changelog
 
-## 2.4.1 (2026-11-19)
+## 2.4.1 (2026-11-20)
 
 **One Aim for every Mesh → SVG tool**
 - **The same Aim tab everywhere:** Plotter Vision, Hatch Maker, Contour Lines, Sketch Hatching, Stipple and FlowRep
