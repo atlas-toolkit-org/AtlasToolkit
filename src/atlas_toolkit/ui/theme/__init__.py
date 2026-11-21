@@ -51,6 +51,7 @@ EXTRA_ICONS = {
     "play": '<path d="M7 5v14l11-7z"/>',
     "stop": '<rect x="6" y="6" width="12" height="12" rx="2"/>',
     "reset": '<path d="M4 12a8 8 0 1 0 2.4-5.7"/><path d="M4 4v4.5h4.5"/>',
+    "refresh": '<path d="M19.5 9A8 8 0 0 0 5 7.5M4.5 15A8 8 0 0 0 19 16.5"/><path d="M19.5 4v5H15M4.5 20v-5H9"/>',
     "save": '<path d="M5 4h11l3 3v13H5z"/><path d="M8 4v5h7V4M8 20v-6h8v6"/>',
     "trash": '<path d="M4.5 7h15M10 7V4.5h4V7M6.5 7l1 13h9l1-13"/>',
     "send": '<path d="M4 12h13M13 7l5 5-5 5"/><path d="M20 5v14"/>',
@@ -102,6 +103,9 @@ EXTRA_ICONS = {
     "download": '<path d="M12 3v12m-5-5 5 5 5-5M4 17v3.5h16V17"/>',
     # the Aim tab (ui/widgets/preview.py): the view that sets a drawing's camera; no tool may use it
     "aim": '<circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="1.5"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/>',
+    # the 3D view's Display menu: a sphere with a meridian and an equator (shaded, wire, x-ray…)
+    "display": '<circle cx="12" cy="12" r="8"/><path d="M4 12c0 2.2 3.6 4 8 4s8-1.8 8-4M12 4c-2.2 0-4 3.6-4 8s1.8 '
+               '8 4 8"/>',
     "cat_bust": '<path d="M12 3a4 4 0 0 1 4 4v1.5a4 4 0 0 1-8 0V7a4 4 0 0 1 4-4zM10 12.8v1.7c-2.8.6-5 2.6-5 5.5h14'
                 'c0-2.9-2.2-4.9-5-5.5v-1.7M7 20v1.5h10V20"/>',
     "cat_statue": '<circle cx="12" cy="4" r="2"/><path d="M12 6.5v6.5l-2.2 6.5M12 13l2.2 6.5M8.5 9.5 12 8l3.5 2.5 1-2'

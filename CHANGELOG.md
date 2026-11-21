@@ -1,5 +1,89 @@
 # Changelog
 
+## 2.4.3 (2026-11-21)
+
+**Updates**
+- **Setup › General › Updates** has **Check now**: under New versions, this version with a badge (*latest*, or
+  the newer version that is out), when the app last checked, and a button that asks at once, whatever the schedule.
+
+**Aim keeps up**
+- **Aim no longer freezes on scaled displays.** Every Aim tab drew its lines with round caps: Plotter Vision, Hatch
+  Maker, Contour Lines, Sketch Hatching, Stipple, FlowRep Sketch, and Workflows' **Aim in tool…**. When a display
+  is scaled above 100 % (125 %, 150 %, 175 %…), or Setup › UI scale is above 1, Qt strokes round caps 50 to 100 times
+  slower. A frame of *Head of Michelangelo's David · light_stairs* (8 300 lines) took 1.4 s at 175 %. A paint also
+  holds Python's lock, so the hidden lines waited too, and after every stop the window froze for seconds. Lines now
+  have flat caps (the caps never showed at these widths). They are drawn once into layers shown inside and outside
+  the frame, and the hidden lines are added batch by batch as they come. On that laptop, for the David head:
+
+  | | before | after |
+  |---|---|---|
+  | frames while dragging | 2 per second | 46 per second |
+  | longest freeze | 0.5–1.1 s | under 0.05 s |
+  | lines done after a stop | 6.0 s | 1.0 s |
+
+  On *Sculpted head_strata*, dragging went from under 1 frame per second (2 s behind the mouse) to 39, and lines
+  are done 1.7 s after a stop instead of 31 s. At 100 % nothing changes but the speed.
+- **The view keeps up with the mouse.** A move only turns the camera, and what the camera sees is worked out once
+  per frame; it used to be worked out for every move, so the view trailed the hand. When a frame would still take
+  over 33 ms (Exact lines on big models), it draws the outline and an even share of the other edges until you stop,
+  and the read-out says how many.
+- **Pause lines** (`P`, or the button beside Always fit) stops the black lines from being worked out after every
+  stop. Turn, move and zoom over the trace as long as you like, and the view still goes into the settings. Then
+  **Resume lines** draws them once, for the view you landed on. It helps most on heavy models, where those lines
+  take a few seconds and every nudge started them again. Like Always fit, it is never saved.
+- **The light trace is always light.** Decimation could stall far above the 20 000 faces asked: *Head of Pierre de
+  Wissant · light_motion* (480 000 faces) stayed at 327 000, and Aim showed no lines within 90 s. Vertex clustering
+  now finishes the job (17 000 faces), and that model's lines come about 4 s after a stop, with the window answering
+  meanwhile. The copy is made once per file, so a new Up, Front or turn only places it again: 9 s to 1.1 s on the
+  David. Only Aim uses this copy; what Preview and Draw make is unchanged, and no tool's version changes.
+- `scripts/dev/aim_perf.py` drives the real Aim tab at mouse speed (drag, Shift-drag, wheel, a new Up) on a sphere,
+  on stepped spheres of 4 000 to 256 000 faces (every step a crease, like Stair Sculpt's output) and on your own
+  models. It reports freezes, lag, frames per second and the time to final lines, PASS or FAIL per model, and
+  `--scale` tries another display scaling. `tests/test_aim_view.py` draws at 2x on purpose, since CI runs at 100 %,
+  where round caps were never slow.
+
+**More room for the preview**
+- **The file list and Report / Log fold away.** The chevron left of **INPUTS** on every tool page folds them to the
+  left, so the preview (Aim, Before / After, the 3D view) takes their width; the chevron brings them back at the width
+  they had. While folded, a compact picker beside INPUTS selects the input, with up / down arrows for the previous
+  and next file and the input's status (Ready, Saved, Error…) next to it. The choice holds for every tool and is
+  remembered.
+- **A one-line tool header.** The name (a size smaller), its version right beside it, a hairline and the summary
+  now share one line; the summary ends in "…" when the window is narrow and shows in full, with the description,
+  on hover. The category line above the name is gone (the tool list and Home show it; the name's tooltip has it),
+  and the page's top margin is smaller: the preview gains about 60 px of height on every tool.
+
+**A 3D view made for each mode**
+- **The floor grid shows in every mode.** In the light theme it was drawn in a dark line colour on the dark backdrop,
+  and all but vanished. The 3D view now has a look per theme and art mode:
+  - *Paper, light theme:* a light studio (white fading to pale blue-grey) with a clay-toned model, so lit faces still
+    stand off the backdrop, and slate grid lines. It used to be navy, almost the same as blueprint.
+  - *Paper, dark theme:* the theme's navy fading to near black, the paper-toned model, grey-blue grid lines.
+  - *Blueprint, both themes:* the blueprint sheet's navy and the blue of its grid, as in the 2D previews.
+- The backdrop is a soft vertical gradient with a light vignette. The grid fades out towards its edge instead of
+  ending in a hard square, with fainter minor lines between the major ones when they are not too dense. The
+  wireframe takes each mode's colour too.
+- **The Paint area window has the same look** (Surface Eject, Crumble and Stair Sculpt's painted areas): the
+  backdrop, floor grid and model tone of the mode the app is in, instead of a flat panel colour and a model in the
+  text colour. The painted area is the accent blue on paper, and cyan on blueprint, where blue would sink into the
+  navy. Picking which faces the brush touches is unchanged: the backdrop and grid stay out of it.
+
+**Display modes for the 3D view**
+- **A Display menu** (the sphere beside the face count) replaces the edges toggle. It offers the views mesh
+  software has (after MeshLab's and Meshmixer's), in one menu, remembered for every tool:
+  - *Styles:* **Shaded**; **Shaded with edges**; **Hidden line**, edges only where the surface is seen, on a plain
+    fill, close to how a plotter draws a mesh; **Wireframe**, every edge front and back, so density shows;
+    **See-through**, the lit surface half transparent over the floor; **X-ray**, a ghost where faces turned to you
+    fade and silhouettes and folds remain; **Points**, the vertices.
+  - *Show:* **Smooth shading** (by vertex normals); **Back faces in orange**, so inside-out parts and the inside
+    of open shells stand out; **Open edges**, the edges with a face on one side only, outlined and counted beside
+    the face count; **Bounding box**; **Floor grid**.
+- Open edges are counted on the full mesh when its preview is made, not on the lighter copy the view draws, so
+  the count is right for big models too (up to 3 million faces; the drawing keeps 60 000 of them).
+- Edges on the surface are drawn as smooth lines in a colour for each mode, and no longer break up into dots where
+  they met the surface at the same depth.
+- **Fixed:** a 3D view opened in blueprint mode showed paper until the mode was switched.
+
 ## 2.4.2 (2026-11-20)
 
 **Painting on big models**

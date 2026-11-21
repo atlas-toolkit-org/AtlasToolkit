@@ -41,6 +41,34 @@ def badge(text: str, tone: str = "") -> QLabel:
     return b
 
 
+class ElidedLabel(QLabel):
+    """One line of plain text that ends in an ellipsis when it does not fit, never wraps, and gives up its width
+    first; the full text is its tooltip unless one is set."""
+
+    def __init__(self, text: str = ""):
+        super().__init__()
+        self._full = ""
+        self.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Preferred)
+        self.setMinimumWidth(0)
+        self.set_full_text(text)
+
+    def set_full_text(self, text: str) -> None:
+        self._full = text
+        self._elide()
+
+    def full_text(self) -> str:
+        return self._full
+
+    def resizeEvent(self, e):
+        super().resizeEvent(e)
+        self._elide()
+
+    def _elide(self) -> None:
+        shown = self.fontMetrics().elidedText(self._full, Qt.ElideRight, max(0, self.width()))
+        if shown != self.text():
+            self.setText(shown)
+
+
 def set_badge(b: QLabel, text: str, tone: str = "") -> None:
     b.setText(text.upper())
     b.setProperty("badge", tone or "plain")

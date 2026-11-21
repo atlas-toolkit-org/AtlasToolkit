@@ -2,8 +2,8 @@
 The Aim tab of the Mesh → SVG tools: Plotter Vision's live view, showing a light copy of the model (at most AIM_FACES
 faces) as its outline and creases with hidden lines removed, through the tool's own camera on the tool's own paper.
 Every Aim tab is driven the same way: drag to orbit, Shift-drag to move, wheel for distance, 1-5 views, F fits, A
-fits after every move (Always fit), R resets. The camera is written back into the settings, so what the frame shows
-is what the tool draws. The Aim tab is the one place a drawing's view is set (`sets_view`): the Input tab only
+fits after every move (Always fit), P pauses the hidden lines (Pause lines), R resets. The camera is written back
+into the settings, so what the frame shows is what the tool draws. The Aim tab is the one place a drawing's view is set (`sets_view`): the Input tab only
 follows.
 
     AimView        Contour Lines, Sketch Hatching, Stipple, FlowRep Sketch: the model is placed in the tool's frame
@@ -34,15 +34,20 @@ TRACE = dict(decimate=True, target_faces=AIM_FACES, fix_winding=True, crossings=
              outline_layer=False, show_hidden=False, min_piece=0.1, line_width=0.3, outline_width=0.5,
              min_stroke=0.0, simplify=0.02, optimise=True)
 PAPER_KEYS = ("paper", "orientation", "margin", "paper_width", "paper_height")
-AIM_KEYS = "drag orbit · shift-drag move · wheel distance · 1-5 views · F fit · A always fit · R reset"
+AIM_KEYS = ("drag orbit · shift-drag move · wheel distance · 1-5 views · F fit · A always fit · P pause lines"
+            " · R reset")
 
 
 class LightAim(VisionView):
-    """An Aim tab's light trace: the model reduced to AIM_FACES, outline and creases, no stereo."""
+    """An Aim tab's light trace: the model reduced to AIM_FACES (model.load_light: always within it, and reduced once
+    per file), outline and creases, no stereo."""
     title = "Aim"
     STEREO = False
     REDRAW_KEYS = PAPER_KEYS
     KEYS = AIM_KEYS
+
+    def load_model(self, path: str, p):
+        return pm.load_light(path, AIM_FACES, bool(p.fix_winding))
 
     def _mode_text(self) -> str:
         return " · ".join(t for t in ("light trace", super()._mode_text()) if t)
@@ -55,7 +60,7 @@ class AimView(LightAim):
     def load_model(self, path: str, p):
         frame = frame3d.frame_for(path, p)
         self._frame = frame
-        return pm.load(path, AIM_FACES, True, None, False, frame=frame)
+        return pm.load_light(path, AIM_FACES, True, frame=frame)
 
     def fit_points(self) -> np.ndarray:
         """The frame's whole box (every stage of a set), so the plates of a sequence fit alike."""
@@ -71,6 +76,11 @@ class VisionAimView(LightAim):
     TRACE = {k: v for k, v in TRACE.items() if k != "fix_winding"}   # the tool's own winding fix stays
     MODEL_KEYS = ("fix_winding",)
     EXACT_KEYS = AIM_KEYS + " · T stereo · E light trace"
+
+    def load_model(self, path: str, p):
+        if self.exact:                           # the tool's own decimation and crossings, as Draw has them
+            return VisionView.load_model(self, path, p)
+        return super().load_model(path, p)
 
     def __init__(self, page):
         super().__init__(page)

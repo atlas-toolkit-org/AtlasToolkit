@@ -47,6 +47,8 @@ QLabel[class="muted"] {{ color: {c['text-2']}; }}
 QLabel[class="title"] {{ color: {c['text']}; font-size: 26px; font-weight: 300; }}
 QLabel[class="h2"] {{ color: {c['text']}; font-size: 16px; font-weight: 500; }}
 QLabel[class="summary"] {{ color: {c['text-2']}; font-size: 13.5px; }}
+QLabel[class="tooltitle"] {{ color: {c['text']}; font-size: 21px; font-weight: 300; }}
+QFrame#headRule {{ background: {c['line']}; border: none; }}
 QLabel[class="mono"] {{ color: {c['text-2']}; font-family: "Geist Mono"; font-size: 11.5px; }}
 QLabel[class="error"] {{ color: {c['danger']}; }}
 QPushButton[nav="true"] {{ background: transparent; border: none; border-left: 2px solid transparent;

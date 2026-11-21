@@ -6,19 +6,16 @@ places it (centred, largest side 100: scene.Scene and plotter_vision.model agree
 """
 from __future__ import annotations
 
-from atlas_toolkit.tools.plotter_vision import model as pm
-from atlas_toolkit.tools.plotter_vision.aim import AIM_FACES, PAPER_KEYS, TRACE, LightAim
+from atlas_toolkit.tools.plotter_vision.aim import PAPER_KEYS, TRACE, LightAim
 
 from .scene import FOV
 
 
 class HatchAimView(LightAim):
+    """The model in the file's own axes, as the engine draws it (LightAim's light copy, placed by no frame)."""
     DEFAULTS = {**TRACE, "fov": FOV, "projection": "orthographic"}
     MODEL_KEYS = ()
     REDRAW_KEYS = PAPER_KEYS + ("roll",)
-
-    def load_model(self, path: str, p):
-        return pm.load(path, AIM_FACES, True, None, False)      # the file's own axes, as the engine draws
 
     def _camera_text(self) -> str:
         c = self.cam

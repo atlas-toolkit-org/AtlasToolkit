@@ -17,21 +17,23 @@ that way round: orbiting the 3D tab never changes the settings.
 from __future__ import annotations
 
 from PySide6.QtCore import Qt, Signal
-from PySide6.QtWidgets import (QFrame, QHBoxLayout, QLabel, QPushButton, QStackedWidget, QTabBar, QVBoxLayout,
-                               QWidget)
+from PySide6.QtGui import QActionGroup
+from PySide6.QtWidgets import (QFrame, QHBoxLayout, QLabel, QMenu, QPushButton, QStackedWidget, QTabBar, QToolButton,
+                               QVBoxLayout, QWidget, QWidgetAction)
 
 from ..theme import icon, mono
-from .common import apply_icon, icon_button
+from .common import apply_icon, icon_button, label
 from .plot_view import PlotView
 
 
 class PreviewStage(QFrame):
     view_changed = Signal(str)
 
-    def __init__(self, theme):
+    def __init__(self, theme, settings=None):
         super().__init__()
         self.setObjectName("stage")
         self.theme = theme
+        self.settings = settings            # keeps the 3D Display choice ("mesh_display"), shared by every page
         self.views: list = []
         self.mesh_view = None
         self.hosted: list = []              # tool widgets (kind "widget") added to the stack
@@ -63,8 +65,9 @@ class PreviewStage(QFrame):
         bar.addWidget(self.info)
         self.btn_travel = icon_button("toolpath", "Show pen-up travel", theme, checkable=True, size=16)
         self.btn_travel.toggled.connect(lambda on: self.plot.set_travel(on))
-        self.btn_wire = icon_button("grid", "Show the mesh edges", theme, checkable=True, size=16)
-        self.btn_wire.toggled.connect(lambda on: self.mesh_view.set_wire(on) if self.mesh_view else None)
+        self.btn_wire = icon_button("display", "Display", theme, size=16)    # the 3D view's Display menu
+        self.btn_wire.setPopupMode(QToolButton.InstantPopup)
+        self.btn_wire.setMenu(self._display_menu())
         self.btn_wire.setVisible(False)
         self.btn_fit = icon_button("expand", "Fit (0 or double-click)", theme, size=16)
         self.btn_fit.clicked.connect(self.fit)
@@ -84,6 +87,8 @@ class PreviewStage(QFrame):
         if self.mesh_view is None:
             from .mesh_view import MeshView
             self.mesh_view = MeshView(self.theme)
+            if self.art != "paper":                  # made on first use: it takes the mode the stage already has
+                self.mesh_view.set_art(self.art)
             self.stack.addWidget(self.mesh_view)
         return self.mesh_view
 
@@ -162,7 +167,8 @@ class PreviewStage(QFrame):
         elif v["kind"] == "mesh":
             mv = self._ensure_mesh_view()
             self.stack.setCurrentWidget(mv)
-            mv.show_mesh(v.get("mesh"), keep_view=keep_view, wire=self.btn_wire.isChecked())
+            mv.display.update(self.display())          # chosen on another page: it holds here too
+            mv.show_mesh(v.get("mesh"), keep_view=keep_view)
             angles = aim.input_view() if (follow and aim is not None and hasattr(aim, "input_view")) else None
             if angles is not None:                       # turn to the side being aimed at
                 mv.set_camera(*angles)
@@ -175,6 +181,9 @@ class PreviewStage(QFrame):
                         else f"{m.faces_total:,} faces")
             if v.get('status'):
                 text = f"{v['status']} · {text}"
+            n = mv.open_edge_count()
+            if mv.display["open_edges"] and n is not None:
+                text += f" · {self._open_text(n)}"
             self.info.setText(text.replace(',', ' '))
         elif v["kind"] == "image":
             from ...geom.drawing import Drawing
@@ -193,6 +202,88 @@ class PreviewStage(QFrame):
             self.plot.show_drawing(v.get("drawing"), v.get("overlays"), keep_view=keep_view,
                                    message=v.get("message", ""))
             self._zoom_text(self.plot.transform().m11())
+
+    # ------------------------------------------------------------------ the 3D Display menu
+    def display(self) -> dict:
+        from .mesh_view import DISPLAY
+        saved = self.settings.get("mesh_display") if self.settings is not None else None
+        d = dict(DISPLAY)
+        if isinstance(saved, dict):
+            d.update({k: v for k, v in saved.items() if k in DISPLAY})
+        elif self.mesh_view is not None:
+            d.update(self.mesh_view.display)
+        return d
+
+    def set_display(self, **changes) -> None:
+        d = {**self.display(), **changes}
+        if self.settings is not None:
+            self.settings.set("mesh_display", d)
+        if self.mesh_view is not None:
+            self.mesh_view.display.update(d)
+            if self.stack.currentWidget() is self.mesh_view:
+                self._show_current(keep_view=True)   # redraws, and the info line (open edges)
+
+    @staticmethod
+    def _open_text(n: int) -> str:
+        from ...geom.mesh import OPEN_EDGES_KEEP
+        if n == 0:
+            return "no open edges"
+        return f"{n:,}+ open edges" if n >= OPEN_EDGES_KEEP else f"{n:,} open edge{'s' if n != 1 else ''}"
+
+    def _display_menu(self) -> QMenu:
+        """Styles (one at a time) and what is shown with them, as in MeshLab and Meshmixer."""
+        from .mesh_view import OPTIONS, STYLES
+        m = QMenu(self)
+        m.setToolTipsVisible(True)
+
+        def head(text, first=False):                 # the design system's micro-label (sections do not draw)
+            if not first:
+                m.addSeparator()
+            lab = label(text)
+            lab.setContentsMargins(14, 8 if first else 4, 14, 2)
+            act = QWidgetAction(m)
+            act.setDefaultWidget(lab)
+            act.setEnabled(False)
+            m.addAction(act)
+
+        head("Style", first=True)
+        group = QActionGroup(m)
+        self._style_actions = {}
+        for key, text, tip in STYLES:
+            a = m.addAction(text)
+            a.setCheckable(True)
+            a.setToolTip(tip)
+            a.setActionGroup(group)
+            a.triggered.connect(lambda _=False, k=key: self.set_display(style=k))
+            self._style_actions[key] = a
+        head("Show")
+        self._option_actions = {}
+        for key, text, tip in OPTIONS:
+            a = m.addAction(text)
+            a.setCheckable(True)
+            a.setToolTip(tip)
+            a.toggled.connect(lambda on, k=key: self.set_display(**{k: on}))
+            self._option_actions[key] = a
+        m.aboutToShow.connect(self._sync_display_menu)
+        return m
+
+    def _sync_display_menu(self) -> None:
+        from .mesh_view import OPTIONS
+        d = self.display()
+        self._style_actions.get(d["style"], self._style_actions["shaded"]).setChecked(True)
+        for key, a in self._option_actions.items():
+            a.blockSignals(True)
+            a.setChecked(bool(d[key]))
+            a.blockSignals(False)
+        n = self.mesh_view.open_edge_count() if self.mesh_view is not None else None
+        a = self._option_actions["open_edges"]
+        tip = dict((k, t) for k, _x, t in OPTIONS)["open_edges"]
+        count = "none" if n == 0 else (self._open_text(n).split(" open")[0] if n is not None else "")
+        a.setText("Open edges" + (f"   ·  {count}" if count else ""))
+        a.setEnabled(n is not None)
+        a.setToolTip(tip if n is not None else "Not worked out for this view (very large meshes, or a view a tool "
+                                               "drew itself).")
+        self.btn_wire.setToolTip("Display: " + self._style_actions[d["style"]].text())
 
     def _widget_info(self, text: str) -> None:
         if self.stack.currentWidget() is self.sender():

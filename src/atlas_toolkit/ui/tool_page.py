@@ -1,8 +1,10 @@
 """
 ToolPage: the one page every tool gets, built from its spec.
 
-    head      eyebrow (category · I/O), light title, version badge, summary
-    centre    input queue  |  preview stage + stat tiles  |  Report / Log
+    head      one line: light title, version badge, a hairline, the summary (elided; category · I/O in a tooltip)
+    centre    input queue over Report / Log  |  preview stage + stat tiles
+              (the button left of INPUTS folds the queue and Report / Log away; a compact picker then selects the
+              input; remembered for every tool as "inputs_folded")
     inspector presets, parameter form, output options, primary action, Preview / Cancel / Open folder
 
 Flow: files are inspected as they are added (size, layers, a first preview). Live tools (cheap dry runs) analyse
@@ -32,7 +34,8 @@ from ..core.paths import cache_dir, open_file, reveal
 from ..core.tool import KINDS, InputInfo, Result
 from ..version import __version__
 from .theme import icon, label_font, mono, sans
-from .widgets.common import RuntimeNotice, StatTile, badge, hint, label, repolish
+from .widgets.common import (ElidedLabel, RuntimeNotice, StatTile, apply_icon, badge, hint, icon_button, label,
+                             repolish)
 from .widgets.file_queue import FileQueue
 from .widgets.param_form import ParamForm
 from .widgets.presets import PresetBar
@@ -78,6 +81,7 @@ class ToolPage(QWidget):
         self.debounce = QTimer(self, singleShot=True, interval=ctx.pref("preview_delay_ms"),
                                timeout=self._apply_settings)
         self.setAcceptDrops(True)
+        self.inputs_folded = False
         self._build()
         self._restore()
         self._update_controls()
@@ -94,16 +98,43 @@ class ToolPage(QWidget):
         root.addWidget(self.outer)
         main = QWidget()
         ml = QVBoxLayout(main)
-        ml.setContentsMargins(26, 20, 18, 14)
-        ml.setSpacing(10)
+        ml.setContentsMargins(26, 14, 18, 12)
+        ml.setSpacing(8)
         ml.addWidget(self._build_banner())
         ml.addLayout(self._build_head())
         ml.addWidget(self._build_notices())             # below the tool's name: why it cannot run yet
 
         bar = QHBoxLayout()
         bar.setSpacing(6)
+        # fold the file list and Report / Log away to the left, for a wider preview (remembered for every tool);
+        # while folded, a compact picker in this bar still steps through the inputs
+        self.btn_fold = icon_button("left", "", size=16)
+        self.btn_fold.clicked.connect(lambda: self.set_inputs_folded(not self.inputs_folded))
+        bar.addWidget(self.btn_fold)
         self.files_label = label("inputs")
         bar.addWidget(self.files_label)
+        self.btn_prev = icon_button("up", "Previous file", size=14)    # up/down: the list's order, not the fold
+        self.btn_prev.clicked.connect(lambda: self._step_input(-1))
+        self.picker = QComboBox()
+        self.picker.setSizeAdjustPolicy(QComboBox.AdjustToMinimumContentsLengthWithIcon)
+        self.picker.setMinimumContentsLength(18)
+        self.picker.setMaximumWidth(320)
+        self.picker.setToolTip("The input shown in the preview")
+        self.picker.activated.connect(self._picked)
+        self.btn_next = icon_button("down", "Next file", size=14)
+        self.btn_next.clicked.connect(lambda: self._step_input(1))
+        self.picker_status = QLabel("")             # the selected input's status, as the hidden list shows it
+        self.picker_status.setFont(mono(11.5))
+        self.picker_box = QWidget()
+        pl = QHBoxLayout(self.picker_box)
+        pl.setContentsMargins(4, 0, 0, 0)
+        pl.setSpacing(2)
+        for w in (self.btn_prev, self.picker, self.btn_next):
+            pl.addWidget(w)
+        pl.addSpacing(6)
+        pl.addWidget(self.picker_status)
+        self.picker_box.hide()
+        bar.addWidget(self.picker_box)
         bar.addStretch(1)
         self.btn_add = QPushButton("Add files…")
         self.btn_add.clicked.connect(self.pick_files)
@@ -142,6 +173,7 @@ class ToolPage(QWidget):
         if self.btn_catalogue is not None:
             self.queue.drop.linkActivated.connect(lambda _href: self.pick_catalogue())
         self.queue.itemSelectionChanged.connect(self.show_selected)
+        self.queue.itemSelectionChanged.connect(self._sync_picker)
         self.queue.itemDoubleClicked.connect(lambda it, _c: self._open_row(it.data(0, Qt.UserRole)))
         self.queue.customContextMenuRequested.connect(self._context_menu)
         left.addWidget(self.queue)
@@ -173,7 +205,9 @@ class ToolPage(QWidget):
         self.bottom.addTab(self.logview, "Log")
         left.addWidget(self.bottom)
         left.setSizes([330, 300])
+        self.left = left
         split.addWidget(left)
+        self.split = split
 
         stage = QWidget()
         sl = QVBoxLayout(stage)
@@ -184,7 +218,7 @@ class ToolPage(QWidget):
         self.info_line.setProperty("class", "mono")
         self.info_line.setTextInteractionFlags(Qt.TextSelectableByMouse)
         sl.addWidget(self.info_line)
-        self.stage = PreviewStage(self.theme)
+        self.stage = PreviewStage(self.theme, self.ctx.settings)
         self.stage.set_art(self.ctx.art)
         sl.addWidget(self.stage, 1)
         tiles = QHBoxLayout()
@@ -208,6 +242,7 @@ class ToolPage(QWidget):
                 self.ctx.log("error", f"viewer failed: {e}", self.tool.id)
         self.outer.setStretchFactor(0, 1)
         self.outer.setStretchFactor(1, 0)
+        self._fold_button()
 
     def _build_banner(self) -> QWidget:
         """Shown while a workflow step borrows this page (Aim in tool): Back copies the settings into the step."""
@@ -280,31 +315,29 @@ class ToolPage(QWidget):
             self._update_controls()
 
     def _build_head(self):
-        head = QVBoxLayout()
-        head.setSpacing(4)
-        top = QHBoxLayout()
-        top.setSpacing(8)
-        top.addWidget(label(self.tool.category_title))
-        top.addWidget(badge(self.tool.io_badge, "accent"))
-        top.addStretch(1)
-        head.addLayout(top)
+        """One line, to leave the preview its height: name, version, a hairline, then the summary, which ends in an
+        ellipsis when the page is narrow (its tooltip has it in full, with the description). The category and the
+        input → output kind are in the name's tooltip; the sidebar and Home already show them."""
         tl = QHBoxLayout()
-        tl.setSpacing(10)
+        tl.setSpacing(0)
         title = QLabel(self.tool.name)
-        title.setProperty("class", "title")
-        title.setFont(sans(26, 300))
-        tl.addWidget(title)
-        vb = badge(f"v{self.tool.version}")
-        tl.addWidget(vb, 0, Qt.AlignVCenter)
-        tl.addStretch(1)
-        head.addLayout(tl)
-        summary = QLabel(self.tool.summary)
-        summary.setProperty("class", "summary")
-        summary.setWordWrap(True)
-        if self.tool.description:
-            summary.setToolTip(self.tool.description)
-        head.addWidget(summary)
-        return head
+        title.setProperty("class", "tooltitle")
+        title.setFont(sans(21, 300))
+        title.setToolTip(f"{self.tool.category_title}  ·  {self.tool.io_badge}")
+        tl.addWidget(title, 0, Qt.AlignVCenter)
+        tl.addSpacing(8)
+        tl.addWidget(badge(f"v{self.tool.version}"), 0, Qt.AlignVCenter)
+        tl.addSpacing(14)
+        rule = QFrame(objectName="headRule")
+        rule.setFixedSize(1, 18)
+        tl.addWidget(rule, 0, Qt.AlignVCenter)
+        tl.addSpacing(14)
+        self.summary = ElidedLabel(self.tool.summary)
+        self.summary.setProperty("class", "summary")
+        tip = self.tool.summary + (f"\n\n{self.tool.description}" if self.tool.description else "")
+        self.summary.setToolTip(tip)
+        tl.addWidget(self.summary, 1, Qt.AlignVCenter)
+        return tl
 
     def _build_inspector(self) -> QWidget:
         side = QWidget()
@@ -428,6 +461,76 @@ class ToolPage(QWidget):
         sizes = self.outer.sizes()
         if sizes[1] != want and sum(sizes) > want:
             self.outer.setSizes([sum(sizes) - want, want])
+        folded = bool(self.ctx.settings.get("inputs_folded", False))
+        if folded != self.inputs_folded:            # folded or unfolded on another tool's page
+            self.set_inputs_folded(folded, save=False)
+
+    # ================================================================== folding the file list
+    def set_inputs_folded(self, folded: bool, save: bool = True) -> None:
+        """Hide the file list and Report / Log (folded to the left) so the preview takes their room, or show them
+        again at the width they had. While folded, the picker beside INPUTS selects the input."""
+        if folded == self.inputs_folded:
+            return
+        if folded:
+            self._left_w = self.split.sizes()[0]
+        self.inputs_folded = folded
+        self.left.setVisible(not folded)
+        if not folded and getattr(self, "_left_w", 0) > 0:
+            total = sum(self.split.sizes())
+            if total > self._left_w:
+                self.split.setSizes([self._left_w, total - self._left_w])
+        if save:
+            self.ctx.settings.set("inputs_folded", folded)
+        self._fold_button()
+        self._sync_picker()
+
+    def _fold_button(self) -> None:
+        apply_icon(self.btn_fold, self.theme, "right" if self.inputs_folded else "left")
+        self.btn_fold.setToolTip("Show the file list and Report / Log" if self.inputs_folded
+                                 else "Fold the file list and Report / Log away, for a wider preview")
+        for b in (self.btn_prev, self.btn_next):
+            apply_icon(b, self.theme)
+
+    def _sync_picker(self) -> None:
+        """Fill the compact picker from the queue (same order, same selection); shown only while folded."""
+        keys = self.queue.keys()
+        self.picker_box.setVisible(self.inputs_folded and bool(keys))
+        if not self.inputs_folded:
+            return
+        cur = self._current_row()
+        if [self.picker.itemData(i) for i in range(self.picker.count())] != keys:
+            self.picker.blockSignals(True)
+            self.picker.clear()
+            for k in keys:
+                self.picker.addItem(Path(k).name, k)
+                self.picker.setItemData(self.picker.count() - 1, k, Qt.ToolTipRole)
+            self.picker.blockSignals(False)
+        self.picker.blockSignals(True)
+        self.picker.setCurrentIndex(keys.index(cur.key) if cur is not None and cur.key in keys else -1)
+        self.picker.blockSignals(False)
+        i = self.picker.currentIndex()
+        self.btn_prev.setEnabled(len(keys) > 1 and i != 0)
+        self.btn_next.setEnabled(len(keys) > 1 and i != len(keys) - 1)
+        it = cur.item if cur is not None else None
+        text = it.text(1) if it is not None else ""
+        self.picker_status.setText(text)
+        if it is not None:
+            self.picker_status.setStyleSheet(f"color: {it.foreground(1).color().name()};")
+        tip = it.toolTip(1) if it is not None else ""
+        if cur is not None and (cur.error or cur.info_error):
+            tip = (tip + "\n\n" if tip else "") + "Show the file list (the button left of INPUTS) to read the report."
+        self.picker_status.setToolTip(tip)
+
+    def _picked(self, i: int) -> None:
+        key = self.picker.itemData(i)
+        if key in self.rows:
+            self.queue.setCurrentItem(self.rows[key].item)
+
+    def _step_input(self, step: int) -> None:
+        n = self.picker.count()
+        if n:
+            i = self.picker.currentIndex()
+            self._picked(max(0, min(n - 1, (i + step) if i >= 0 else 0)))
 
     def _restore(self) -> None:
         self.form.set_values(self.store.values())
@@ -1076,6 +1179,7 @@ class ToolPage(QWidget):
         busy = self.busy()
         self.files_label.setText(f"INPUTS  ·  {n}" if n else "INPUTS")
         self.queue.drop.setVisible(n == 0)
+        self._sync_picker()
         ready = len(self.runnable())
         pending = any(r.jobs for r in self.rows.values())
         verb = self.tool.action
@@ -1126,6 +1230,8 @@ class ToolPage(QWidget):
         self.presets.retheme(theme)
         for row in self.rows.values():
             self._fill_row(row)
+        self._fold_button()
+        self._sync_picker()
 
     def set_art(self, art: str) -> None:
         self.stage.set_art(art)
