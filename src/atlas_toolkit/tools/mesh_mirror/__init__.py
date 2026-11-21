@@ -28,14 +28,14 @@ TOOL = Tool(
         Section("Plane",
             Choice("reference", "Position relative to", "side", [("side", "Model +X side"),
                   ("center", "Model bounds centre"), ("world", "World origin")],
-                  help="Model +X side starts at the right edge of the input bounds. The reference point stays "
+                  per_input=True, help="Model +X side starts at the right edge of the input bounds. The reference point stays "
                   "fixed while you rotate the plane. Centre-relative placement repeats across a batch."),
             Vec3("position", "Plane position", (0., 0., 0.), min=-1e12, max=1e12, decimals=6, unit="units",
-                 help="Pivot displacement from the selected reference, in original model units."),
+                 per_input=True, help="Pivot displacement from the selected reference, in original model units."),
             Vec3("rotation", "Plane rotation", (0., 90., 0.), min=-360., max=360., decimals=6, step=1., unit="°",
-                 help="XYZ Euler angles: X, then Y, then Z. Default (0, 90, 0) mirrors across a YZ plane."),
+                 per_input=True, help="XYZ Euler angles: X, then Y, then Z. Default (0, 90, 0) mirrors across a YZ plane."),
             Float("offset", "Slide along normal", 0., min=-1e12, max=1e12, decimals=6, unit="units",
-                  help="Move the plane perpendicular to itself; the reflected copy moves twice this distance."),
+                  per_input=True, help="Move the plane perpendicular to itself; the reflected copy moves twice this distance."),
         ),
     ],
     preset_skip=("reference", "position", "rotation", "offset"),

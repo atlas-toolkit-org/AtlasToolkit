@@ -136,7 +136,7 @@ TOOL = Tool(
             "Cavity",
             Choice("placement", "Opening", "side", [("side", "On a side"), ("paint", "Painted area")], segmented=True,
                    visible_if=carving,
-                   help="On a side needs no painting. Painted area: open the Selection tab and paint what to open. In "
+                   per_input=True, help="On a side needs no painting. Painted area: open the Selection tab and paint what to open. In "
                         "Workflows use Aim in tool, paint, then Back to workflow."),
             Choice("side", "Side", "right", [("front", "Front"), ("right", "Right"), ("back", "Back"),
                    ("left", "Left"), ("top", "Top")], visible_if=automatic),
@@ -162,10 +162,10 @@ TOOL = Tool(
                   help="How far the stairs stay behind the model's surface at the opening. Limited to 80% of Wall so "
                        "they still reach the walls."),
             FileRef("selection_file", "Selection file", "", exts=(".json",), visible_if=painting,
-                    help="Optional exported selection JSON for the command line or Workflows. Overrides the embedded "
+                    per_input=True, help="Optional exported selection JSON for the command line or Workflows. Overrides the embedded "
                          "selection. Bound to this exact mesh."),
             Text("selection", "Embedded selection", "", advanced=True, visible_if=painting,
-                 help="Written by the selection editor, kept with settings and Workflows."),
+                 per_input=True, help="Written by the selection editor, kept with settings and Workflows."),
         ),
         Section(
             "Whole model",

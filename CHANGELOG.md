@@ -1,8 +1,33 @@
 # Changelog
 
-## 2.4.5 (unreleased)
+## 2.4.6 (unreleased)
 
-**FlowRep Sketch 0.2.0: drawings closer to the paper's**
+**Several files in a tool: each keeps its own Aim and its own preview**
+- **Aiming one file no longer aims them all.** With several files in a tool's list, the camera you set in the Aim
+  tab (and the Camera settings) belonged to the tool, so turning, moving or zooming one file turned every file.
+  Now each file keeps its own view, and the form shows the selected file's. Draw writes each file with its own.
+  The same goes for every setting that belongs to a model rather than to the tool: Up, Front and Extra turn (every
+  3D tool), Hatch Maker's Roll, Plane Cut's and Mirror's plane, and the painted area of Crumble, Stairs and
+  Surface Eject. Their tooltips say so.
+- **A new file starts from the selected file's view**, so the stages of a sequence still start alike, or from the
+  view it had when you last aimed it in that tool (the last 200 files are remembered).
+- **Share a view on purpose:** right-click a file › **Use its Aim for every file** (or for the selected files).
+- **A preview stays with its file.** Previewing another file, or aiming it, no longer throws away or cancels the
+  first file's preview: each file keeps its own until its own settings change. A file whose preview no longer
+  matches says *Outdated*; going back to the settings it was made with (a preset, the same value again) shows it
+  again at once, without running it again. Each file keeps its last four previews.
+- **A camera still settling lands on its own file.** Selecting another file within a moment of aiming no longer
+  hands the last move to the next file.
+- For tool authors: a parameter's `per_input=True` (set by `camera_params()` and `frame_params()`) is what makes a
+  value each file's own; see `docs/ADDING_A_TOOL.md`.
+
+**FlowRep Sketch 0.2.0: drawings closer to the paper's, and where you aimed them**
+- **The drawing now lands exactly where the Aim tab shows the model.** The Aim tab places a model the way every
+  drawing tool does: with the Up and Front stored in the file (every catalogue model has them), its stage set's, or
+  a guess. FlowRep Sketch's engine ignored a stored frame and made its own guess, which differs for flat or wide
+  models: the catalogue's Torus and Figure-eight knot were drawn turned and up to 41 mm away from where they were
+  aimed. Now both take Up and Front from the same place; on those two models the drawing and the Aim tab agree to
+  0.1 mm.
 - **Only real sharp features become feature curves.** A remeshed model's coarse quads made every tight but
   smooth fold (nostrils, lids, lips, ears) look sharp, and each became a short feature curve drawn as a stray
   fleck. Now a crease must also be sharp on the original surface. Small clusters of creases that touch nothing
@@ -36,9 +61,7 @@
   setting for organic models (now suggested in the Descriptiveness help), it draws about 190 strokes. The README's
   FlowRep picture is drawn again.
 
-## 2.4.4 (unreleased)
-
-**FlowRep Sketch 0.1.3**
+**FlowRep Sketch: remeshed models that used to fail now draw**
 - **Remeshed models no longer stop with "non-manifold edges remain".** Instant Meshes leaves small defects in
   its quads: near-duplicate vertices, quads that repeat a corner, folded pairs of quads, "fin" edges shared by
   four quads, and holes in closed surfaces. Which defect appeared depended on the Remesh resolution, so a model
@@ -51,6 +74,7 @@
   squiggles on the face, with flowlines forced to end there. The report lists the repairs (*Remesh repairs: 3
   holes filled, 13 broken faces rebuilt*). Remeshes are cached again when they mix quads and triangles. The
   cache revision changed, so the first run after updating remeshes once more.
+
 
 ## 2.4.3 (2026-11-21)
 

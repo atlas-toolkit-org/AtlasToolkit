@@ -65,7 +65,7 @@ TOOL = Tool(
             "Area",
             Choice("area", "Area", "side", [("side", "Side"), ("paint", "Paint"), ("whole", "All")],
                    segmented=True,
-                   help="Side needs no painting. Paint: open the Selection tab and paint what breaks. In Workflows use "
+                   per_input=True, help="Side needs no painting. Paint: open the Selection tab and paint what breaks. In Workflows use "
                         "Aim in tool, paint, then Back to workflow. All: the whole model."),
             Choice("side", "Side", "left", [("front", "Front"), ("right", "Right"), ("back", "Back"), ("left", "Left"),
                    ("top", "Top")], visible_if=on_side),
@@ -88,10 +88,10 @@ TOOL = Tool(
                   help="How deep below the surface the model breaks up: a shallow scar, a deep cavity, or at 100 "
                        "everything inside the area."),
             FileRef("selection_file", "Selection file", "", exts=(".json",), visible_if=painting,
-                    help="Optional exported selection JSON for the command line or Workflows. Overrides the embedded "
+                    per_input=True, help="Optional exported selection JSON for the command line or Workflows. Overrides the embedded "
                          "selection. Bound to this exact mesh."),
             Text("selection", "Embedded selection", "", advanced=True, visible_if=painting,
-                 help="Written by the selection editor, kept with settings and Workflows."),
+                 per_input=True, help="Written by the selection editor, kept with settings and Workflows."),
         ),
         Section(
             "Blocks",

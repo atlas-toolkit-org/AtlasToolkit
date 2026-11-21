@@ -26,11 +26,16 @@ def run(ctx,src,dst,p):
                         local_passes=0 if ctx.draft else 2,clustering_passes=2 if ctx.draft else 8,cache_dir=str(cache),
                         relaxed_declutter=bool(p.declutter),min_trim_edges=int(p.min_trim_edges))
     mesh=load_mesh(src)
+    # The Aim tab's placement, exactly: Up and Front come from geom/frame3d like every drawing tool's (a frame stored
+    # in the file, its stage set, then a guess), not from flowrep3d's own guess, which ignores a stored frame.
+    import numpy as np
+    from atlas_toolkit.geom import frame3d
+    up,front,rotate,_source=frame3d.resolve_axes(src,p,np.ptp(np.asarray(mesh.reference_vertices),axis=0))
     net=extract_network(mesh,opts,lambda f,m:ctx.progress(f*0.78,m),ctx.check_cancel)
     options=RenderOptions(paper=p.paper,orientation=p.orientation,margin=float(p.margin),
                           line_width=float(p.line_width),tolerance=float(p.tolerance),
                           min_length=float(p.min_length),silhouette=bool(p.silhouette),hidden=bool(p.show_hidden),
-                          up=p.up_axis,front=p.front,rotate=tuple(p.rotate),fit_camera=False,
+                          up=up,front=front,rotate=tuple(rotate),fit_camera=False,
                           sample_step=0.7 if ctx.draft else 0.35,smoothing=float(p.smoothing),
                           silhouette_style=p.silhouette_style)
     drawing=render_network(mesh,net,camera_from(p),frame_for(p.paper,p.orientation,float(p.margin)),options,

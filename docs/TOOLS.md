@@ -294,6 +294,13 @@ it, and its toolbar says *Inspect only · view set in Aim*; orbiting it changes 
 back to Aim). The Camera settings show Aim's numbers, to read or fine-tune. In Workflows, **Aim in tool…** opens
 the same tab with the step's input and settings, and **Back to workflow** brings the view back.
 
+**Each file has its own Aim.** With several files in the list, the Aim tab and the Camera settings show the selected
+file's view, and aiming it moves no other file. **Draw** writes each file with its own view. A file you add starts
+from the selected file's view (so the stages of a sequence start alike), or from the view it had when you last aimed
+it in this tool. To share a view, right-click a file: **Use its Aim for every file** (or for the selected files).
+The same holds for every per-file setting: a model's Up, Front and Extra turn, Plane Cut's and Mirror's plane, a
+painted area. Their tooltips say *Each file in the list keeps its own value*.
+
 Every Aim tab is driven the same way:
 
 | Do | To |
@@ -558,6 +565,10 @@ Mosaic.
   - **SVG tools** analyse every file again as you change a setting.
   - **Mesh tools** have **Preview**, a dry run of the selected file. **Run** (or Clean, Cut, Draw…) writes every
     file. An output that exists is overwritten, or kept, as Setup says (below); originals are never changed.
+  - **Each file keeps its preview.** Preview one file, then another: both stay, and a preview still running goes
+    on while you select or aim another file. A preview shows while its file's settings are the ones it was made
+    with; after a change the file says *Outdated*, and going back to those settings (a preset, the same
+    value again) shows it again at once. The last four previews of each file are kept.
 - **Mesh → SVG tools:** aim in the Aim tab (see [Aim](#aim-where-a-drawings-view-is-set)), then **Preview** or
   **Draw**; presets change the lines, never the view. The Input tab is for looking only.
 - **Home** shows the tools as cards or as a one-line **List**; each section (Workflows and each tool group)

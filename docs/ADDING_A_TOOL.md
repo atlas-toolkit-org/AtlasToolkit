@@ -88,6 +88,11 @@ TOOL = Tool(
   validation, which also protects CLI, Workflows and unselected batch inputs. Refresh page controls when
   asynchronous preparation changes readiness. Heightfield editors use canonical source outlines for this gate.
 - `preset_skip=("theta", ...)` lists view-state keys that presets neither set nor compare.
+- `per_input=True` on a parameter makes its value each input file's own on the tool page: a camera, a model's frame,
+  a plane, a painted area. `camera_params()` and `frame_params()` (Up, Front, Extra turn) set it. The form shows the
+  selected file's value, Run gives each file its own, and the file list offers to copy one file's values to the
+  others. Presets, workflows and the command line still see one value. Usually such a key is in `preset_skip` too.
+  A viewer with a delayed commit (the Aim tab) implements `flush()`, so a change still settling lands on its file.
 - `preset_inputs=("band", ...)` lists input settings a preset keeps as they are unless it sets them itself.
   Matching ignores those kept values. On the command line a preset starts from the defaults.
 - When you rename a parameter, keep saved presets, settings and workflows working with `former=("old_key",)`;

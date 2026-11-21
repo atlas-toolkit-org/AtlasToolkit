@@ -37,6 +37,9 @@ class Param:
     former: tuple = field(default=(), kw_only=True)                 # keys this parameter had before a rename
     former_values: dict = field(default_factory=dict, kw_only=True)  # renamed values: {"old": "new"}
     former_convert: Callable | None = field(default=None, kw_only=True)  # old key's value -> this one's
+    # The value belongs to each input file, not to the tool: a camera, a model's Up and Front, a plane, a painted
+    # area. The tool page keeps one per file (ui/tool_page.py); presets, workflows and the CLI see one value as usual.
+    per_input: bool = field(default=False, kw_only=True)
     kind = "param"
 
     # --------------------------------------------------------------- values
@@ -377,7 +380,7 @@ def camera_params(theta: float = 70.0, psi: float = -150.0, radius: float = 170.
     ortho_only: a tool that draws orthographically only (the Hatch Maker) has no field of view or projection; its
     Aim tab supplies the fixed ones (fov 60°, orthographic)."""
     if ortho_only:
-        return [
+        return _per_input([
             Float("theta", "Tilt (θ)", theta, unit="°", min=-180, max=180, step=1, decimals=1,
                   help="Angle from straight above: 90 is on the horizon, 0 looks down, more than 90 looks up."),
             Float("psi", "Turn (ψ)", psi, unit="°", min=-180, max=180, step=1, decimals=1,
@@ -386,8 +389,8 @@ def camera_params(theta: float = 70.0, psi: float = -150.0, radius: float = 170.
                   help="How far the camera stands back, in plotter.vision's units (the model's largest side is "
                        "100): smaller draws the model larger. The view is orthographic, so it only sets the size."),
             Vec3("lookat", "Look at", tuple(lookat), help="The point the camera turns around (same units)."),
-        ]
-    return [
+        ])
+    return _per_input([
         Float("theta", "Tilt (θ)", theta, unit="°", min=-180, max=180, step=1, decimals=1,
               help="Angle from straight above: 90 is on the horizon, 0 looks down, more than 90 looks up."),
         Float("psi", "Turn (ψ)", psi, unit="°", min=-180, max=180, step=1, decimals=1,
@@ -401,7 +404,14 @@ def camera_params(theta: float = 70.0, psi: float = -150.0, radius: float = 170.
         Choice("projection", "Projection", projection, [("perspective", "Perspective"),
                                                          ("orthographic", "Ortho")], segmented=True,
                help="Perspective as plotter.vision; orthographic keeps parallel lines parallel."),
-    ]
+    ])
+
+
+def _per_input(params: list[Param]) -> list[Param]:
+    """Mark these parameters as each input file's own (Param.per_input)."""
+    for p in params:
+        p.per_input = True
+    return params
 
 
 AXIS_CHOICES = [("auto", "Auto"), ("+z", "+Z"), ("-z", "−Z"), ("+y", "+Y"), ("-y", "−Y"), ("+x", "+X"), ("-x", "−X")]
@@ -413,7 +423,7 @@ def frame_params(stage_sets: bool = True) -> list[Param]:
     front, an extra turn, and (for drawings) which models share one frame, so the stages of a sequence keep one
     scale, position and slice grid on paper."""
     mesh_exts = (".stl", ".obj", ".ply", ".glb", ".gltf", ".off")     # (core/tool.KINDS; geom.mesh needs numpy)
-    out: list[Param] = [
+    out: list[Param] = _per_input([
         Choice("up_axis", "Up", "auto", AXIS_CHOICES,
                help="Which way is up in the file. Auto: Z for STL and PLY, Y for OBJ, unless another axis is "
                     "clearly the tallest (a statue stored lying down); a stage set made by a toolkit tool keeps "
@@ -424,7 +434,7 @@ def frame_params(stage_sets: bool = True) -> list[Param]:
         Vec3("rotate", "Extra turn", (0.0, 0.0, 0.0), unit="°", min=-180, max=180, step=5, decimals=1,
              advanced=True, help="Turns the model about X, then Y, then Z after Up and Front, e.g. to lay a "
                                  "bust on its side."),
-    ]
+    ])
     if stage_sets:
         out += [
             Choice("normalise", "Frame from", "set", [("set", "Its stage set"), ("model", "This model"),
