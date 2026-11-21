@@ -110,7 +110,8 @@ class SelectionView(QWidget):
             except (ValueError, OSError) as exc:
                 selected = np.zeros(len(original.faces), bool)
                 warning = str(exc) + " Start a new selection below."
-            dialog = SelectionDialog(original, display, selected, self.theme, self, codec=(se.encode_selection, se.decode_selection))
+            dialog = SelectionDialog(original, display, selected, self.theme, self, codec=(se.encode_selection, se.decode_selection),
+                                     art=getattr(getattr(self.page, 'ctx', None), 'art', 'paper'))
             dialog.setWindowTitle("Surface Eject — paint extraction area")
             if warning:
                 dialog.instructions.setText(warning + "\n" + dialog.instructions.text())

@@ -180,7 +180,7 @@ class WorkflowPage(QWidget):
         self.info_line.setFont(mono(11.5))
         self.info_line.setProperty("class", "mono")
         sl.addWidget(self.info_line)
-        self.stage = PreviewStage(self.theme)
+        self.stage = PreviewStage(self.theme, self.ctx.settings)
         self.stage.set_art(self.ctx.art)
         sl.addWidget(self.stage, 1)
         bottom.addWidget(st)

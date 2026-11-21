@@ -25,7 +25,7 @@ from ...geom.screen_pick import ScreenPicker, decode_ids, encode_ids
 from ..theme import qcolor
 from .gl_guard import GuardedGL
 from .gl_nav import GestureNavigation
-from .mesh_view import SHADER, gl
+from .mesh_view import BACKDROP, SHADER, gl, grid_lines, look, set_backdrop
 from .spin import IntSpin
 
 FRAME_MS = 16          # a stroke is painted at most this often
@@ -39,14 +39,15 @@ def _rgba(color) -> np.ndarray:
 
 class SelectionDialog(QDialog):
     """`original` is the source mesh, `display` the same faces in the view's frame. `codec` is the tool's
-    (encode, decode) pair for its selection files, which adds Load… and Export…"""
+    (encode, decode) pair for its selection files, which adds Load… and Export… `art` is the app's paper or
+    blueprint mode: the canvas has the 3D preview's look for it (mesh_view.look)."""
 
-    def __init__(self, original, display, selected, theme, parent=None, codec=None):
+    def __init__(self, original, display, selected, theme, parent=None, codec=None, art="paper"):
         super().__init__(parent)
         self.setWindowTitle("Paint area")
         self.resize(1050, 760)
         self.setMinimumSize(640, 460)
-        self.original, self.mesh, self.theme = original, display, theme
+        self.original, self.mesh, self.theme, self.art = original, display, theme, art
         self.selected = np.array(selected, dtype=bool, copy=True)
         self.history = []
         self.areas = np.asarray(display.area_faces, dtype=np.float64)
@@ -351,6 +352,55 @@ if gl is not None:
             for loc in enabled:
                 GL.glDisableVertexAttribArray(loc)
 
+    class FloorGridItem(GLGraphicsItem):
+        """The 3D preview's floor grid (mesh_view.grid_lines) for the paint window, drawn with this window's own
+        shader: pyqtgraph's line item keeps one program for every window, which a second GL context cannot use."""
+
+        def __init__(self, lines, shader):
+            super().__init__()
+            self.setGLOptions("translucent")
+            self.setDepthValue(-1)
+            self.shader = shader
+            self.pos = np.concatenate([p for _k, p, _c in lines]) if lines else np.zeros((0, 3), np.float32)
+            self.col = np.concatenate([c for _k, _p, c in lines]) if lines else np.zeros((0, 4), np.float32)
+            self.reset_gl()
+
+        def reset_gl(self):
+            self.buffers = None
+
+        def paint(self):
+            if not len(self.pos):
+                return
+            self.setupGLState()
+            if self.buffers is None:
+                self.buffers = {}
+                for name, array in (("position", self.pos), ("color", self.col)):
+                    vbo = QOpenGLBuffer(QOpenGLBuffer.Type.VertexBuffer)
+                    vbo.create()
+                    vbo.bind()
+                    data = np.ascontiguousarray(array, np.float32)
+                    vbo.allocate(data, data.nbytes)
+                    vbo.release()
+                    self.buffers[name] = vbo
+            context = QOpenGLContext.currentContext()
+            program = self.shader.program(es2_compat=context.hasExtension(b"GL_ARB_ES2_compatibility"))
+            enabled = []
+            for attribute, name, size in (("a_position", "position", 3), ("a_color", "color", 4)):
+                loc = GL.glGetAttribLocation(program, attribute)
+                if loc == -1:
+                    continue
+                self.buffers[name].bind()
+                GL.glVertexAttribPointer(loc, size, GL.GL_FLOAT, False, 0, None)
+                self.buffers[name].release()
+                GL.glEnableVertexAttribArray(loc)
+                enabled.append(loc)
+            with self.shader:
+                GL.glUniformMatrix4fv(GL.glGetUniformLocation(program, "u_mvp"), 1, False,
+                                      np.array(self.mvpMatrix().data(), dtype=np.float32))
+                GL.glDrawArrays(GL.GL_LINES, 0, len(self.pos))
+            for loc in enabled:
+                GL.glDisableVertexAttribArray(loc)
+
     class BrushGuide(QWidget):
         def __init__(self, canvas):
             super().__init__(canvas)
@@ -379,11 +429,17 @@ if gl is not None:
                                                   [type(stage)(stage.code) for stage in template.shaders])
             self.pick_shader = _private_shader(f"face-pick-{id(self)}", [shaders.VertexShader(PICK_VERTEX),
                                                                           shaders.FragmentShader(PICK_FRAGMENT)])
+            self.backdrop_shader = _private_shader(f"face-backdrop-{id(self)}", [
+                type(stage)(stage.code) for stage in shaders.getShaderProgram(BACKDROP).shaders])
+            self.grid_shader = _private_shader(f"face-grid-{id(self)}", [shaders.VertexShader(PICK_VERTEX),
+                                                                          shaders.FragmentShader(PICK_FRAGMENT)])
             self.setMinimumSize(400, 260)
             self.setMouseTracking(True)
             self.setFocusPolicy(Qt.StrongFocus)
-            c = qcolor(editor.theme["bg-1"])
-            self.setBackgroundColor((c.red(), c.green(), c.blue(), 255))
+            self.look = look(editor.theme, editor.art)      # the 3D preview's backdrop, floor grid and model tone
+            self.backdrop = set_backdrop(self, self.look, shader=self.backdrop_shader)
+            self.grid = FloorGridItem(grid_lines(editor.mesh.bounds, self.look), self.grid_shader)
+            self.addItem(self.grid)
             self.opts["center"] = QVector3D(*editor.mesh.bounds.mean(0))
             self.setCameraPosition(distance=float(np.linalg.norm(editor.mesh.extents)) * 1.5, elevation=18, azimuth=-65)
             self.guide = BrushGuide(self)
@@ -397,8 +453,11 @@ if gl is not None:
             super().initializeGL()
             self.private_shader.prog = None
             self.pick_shader.prog = None
+            self.backdrop_shader.prog = None
+            self.grid_shader.prog = None
             self.fbo, self.view_key = None, None
             self.item.reset_gl()
+            self.grid.reset_gl()
 
         def resizeEvent(self, event):
             super().resizeEvent(event)
@@ -467,6 +526,8 @@ if gl is not None:
             self.fbo.bind()
             try:
                 self.opts["bgcolor"] = (0., 0., 0., 0.)
+                self.backdrop.setVisible(False)          # only face ids go in this buffer
+                self.grid.setVisible(False)
                 self.item.picking = True
                 GL.glViewport(0, 0, w, h)
                 GL.glDisable(GL.GL_DITHER)
@@ -476,6 +537,8 @@ if gl is not None:
                 GL.glReadPixels(0, 0, w, h, GL.GL_DEPTH_COMPONENT, GL.GL_FLOAT, depth)
             finally:
                 self.item.picking = False
+                self.backdrop.setVisible(True)
+                self.grid.setVisible(True)
                 self.opts["bgcolor"] = background
                 GL.glEnable(GL.GL_DITHER)
                 self.fbo.release()
@@ -485,7 +548,8 @@ if gl is not None:
         def recolor(self, changed=None):
             """Colour faces by the editor's mask: all of them, or only `changed` (face indices)."""
             e = self.editor
-            base, accent = _rgba(qcolor(e.theme["text-2"])), _rgba(qcolor(e.theme["accent"]))
+            base = np.array([round(v * 255) for v in self.look["model"][:3]] + [255], np.uint8)
+            accent = np.array([round(v * 255) for v in self.look["paint"][:3]] + [255], np.uint8)
             if changed is None:
                 self.item.set_colors(None, np.where(e.selected[:, None], accent, base))
             else:

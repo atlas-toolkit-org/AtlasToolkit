@@ -103,6 +103,9 @@ EXTRA_ICONS = {
     "download": '<path d="M12 3v12m-5-5 5 5 5-5M4 17v3.5h16V17"/>',
     # the Aim tab (ui/widgets/preview.py): the view that sets a drawing's camera; no tool may use it
     "aim": '<circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="1.5"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/>',
+    # the 3D view's Display menu: a sphere with a meridian and an equator (shaded, wire, x-ray…)
+    "display": '<circle cx="12" cy="12" r="8"/><path d="M4 12c0 2.2 3.6 4 8 4s8-1.8 8-4M12 4c-2.2 0-4 3.6-4 8s1.8 '
+               '8 4 8"/>',
     "cat_bust": '<path d="M12 3a4 4 0 0 1 4 4v1.5a4 4 0 0 1-8 0V7a4 4 0 0 1 4-4zM10 12.8v1.7c-2.8.6-5 2.6-5 5.5h14'
                 'c0-2.9-2.2-4.9-5-5.5v-1.7M7 20v1.5h10V20"/>',
     "cat_statue": '<circle cx="12" cy="4" r="2"/><path d="M12 6.5v6.5l-2.2 6.5M12 13l2.2 6.5M8.5 9.5 12 8l3.5 2.5 1-2'

@@ -42,6 +42,48 @@
   `--scale` tries another display scaling. `tests/test_aim_view.py` draws at 2x on purpose, since CI runs at 100 %,
   where round caps were never slow.
 
+**More room for the preview**
+- **The file list and Report / Log fold away.** The chevron left of **INPUTS** on every tool page folds them to the
+  left, so the preview (Aim, Before / After, the 3D view) takes their width; the chevron brings them back at the width
+  they had. While folded, a compact picker beside INPUTS selects the input, with up / down arrows for the previous
+  and next file and the input's status (Ready, Saved, Error…) next to it. The choice holds for every tool and is
+  remembered.
+- **A one-line tool header.** The name (a size smaller), its version right beside it, a hairline and the summary
+  now share one line; the summary ends in "…" when the window is narrow and shows in full, with the description,
+  on hover. The category line above the name is gone (the tool list and Home show it; the name's tooltip has it),
+  and the page's top margin is smaller: the preview gains about 60 px of height on every tool.
+
+**A 3D view made for each mode**
+- **The floor grid shows in every mode.** In the light theme it was drawn in a dark line colour on the dark backdrop,
+  and all but vanished. The 3D view now has a look per theme and art mode:
+  - *Paper, light theme:* a light studio (white fading to pale blue-grey) with a clay-toned model, so lit faces still
+    stand off the backdrop, and slate grid lines. It used to be navy, almost the same as blueprint.
+  - *Paper, dark theme:* the theme's navy fading to near black, the paper-toned model, grey-blue grid lines.
+  - *Blueprint, both themes:* the blueprint sheet's navy and the blue of its grid, as in the 2D previews.
+- The backdrop is a soft vertical gradient with a light vignette. The grid fades out towards its edge instead of
+  ending in a hard square, with fainter minor lines between the major ones when they are not too dense. The
+  wireframe takes each mode's colour too.
+- **The Paint area window has the same look** (Surface Eject, Crumble and Stair Sculpt's painted areas): the
+  backdrop, floor grid and model tone of the mode the app is in, instead of a flat panel colour and a model in the
+  text colour. The painted area is the accent blue on paper, and cyan on blueprint, where blue would sink into the
+  navy. Picking which faces the brush touches is unchanged: the backdrop and grid stay out of it.
+
+**Display modes for the 3D view**
+- **A Display menu** (the sphere beside the face count) replaces the edges toggle. It offers the views mesh
+  software has (after MeshLab's and Meshmixer's), in one menu, remembered for every tool:
+  - *Styles:* **Shaded**; **Shaded with edges**; **Hidden line**, edges only where the surface is seen, on a plain
+    fill, close to how a plotter draws a mesh; **Wireframe**, every edge front and back, so density shows;
+    **See-through**, the lit surface half transparent over the floor; **X-ray**, a ghost where faces turned to you
+    fade and silhouettes and folds remain; **Points**, the vertices.
+  - *Show:* **Smooth shading** (by vertex normals); **Back faces in orange**, so inside-out parts and the inside
+    of open shells stand out; **Open edges**, the edges with a face on one side only, outlined and counted beside
+    the face count; **Bounding box**; **Floor grid**.
+- Open edges are counted on the full mesh when its preview is made, not on the lighter copy the view draws, so
+  the count is right for big models too (up to 3 million faces; the drawing keeps 60 000 of them).
+- Edges on the surface are drawn as smooth lines in a colour for each mode, and no longer break up into dots where
+  they met the surface at the same depth.
+- **Fixed:** a 3D view opened in blueprint mode showed paper until the mode was switched.
+
 ## 2.4.2 (2026-11-20)
 
 **Painting on big models**

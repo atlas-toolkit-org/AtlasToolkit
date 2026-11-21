@@ -541,9 +541,15 @@ Mosaic.
 
 - **Home** shows the tools. Drop files on it and it opens the tool that takes them (or asks which).
 - **A tool page:**
-  - The **input queue** lists the files, each with its status and key numbers.
+  - The **input queue** lists the files, each with its status and key numbers. The chevron left of **INPUTS** folds
+    it and Report / Log away for a wider preview; a compact picker then selects the file, with its status beside it.
+    The choice holds for every tool.
   - The **preview** shows the selected file: Before / After / Cut ink on paper for SVGs, the model in 3D for meshes.
     Wheel zooms, drag pans or orbits, double-click fits. The paper icon in the top bar switches paper and blueprint.
+    A 3D view's **Display** menu (the sphere beside the face count) picks a style: Shaded, Shaded with edges, Hidden
+    line (edges only where the surface is seen, close to a plotter drawing), Wireframe, See-through, X-ray or
+    Points. It can also show smooth shading, back faces in orange (inside-out or open parts), open edges (holes and
+    cuts, counted on the full mesh), the bounding box and the floor grid. The choice holds for every tool.
   - The **inspector** on the right has presets, settings (hover any of them for help) and where outputs go.
     Settings are remembered. Pick a preset from the **Presets** drop-down: your own under My presets, then each
     preset pack you have loaded. It opens on "Custom settings" every time. The icons beside it save the current

@@ -67,6 +67,50 @@ class GuiFlowTests(unittest.TestCase):
         self.assertIn(b"<desc>svg-overlap-cleaner</desc>", out.read_bytes()[:600])
         self.assertTrue(any(r.tool == "svg-overlap-cleaner" and r.status == "done" for r in self.history.read()))
 
+    def test_file_list_folds_away_and_the_picker_selects_inputs(self):
+        from atlas_toolkit.core import samples
+        d = self.folder("fold")
+        a = samples.svg(d)
+        b = a.with_name("second.svg")
+        shutil.copy(a, b)
+        page = self.win.open_tool("svg-overlap-cleaner", [str(a), str(b)])
+        self.wait(lambda: page.idle())
+        self.win.show()
+        self.app.processEvents()
+        try:
+            self.assertFalse(page.inputs_folded)
+            self.assertTrue(page.picker_box.isHidden())
+            width = page.split.sizes()[0]
+            page.btn_fold.click()
+            self.assertTrue(page.inputs_folded)
+            self.assertTrue(page.left.isHidden())
+            self.assertFalse(page.picker_box.isHidden())
+            self.assertTrue(self.ctx.settings.get("inputs_folded"))
+            keys = page.queue.keys()
+            self.assertEqual([page.picker.itemData(i) for i in range(page.picker.count())], keys)
+            page.queue.setCurrentItem(page.rows[keys[0]].item)
+            self.assertEqual(page.picker.currentIndex(), 0)
+            self.assertFalse(page.btn_prev.isEnabled())
+            page.btn_next.click()                         # the picker drives the (hidden) list and the preview
+            self.assertEqual(page._current_row().key, keys[1])
+            self.assertEqual(page.picker.currentIndex(), 1)
+            self.assertFalse(page.btn_next.isEnabled())
+            self.assertTrue(page.picker_status.text())
+            other = self.win.open_tool("voxelizer")       # the choice holds for every tool
+            self.app.processEvents()
+            self.assertTrue(other.inputs_folded)
+            self.win.open_tool("svg-overlap-cleaner")
+            page.btn_fold.click()
+            self.app.processEvents()
+            self.assertFalse(page.inputs_folded)
+            self.assertFalse(page.left.isHidden())
+            self.assertTrue(page.picker_box.isHidden())
+            self.assertEqual(page.split.sizes()[0], width)
+            self.assertFalse(self.ctx.settings.get("inputs_folded"))
+        finally:
+            page.set_inputs_folded(False)
+            page.clear()
+
     def test_mesh_tool_runs_in_the_worker_process(self):
         from atlas_toolkit.core import samples
         src = samples.mesh(self.folder("mesh"))
@@ -79,6 +123,43 @@ class GuiFlowTests(unittest.TestCase):
         out = src.with_name("sample_vox.stl")
         self.assertTrue(out.exists())
         self.assertIn(b"atlas-toolkit:voxelizer", out.read_bytes()[:80])
+
+    def test_open_edges_are_counted_on_the_full_mesh(self):
+        import numpy as np
+        from atlas_toolkit.geom.mesh import open_edge_segments, preview
+        import trimesh
+        box = trimesh.creation.box()
+        segs, n = open_edge_segments(box.vertices, box.faces)
+        self.assertEqual((n, segs.shape), (0, (0, 2, 3)))
+        box.update_faces(np.arange(len(box.faces)) != 0)       # one triangle out: a hole of three edges
+        segs, n = open_edge_segments(box.vertices, box.faces)
+        self.assertEqual((n, segs.shape), (3, (3, 2, 3)))
+        self.assertEqual(len(preview(box).open_edges), 3)
+
+    def test_display_menu_is_remembered_and_shared(self):
+        from atlas_toolkit.core import samples
+        from atlas_toolkit.ui.widgets.mesh_view import DISPLAY, STYLES
+        src = samples.mesh(self.folder("display"))
+        page = self.win.open_tool("voxelizer", [str(src)])
+        self.wait(lambda: page.idle())
+        st = page.stage
+        try:
+            st.tabs.setCurrentIndex(0)
+            self.assertTrue(st.btn_wire.isVisibleTo(st))
+            for key, *_ in STYLES:                          # every style draws (or, without GL, is ignored)
+                st.set_display(style=key)
+            st.set_display(style="xray", open_edges=True, bbox=True)
+            self.assertEqual(self.ctx.settings.get("mesh_display")["style"], "xray")
+            st._sync_display_menu()
+            self.assertTrue(st._style_actions["xray"].isChecked())
+            self.assertTrue(st._option_actions["bbox"].isChecked())
+            if st.mesh_view is not None:
+                self.assertEqual(st.mesh_view.display["style"], "xray")
+            other = self.win.open_tool("mesh-twist", [str(src)])   # the choice holds on every page
+            self.wait(lambda: other.idle())
+            self.assertEqual(other.stage.display()["style"], "xray")
+        finally:
+            st.set_display(**DISPLAY)
 
     def test_bend_spine_edits_preview_and_worker_export(self):
         from atlas_toolkit.tools.mesh_bend.engine import make_sample

@@ -27,6 +27,29 @@ class MeshData:
     edge_segments: np.ndarray | None = None  # native polygon edges, independent of the display triangle proxy
     native_faces_total: int | None = None
     marks: np.ndarray | None = None          # (N, 2, 3) segments drawn on top in the danger colour (problems)
+    open_edges: np.ndarray | None = None     # (N, 2, 3) the full mesh's boundary edges (one face only), for the
+                                             # viewer's Open edges overlay; None when not worked out
+
+
+OPEN_EDGES_MAX_FACES = 3_000_000   # above this the preview skips the open-edge count (memory and time)
+OPEN_EDGES_KEEP = 60_000           # segments kept for drawing; the count stays exact
+
+
+def open_edge_segments(vertices, faces, keep: int = OPEN_EDGES_KEEP):
+    """The edges that only one face uses (holes, open shells, cut faces), as (N, 2, 3) float32 segments with N at
+    most `keep` (an even sample beyond it), and their full count. Edges are keyed by vertex index, so vertices must
+    be merged (load_mesh does)."""
+    f = np.asarray(faces, dtype=np.int64)
+    if not len(f):
+        return np.zeros((0, 2, 3), np.float32), 0
+    e = np.sort(np.concatenate([f[:, [0, 1]], f[:, [1, 2]], f[:, [2, 0]]]), axis=1)
+    key = e[:, 0] * (int(e.max()) + 1) + e[:, 1]
+    uniq, first, counts = np.unique(key, return_index=True, return_counts=True)
+    lone = e[first[counts == 1]]
+    n = len(lone)
+    if n > keep:
+        lone = lone[np.linspace(0, n - 1, keep, dtype=int)]
+    return np.asarray(vertices, dtype=np.float32)[lone], n
 
 
 def load_mesh(path, merge: bool = True):
@@ -110,20 +133,25 @@ def simplify_faces(vertices: np.ndarray, faces: np.ndarray, max_faces: int, log=
         return v.astype(np.float64), f.astype(np.int64)
 
 
+def _open_edges(vertices, faces):
+    return open_edge_segments(vertices, faces)[0] if len(faces) <= OPEN_EDGES_MAX_FACES else None
+
+
 def preview(mesh, max_faces: int = PREVIEW_FACES) -> MeshData:
     from .surface import Surface, from_mesh, polygon_data
     surface = mesh if isinstance(mesh, Surface) else from_mesh(mesh) if polygon_data(mesh) else None
     if surface is not None:
-        tri = surface.as_trimesh()
         v, f = decimate(surface.vertices, surface.triangles, max_faces)
         edges = surface.edges
         if len(edges) > 160000:
             edges = edges[np.linspace(0, len(edges)-1, 160000, dtype=int)]
         return MeshData(v, f, len(surface.triangles), tuple(map(tuple, surface.bounds)),
-                        surface.vertices[edges].astype(np.float32), len(surface.faces))
+                        surface.vertices[edges].astype(np.float32), len(surface.faces),
+                        open_edges=_open_edges(surface.vertices, surface.triangles))
     v, f = decimate(mesh.vertices, mesh.faces, max_faces)
     b = mesh.bounds
-    return MeshData(v, f, int(len(mesh.faces)), (tuple(map(float, b[0])), tuple(map(float, b[1]))))
+    return MeshData(v, f, int(len(mesh.faces)), (tuple(map(float, b[0])), tuple(map(float, b[1]))),
+                    open_edges=_open_edges(mesh.vertices, mesh.faces))
 
 
 def describe(mesh) -> tuple[str, dict]:
