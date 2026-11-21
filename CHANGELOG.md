@@ -1,6 +1,6 @@
 # Changelog
 
-## 2.4.6 (unreleased)
+## 2.4.6 (2026-11-21)
 
 **Several files in a tool: each keeps its own Aim and its own preview**
 - **Aiming one file no longer aims them all.** With several files in a tool's list, the camera you set in the Aim
