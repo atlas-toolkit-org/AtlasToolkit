@@ -11,7 +11,7 @@ import numpy as np
 
 from .flowlines import compute_flowlines, graph_chains
 from .io import load_network, save_network
-from .mesh import alignment_report, load_mesh, prepare_mesh
+from .mesh import REMESH_REVISION, alignment_report, load_mesh, prepare_mesh
 from .network import simplify_network
 from .metrics import memory_snapshot
 from .regularize import regularize
@@ -32,7 +32,7 @@ def extract_network(mesh: PolygonMesh | str | Path, options=None, progress=None,
         key.update(np.asarray([len(face),*face],np.int64).tobytes())
     config=asdict(options); config.pop("cache_dir")
     if options.prepare=="remesh" or (options.prepare=="auto" and sum(len(f)==4 for f in mesh.faces)/len(mesh.faces)<0.5):
-        key.update(b"nim-normalized-purequad-v3")
+        key.update(f"nim-{REMESH_REVISION}".encode())
     key.update(json.dumps(config,sort_keys=True).encode())
     digest=key.hexdigest()
     cache=Path(options.cache_dir)/f"network-{digest}.npz" if options.cache_dir else None
@@ -90,6 +90,8 @@ def extract_network(mesh: PolygonMesh | str | Path, options=None, progress=None,
     memory["after_regularize"]=memory_snapshot()
     times["total"]=time.perf_counter()-start
     info.update(flow_info); info.update(alignment)
+    if mesh.metadata.get("remesh_repairs"):
+        info["remesh_repairs"]=mesh.metadata["remesh_repairs"]
     info["implementation_revision"]=2
     info.update(input_vertices=original_vertices,input_faces=original_faces,
                 prepared_vertices=len(mesh.vertices),prepared_faces=len(mesh.faces),

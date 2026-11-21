@@ -5,7 +5,7 @@ from atlas_toolkit.core import (CAMERA_KEYS, CAMERA_NOTE, FRAME_KEYS, Bool, Choi
 TOOL = Tool(
     id="flowrep-sketch",
     name="FlowRep Sketch",
-    version="0.1.2",
+    version="0.1.3",
     category="mesh2svg",
     icon="flowrep-sketch",
     action="Draw",

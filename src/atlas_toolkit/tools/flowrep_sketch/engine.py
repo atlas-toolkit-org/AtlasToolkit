@@ -43,8 +43,17 @@ def run(ctx,src,dst,p):
           for name,lines in drawing.layers.items() if lines]
     preview=AtlasDrawing(drawing.width,drawing.height,(0.,0.,drawing.width,drawing.height),pens)
     error=net.diagnostics["max_error_deg"]
+    repairs=net.diagnostics.get("remesh_repairs") or {}
+    rebuilt=int(repairs.get("removed_faces",0))+int(repairs.get("dropped_polygons",0))
+    healed=", ".join(part for part in (
+        f"{repairs['holes_filled']} hole{'s' if repairs['holes_filled']!=1 else ''} filled" if repairs.get("holes_filled") else "",
+        f"{rebuilt} broken face{'s' if rebuilt!=1 else ''} rebuilt" if rebuilt else "",
+        f"{repairs['welded_vertices']} duplicate vertices welded" if repairs.get("welded_vertices") else "",
+        f"remeshed at {repairs['remesh_target']} after {repairs['remesh_attempts']} tries" if repairs.get("remesh_attempts",1)>1 else "",
+    ) if part)
     report=(f"{Path(src).name}\n"
             f"  3D network: {len(net.curves)} curves, {net.edge_count} edges\n"
+            +(f"  Remesh repairs: {healed}\n" if healed else "")+
             f"  Descriptiveness: {error:.2f}° / {opts.dmax:g}°\n"
             f"  Drawing: {drawing.stats['strokes']} strokes, {drawing.stats['ink_mm']:.0f} mm ink\n"
             f"  Network cache: {'hit' if net.diagnostics.get('cache_hit') else 'computed'}\n"

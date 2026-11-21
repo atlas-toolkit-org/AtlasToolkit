@@ -50,7 +50,8 @@ curvature, projection and occlusion. OBJ negative indices, mixed face arities, d
 open boundaries, duplicate vertices/faces and winding correction are handled before extraction.
 Disconnected face fans touching at a vertex are split into separate vertices and recorded in
 the preparation metadata. This repair is needed by the supplied espresso and plane inputs.
-Remaining non-manifold edges, branching vertex links and non-orientable surfaces are rejected.
+In a preserved polygon input, remaining non-manifold edges, branching vertex links and non-orientable
+surfaces are rejected. Remeshed inputs are healed first (below).
 
 Triangle inputs use PyNanoInstantMeshes 0.0.3, an Instant Meshes binding with Windows ABI3 wheels.
 The binding is called with 4-RoSy/4-PoSy, extrinsic smoothing, boundary alignment, feature detection
@@ -58,6 +59,23 @@ and deterministic mode. Its mandatory pure-quad subdivision multiplies the nomin
 by approximately four, so the requested intermediate count is corrected accordingly.
 The final number of faces remains approximate. Anisotropic curvature alignment and sampled
 surface deviation are reported; successful remeshing alone is not proof of an ideal FlowRep input.
+
+Instant Meshes' extraction leaves local defects, and which ones appear depends on the resolution. They
+include near-duplicate vertices, quads with two welded corners, folded pairs of quads with the same corners,
+"fin" edges shared by four quads around a pinched singularity, and holes in closed surfaces. A 524k-triangle
+sculpted head showed some of these at every resolution tried. `mesh._heal_polygons` repairs the remesh before
+the strict loader runs:
+1. It welds vertices within 1e-6 of the diagonal.
+2. It drops polygons that repeat a corner, all copies of a folded face and zero-area faces.
+3. It removes the faces around any vertex on an edge with more than two faces, or with a branching link,
+   until none is left.
+4. It patches every open loop that is not a real opening of the reference surface (a loop with a vertex
+   within one mean edge of the reference's boundary is kept), using Atlas's hole patcher (`geom.repair.fill_loop`,
+   or a centroid fan standalone), and projects the new vertices onto the reference surface.
+
+Holes therefore no longer become trim loops. If the healed remesh still fails the checks, the target is
+retried at +4 % and -4 %. The repairs are recorded as `remesh_repairs` in the preparation metadata and the
+network diagnostics.
 
 Initial signed affinities follow equations 6–7: positive near parallel, negative near orthogonal,
 with negative weight -5, angular widths 5° and 15°, and opposite-quad weight 0.05.

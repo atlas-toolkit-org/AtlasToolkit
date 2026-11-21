@@ -1,5 +1,21 @@
 # Changelog
 
+## 2.4.4 (unreleased)
+
+**FlowRep Sketch 0.1.3**
+- **Remeshed models no longer stop with "non-manifold edges remain".** Instant Meshes leaves small defects in
+  its quads: near-duplicate vertices, quads that repeat a corner, folded pairs of quads, "fin" edges shared by
+  four quads, and holes in closed surfaces. Which defect appeared depended on the Remesh resolution, so a model
+  failed at one value and passed at the next. FlowRep now heals the remesh before its strict checks. It welds
+  the duplicates, rebuilds the faces around a defect, patches every hole the original model does not have
+  (with Repair Mesh's patcher, laid back onto the surface), and keeps real openings as boundaries. If a remesh
+  still cannot be used, it tries again at ±4 % before saying so. *Sculpted head_flow* (524k triangles) now
+  extracts at 3000, 6000, 10000 and 20000 quads; it used to fail at 6000 and 10000.
+- **No more stray loops from remesh holes.** The holes used to become boundaries, drawn as small closed
+  squiggles on the face, with flowlines forced to end there. The report lists the repairs (*Remesh repairs: 3
+  holes filled, 13 broken faces rebuilt*). Remeshes are cached again when they mix quads and triangles. The
+  cache revision changed, so the first run after updating remeshes once more.
+
 ## 2.4.3 (2026-11-21)
 
 **Updates**
