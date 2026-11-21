@@ -1,6 +1,6 @@
 # Changelog
 
-## 2.4.3 (unreleased)
+## 2.4.3 (2026-11-21)
 
 **Updates**
 - **Setup › General › Updates** has **Check now**: under New versions, this version with a badge (*latest*, or
