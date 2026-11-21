@@ -9,7 +9,7 @@ from flowrep3d import Camera,FlowRepOptions,RenderOptions,extract_network,from_a
 from flowrep3d.flowlines import trim_edges
 from flowrep3d.network import open_ends
 from flowrep3d.render import _close_gaps,_contours,_join_strokes,_smooth_polyline
-from .helpers import grid,sphere,torus
+from .helpers import cylinder,grid,sphere,torus
 
 
 def opts(**kw):
@@ -185,6 +185,72 @@ class RenderQualityTests(unittest.TestCase):
         loop=_smooth_polyline(ring,15,0.1)
         np.testing.assert_allclose(loop[0],loop[-1])
         self.assertLess(float(np.abs(np.linalg.norm(loop[:,:2],axis=1)-1).max()),0.01)   # Taubin: no shrinking
+
+
+class StripTests(unittest.TestCase):
+    """Regions with no interior vertex are judged by their boundary: a stack of rings round one meridian is not a
+    descriptive network (it was the trivial optimum that drew ring stacks on bottles, glasses and handles)."""
+    def network(self,meridians,n=16,levels=9):
+        from flowrep3d.flowlines import Flowline
+        from flowrep3d.network import CoverageEvaluator,NetworkState
+        mesh=cylinder(n,levels)
+        lookup={tuple(sorted(map(int,e))):k for k,e in enumerate(mesh.topology.edges)}
+        def at(i,j):
+            a=2*np.pi*(i%n)/n
+            return int(np.argmin(np.linalg.norm(mesh.vertices-[np.cos(a),np.sin(a),-1+2*j/(levels-1)],axis=1)))
+        def flow(points):
+            ids=np.array([at(i,j) for i,j in points])
+            return Flowline(ids,np.array([lookup[tuple(sorted((int(a),int(b))))] for a,b in zip(ids[:-1],ids[1:])]))
+        flows=[flow([(i,j) for i in range(n+1)]) for j in range(1,levels-1)]
+        flows+=[flow([(i,j) for j in range(levels)]) for i in range(0,n,n//meridians)]
+        state=NetworkState(CoverageEvaluator(mesh,flows),mesh.topology.edge_faces[:,1]<0)
+        return state
+
+    def test_one_meridian_does_not_describe_a_ring_stack(self):
+        self.assertGreater(self.network(1).max_error,60)
+
+    def test_four_meridians_do(self):
+        self.assertLess(self.network(4).max_error,10)
+
+
+class SpiralTests(unittest.TestCase):
+    def test_a_helix_becomes_rings(self):
+        from flowrep3d.flowlines import Flowline,_spiral_rings
+        n,levels=16,12
+        mesh=cylinder(n,levels)
+        lookup={tuple(sorted(map(int,e))):k for k,e in enumerate(mesh.topology.edges)}
+        def at(i,j):
+            a=2*np.pi*(i%n)/n
+            return int(np.argmin(np.linalg.norm(mesh.vertices-[np.cos(a),np.sin(a),-1+2*j/(levels-1)],axis=1)))
+        points=[]; s=0
+        for turn in range(4):                                  # round once, then two quads up: a coarse helix
+            j=1+2*turn
+            points+=[(s+k,j) for k in range(n)]+[(s+n-1,j+1)]
+            s+=n-1
+        ids=np.array([at(i,j) for i,j in points]+[at(s,9)])
+        helix=Flowline(ids,np.array([lookup[tuple(sorted((int(a),int(b))))] for a,b in zip(ids[:-1],ids[1:])]))
+        pieces=_spiral_rings(mesh,[helix])
+        rings=[p for p in pieces if p.closed]
+        self.assertGreaterEqual(len(rings),2)
+        for r in rings:
+            self.assertEqual(len(set(map(int,r.vertices[:-1]))),len(r.vertices)-1)   # a simple loop
+            self.assertEqual(len(r.edges),len(r.vertices)-1)
+
+
+class LooseEndTests(unittest.TestCase):
+    def test_ends_just_short_of_a_line_meet_it_and_floating_flecks_go(self):
+        from flowrep3d.render import _tidy_free_ends
+        wall=np.array([[10.,0.],[10.,20.]])
+        short=np.array([[0.,5.],[9.5,5.]])                     # stops 0.5 mm before the wall
+        far=np.array([[0.,15.],[8.,15.]])                      # 2 mm away: a real gap, kept
+        fleck=np.array([[30.,30.],[31.5,30.]])                 # 1.5 mm touching nothing
+        loop=np.array([[40.,40.],[41.,40.],[41.,41.],[40.,40.]])
+        out=_tidy_free_ends({"flowlines":[short,far,fleck,loop],"silhouette":[wall]},0.8,3.0)
+        lines=out["flowlines"]
+        self.assertEqual(len(lines),3)
+        np.testing.assert_allclose(lines[0][-1],[10.,5.],atol=0.11)
+        np.testing.assert_allclose(lines[1][-1],[8.,15.])
+        self.assertTrue(any(len(p)==4 for p in lines))
 
 
 def from_arrays_network():

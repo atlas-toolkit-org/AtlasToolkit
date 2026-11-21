@@ -87,6 +87,11 @@ Initial paths end at ambiguous/irregular and trim vertices. The second graph use
 affinities with 7.5° width, normalized opposite-edge affinities, and -25 crossing penalties.
 Reliable strands yield closed cycles before open paths. Weighted tree diameters choose long
 remaining paths; projectivity resolves cycle preferences. Opposite-edge revisits expose spiral turns.
+Spirals that climb more than one quad per turn never lie next to themselves, and the opposite-edge
+test misses them (a remeshed rounded cube had one flowline winding it 11 times). A flowline that comes
+back within 2.5 average edges of an earlier point, at least eight edges further along and running the
+same way, has completed a turn: that turn is closed into a ring through the shortest mesh path back.
+This follows the paper's §6.2 (split spirals once they complete a full cycle).
 
 ### Descriptiveness and simplification
 
@@ -99,7 +104,19 @@ Planar patches skip unnecessary boundary tracing internally; their cycle count i
 For an interior vertex, the implementation interpolates boundary normals along each crossing
 reliable flowline, takes the largest directional prediction error, and then the 90th percentile
 over the region. Consistent with the paper, isolated unpredicted vertices are omitted and counted.
-A wholly unpredicted non-planar region is explicitly uncovered.
+A wholly unpredicted non-planar region is explicitly uncovered, unless all it has inside is up to three
+vertices: flowlines end at remesh singularities rather than cross them, so a few faces round a
+singularity could never be predicted. Treating them as uncovered blocked the removal of every flowline
+next to a singularity, and a remeshed teapot stayed a dense grid (120 flowlines; 81 now).
+
+A region with no interior vertex at all (a strip one quad wide, or one quad) is judged by its boundary:
+each stretch between two junctions is predicted from the normals at its ends, as interior vertices are
+along a crossing flowline. A fully dense network (every side one edge) still scores 0. Without this
+rule, zero interior vertices meant zero error, which made the dense start network trivially
+descriptive. The simplifier then removed meridians first (open, with endpoint costs) down to the one
+needed to break the annuli, and the rings could no longer go. Bottles, glasses and handles came out as
+stacks of parallel rings. With it, the paper's models come out close to the authors' networks (see
+Validation below).
 Geometrically planar patches have zero error, avoiding spurious penalties from normals averaged
 across sharp trim boundaries.
 
@@ -182,7 +199,13 @@ Near-plane and paper-frustum clipping happens before sampling. Hidden stretches 
 between visible runs of one curve are drawn (grazing rays flicker). In each layer, strokes whose ends
 meet within 0.05 mm and continue each other (turning by 40° or less) are joined, best-aligned pairs
 first: a flowline through a junction becomes one stroke, a corner stays two. Exact coincident ink is
-then removed before short-stroke filtering and Atlas-style nearest-endpoint ordering.
+then removed before short-stroke filtering. Loose ends are then tidied on paper. An end that touches
+nothing but stops within 0.8 mm short of another stroke, heading towards it (within 60°), is drawn on to
+meet it: a curve passing behind a contour ends on it rather than a hair before. An open stroke under
+3 mm that touches nothing at either end is a floating fleck and is left out (`snap`, `floating`).
+The contour lift is capped at 1% of the model's size. The same lift was tried for network curves; it
+was dropped, because curves on the far side near the outline then peeked past it (more fragments on
+smooth models). Strokes are then put in Atlas-style nearest-endpoint order.
 
 SVGs contain native paths only. Fitted cubic segments are checked using a convex-hull bound on
 the complete cubic against each original piecewise-linear interval. This supplies a continuous,
@@ -201,7 +224,8 @@ than the reserved fitting tolerance.
   differ by at least 75% of the sharp-feature angle. Otherwise the coarse proxy turns tight but
   smooth folds (nostrils, lids, ears) into trims. Clusters of creases shorter than *Shortest sharp
   feature* (4 edges) that close no loop and touch no boundary are dropped. On the sculpted head,
-  587 proxy creases became 85, and trim curves fell from 228 to 33.
+  587 proxy creases became 61, and trim curves fell from 228 to 13. Short crease spurs that leave a
+  junction and stop in nothing are pruned by the same length (that took 85 creases to 61).
 - Reliable open-path selection uses weighted tree diameters; spiral handling and local search
   are bounded practical implementations. These choices are visible in the reported networks.
 - The geometric normal metric depends on sampled directions and does not guarantee perceptual

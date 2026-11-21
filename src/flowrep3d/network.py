@@ -22,6 +22,9 @@ def predict_normal(n1, n2, distance_from_first, distance_from_second):
     return unit((b[...,None]*n1+a[...,None]*n2)/np.maximum((a+b)[...,None],1e-30))
 
 
+ISOLATED_UNPREDICTED = 3   # interior vertices: a region with no more than these, none predicted, is judged by its boundary
+
+
 def percentile90(values):
     """NumPy's default linear quantile without its large small-array dispatch cost."""
     ordered=np.sort(values)
@@ -114,6 +117,37 @@ class CoverageEvaluator:
         vertices=np.unique(np.r_[T.he_vertices[boundary],T.he_vertices[T.he_next[boundary]]])
         return vertices,cycles
 
+    def network_degree(self, blocked):
+        if getattr(self,"_degree_blocked",None) is not blocked:
+            self._degree=np.bincount(self.topo.edges[blocked].ravel(),minlength=len(self.mesh.vertices))
+            self._degree_blocked=blocked
+        return self._degree
+
+    def _thin(self, faces, vertices, boundary, blocked, cycles):
+        """A region with no interior vertex (a strip one quad wide, or a single quad) has nothing to predict inside,
+        but its cycle must still describe it: each stretch of its boundary between two junctions is predicted from
+        the normals at its ends, as interior vertices are along a crossing flowline (§5.1). A fully dense network
+        (every side one edge) scores 0. A strip whose ring runs round a whole tube to a single meridian does not:
+        without this, stacks of parallel rings with one meridian were a trivially "descriptive" optimum."""
+        degree=self.network_degree(blocked)
+        corner=degree[boundary]>=3
+        if corner.all():
+            return Region(faces,vertices,0.0,cycles,0,0)
+        from .flowlines import graph_chains
+        edges=np.unique(np.concatenate([self.topo.face_edges[int(f)] for f in faces]))
+        edges=edges[blocked[edges]]
+        chains,_=graph_chains(self.topo.edges,edges,set(map(int,boundary[corner])))
+        angles=[]
+        for c in chains:
+            if len(c)<3: continue
+            P=self.positions[c]
+            arc=np.r_[0.0,np.cumsum(np.linalg.norm(np.diff(P,axis=0),axis=1))]
+            inner=np.arange(1,len(c)-1)
+            prediction=predict_normal(self.N[c[0]],self.N[c[-1]],arc[inner],arc[-1]-arc[inner])
+            angles.extend(np.degrees(np.arccos(np.clip((prediction*self.N[c[inner]]).sum(1),-1,1))).tolist())
+        error=percentile90(np.asarray(angles)) if angles else 0.0
+        return Region(faces,vertices,error,cycles,0,0,error)
+
     def measure(self, faces, blocked, crossing=None):
         checkpoint(self.cancel)
         vertices=np.unique(np.concatenate([self.face_vertices[int(f)] for f in faces]))
@@ -136,7 +170,7 @@ class CoverageEvaluator:
         if cycles!=1:
             return Region(faces,vertices,90.0,cycles,len(interior),0,90.0)
         if not len(interior):
-            return Region(faces,vertices,0.0,cycles,0,0)
+            return self._thin(faces,vertices,boundary,blocked,cycles)
         candidate=sorted({fi for v in interior for fi in self.vertex_flows[int(v)]})
         error=np.zeros(len(inside)); seen=np.zeros(len(inside),bool)
         cross_error=np.zeros(len(inside)); cross_seen=np.zeros(len(inside),bool)
@@ -170,7 +204,14 @@ class CoverageEvaluator:
                     np.maximum.at(cross_error,vv,angles); cross_seen[vv]=True
         sample=interior[seen[interior]]
         # The paper omits isolated unpredicted vertices. A wholly unpredicted patch
-        # is explicitly uncovered instead of receiving a fictitious zero error.
+        # is explicitly uncovered instead of receiving a fictitious zero error,
+        # unless all it has inside is a few isolated vertices (flowlines end at a
+        # remesh singularity instead of crossing it): then its boundary is judged,
+        # as for a thin region. Otherwise every flowline next to a singularity was
+        # impossible to remove, and remeshes with many of them stayed dense grids.
+        if not len(sample) and len(interior)<=ISOLATED_UNPREDICTED:
+            thin=self._thin(faces,vertices,boundary,blocked,cycles)
+            return Region(faces,vertices,thin.error,cycles,len(interior),0,thin.error)
         dc=percentile90(error[sample]) if len(sample) else 90.0
         cs=interior[cross_seen[interior]]
         dominance=percentile90(cross_error[cs]) if len(cs) else 0.0

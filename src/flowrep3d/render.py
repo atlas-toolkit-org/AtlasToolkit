@@ -158,6 +158,7 @@ def _contours(V,F,cam,normal_passes=3):
     return out
 
 
+MAX_CONTOUR_LIFT = 1.0     # frame units (the model is 100 across): most a contour is lifted for its visibility test
 SHARP_CONTOUR = 60.0        # degrees: on edges sharper than this the contour follows the mesh edge
 SHARP_CONTOUR_SHARE = 0.08  # of the model's size: smaller clusters of sharp edges are sculpt noise, not creases
 
@@ -280,7 +281,7 @@ def order_polylines(polylines,start=(0.0,0.0)):
     return out
 
 
-def _clean_layers(layers,bounds,min_length,optimise,cancel,join=False):
+def _clean_layers(layers,bounds,min_length,optimise,cancel,join=False,snap=0.0,floating=0.0):
     area=box(*bounds); ink=GeometryCollection(); out={}; removed=0
     for name in ("features","silhouette","flowlines","hidden"):
         accepted=[]
@@ -304,8 +305,57 @@ def _clean_layers(layers,bounds,min_length,optimise,cancel,join=False):
             if pieces and name!="hidden": ink=unary_union([ink,*[LineString(q) for q in pieces]])
         if join and name!="hidden":
             accepted=_join_strokes(accepted)
-        out[name]=order_polylines(accepted) if optimise else accepted
+        out[name]=accepted
+    if snap>0 or floating>0:
+        out=_tidy_free_ends(out,snap,floating)
+    if optimise:
+        out={name:order_polylines(lines) for name,lines in out.items()}
     return out,removed
+
+
+def _tidy_free_ends(layers,snap,floating,touch=0.35):
+    """Loose ends on paper. A stroke end that touches nothing but stops just short of another stroke (within `snap`
+    mm, heading towards it) is drawn on to meet it, so a curve that runs behind a contour ends on that contour
+    instead of a hair before it. A short open stroke (under `floating` mm) that touches nothing at either end is
+    a floating fleck and is left out. Closed loops are kept as they are. The hidden layer is left alone."""
+    from scipy.spatial import cKDTree
+    names=[n for n in layers if n!="hidden"]
+    strokes=[(n,i) for n in names for i in range(len(layers[n]))]
+    if len(strokes)<2: return layers
+    dense=[]; owner=[]
+    for k,(n,i) in enumerate(strokes):
+        p=layers[n][i]; seg=np.linalg.norm(np.diff(p,axis=0),axis=1); total=float(seg.sum())
+        m=max(2,int(np.ceil(total/0.1))+1); at=np.r_[0.0,np.cumsum(seg)]; u=np.linspace(0,total,m)
+        dense.append(np.stack([np.interp(u,at,p[:,0]),np.interp(u,at,p[:,1])],1)); owner.append(np.full(m,k))
+    D=np.concatenate(dense); owner=np.concatenate(owner); tree=cKDTree(D)
+    def free(k,e):
+        return not any(owner[j]!=k for j in tree.query_ball_point(e,touch))
+    out={n:list(layers[n]) for n in layers}; drop=set()
+    for k,(n,i) in enumerate(strokes):
+        p=out[n][i]
+        if len(p)<2 or np.linalg.norm(p[0]-p[-1])<touch: continue
+        length=float(np.linalg.norm(np.diff(p,axis=0),axis=1).sum())
+        ends=[free(k,p[0]),free(k,p[-1])]
+        if floating>0 and all(ends) and length<floating:
+            drop.add((n,i)); continue
+        for end,is_free in enumerate(ends):
+            if not is_free or snap<=0: continue
+            q=p if end==1 else p[::-1]
+            e=q[-1]; back=q[max(0,len(q)-4)]
+            t=e-back; t=t/(np.linalg.norm(t) or 1.0)
+            best=None
+            for j in tree.query_ball_point(e,snap):
+                if owner[j]==k: continue
+                d=D[j]-e; dist=float(np.linalg.norm(d))
+                if dist<=1e-9 or float(d@t)<0.5*dist: continue      # only ahead, within 60 degrees
+                if best is None or dist<best[0]: best=(dist,D[j])
+            if best is not None:
+                q=np.vstack([q,best[1]])
+                p=q if end==1 else q[::-1]
+        out[n][i]=p
+    for n,i in sorted(drop,reverse=True):
+        del out[n][i]
+    return out
 
 
 def render_network(mesh,network: CurveNetwork,camera=None,paper=None,options=None,progress=None,cancel=None):
@@ -352,7 +402,7 @@ def render_network(mesh,network: CurveNetwork,camera=None,paper=None,options=Non
             # A ray to a contour point grazes the surface, and sculpt noise next to it can hide it. Visibility is
             # tested half an edge off the surface along the normal; the contour is drawn where it lies (drawing the
             # lifted points moved the outline outward by as much, visibly so on coarse models).
-            lift=0.5*float(np.linalg.norm(V[ER[:,0]]-V[ER[:,1]],axis=1).mean())
+            lift=min(0.5*float(np.linalg.norm(V[ER[:,0]]-V[ER[:,1]],axis=1).mean()),MAX_CONTOUR_LIFT)
             contours=_contours(V,F,cam,int(round(2+6*options.smoothing)))
         else:
             raw.extend(("silhouette",P) for P in _silhouettes(V,F,cam))
@@ -412,7 +462,8 @@ def render_network(mesh,network: CurveNetwork,camera=None,paper=None,options=Non
     progress_to(progress,0.76,"joining, removing overlap and ordering plotter strokes",cancel)
     W,H=frame.sheet; x,y,w,h=frame.area; half=options.line_width/2
     bounds=(x+half,y+half,x+w-half,y+h-half)
-    layers,removed=_clean_layers(layers,bounds,options.min_length,options.optimise,cancel,join=options.join)
+    layers,removed=_clean_layers(layers,bounds,options.min_length,options.optimise,cancel,join=options.join,
+                                 snap=options.snap,floating=options.floating)
     pls=[p for layer in layers.values() for p in layer]
     ink=sum(float(np.linalg.norm(np.diff(p,axis=0),axis=1).sum()) for p in pls)
     travel=sum(float(np.linalg.norm(a[-1]-b[0])) for a,b in zip(pls[:-1],pls[1:]))

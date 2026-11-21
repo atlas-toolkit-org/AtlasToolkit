@@ -86,16 +86,18 @@ class RenderOptions:
     min_contour: float = 2.0        # mm: shorter smooth contour loops (sculpt noise) are left out
     gap: float = 0.4                # mm: shorter hidden gaps between visible runs are drawn
     join: bool = True               # join strokes that meet and continue each other
+    snap: float = 0.8               # mm: a loose stroke end this close short of another stroke is drawn on to meet it
+    floating: float = 3.0           # mm: shorter open strokes touching nothing at either end are left out
 
     def __post_init__(self):
         if not all(math.isfinite(float(v)) for v in (self.margin,self.line_width,self.tolerance,self.sample_step,self.min_length,
-                                                     self.smoothing,self.min_contour,self.gap,*self.rotate)):
+                                                     self.smoothing,self.min_contour,self.gap,self.snap,self.floating,*self.rotate)):
             raise FlowRepError("rendering parameters must be finite")
         if self.orientation not in ("portrait", "landscape"):
             raise FlowRepError("orientation must be portrait or landscape")
         if self.tolerance <= 0 or self.sample_step <= 0 or self.line_width <= 0:
             raise FlowRepError("tolerance, sample_step, and line_width must be positive")
-        if self.margin < 0 or self.min_length < 0 or self.min_contour < 0 or self.gap < 0:
+        if self.margin < 0 or self.min_length < 0 or self.min_contour < 0 or self.gap < 0 or self.snap < 0 or self.floating < 0:
             raise FlowRepError("margin, min_length, min_contour and gap cannot be negative")
         if not 0 <= self.smoothing <= 1:
             raise FlowRepError("smoothing must be between 0 and 1")

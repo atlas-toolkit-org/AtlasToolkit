@@ -26,7 +26,7 @@ def extract_network(mesh: PolygonMesh | str | Path, options=None, progress=None,
     source=str(Path(mesh.source).resolve()) if mesh.source else ""
     original_vertices=len(mesh.vertices); original_faces=len(mesh.faces)
     key=hashlib.sha256()
-    key.update(b"atlas-flowrep-0.2.0-extract-3-trims-ends-declutter")
+    key.update(b"atlas-flowrep-0.2.0-extract-4-strips-spirals-spurs")
     key.update(mesh.vertices.tobytes())
     for face in mesh.faces:
         key.update(np.asarray([len(face),*face],np.int64).tobytes())
@@ -92,7 +92,7 @@ def extract_network(mesh: PolygonMesh | str | Path, options=None, progress=None,
     info.update(flow_info); info.update(alignment)
     if mesh.metadata.get("remesh_repairs"):
         info["remesh_repairs"]=mesh.metadata["remesh_repairs"]
-    info["implementation_revision"]=3
+    info["implementation_revision"]=4
     info.update(input_vertices=original_vertices,input_faces=original_faces,
                 prepared_vertices=len(mesh.vertices),prepared_faces=len(mesh.faces),
                 components=topo.components,boundary_edges=int((topo.edge_faces[:,1]<0).sum()),

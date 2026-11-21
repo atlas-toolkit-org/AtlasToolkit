@@ -89,6 +89,18 @@ def trim_edges(mesh, crease_angle, min_edges=0, report=None):
             # a cluster of creases that closes no loop, touches no boundary and is short: a fleck
             if len(members)<min_edges and len(vertices)>len(members) and not on_boundary[vertices].any():
                 sharp[members]=False; short+=len(members)
+        # spurs: a short crease branch that leaves a junction and stops in nothing
+        for _ in range(2):
+            ids=np.flatnonzero(sharp|boundary)
+            degree=np.bincount(topo.edges[ids].ravel(),minlength=nv)
+            pruned=False
+            for chain,edge_ids in zip(*graph_chains(topo.edges,np.flatnonzero(sharp))):
+                a,b=int(chain[0]),int(chain[-1])
+                if a==b or len(edge_ids)>=min_edges: continue
+                ends=sorted((degree[a],degree[b]))
+                if ends[0]==1 and ends[1]>=3 and not (on_boundary[a] or on_boundary[b]):
+                    sharp[edge_ids]=False; short+=len(edge_ids); pruned=True
+            if not pruned: break
     if report is not None:
         report.update(crease_edges_proxy=proxy,crease_edges_unsupported=unsupported,
                       crease_edges_short=short,crease_edges=int(sharp.sum()))
@@ -212,6 +224,7 @@ def _reliable_paths(mesh, edge_labels, keep, dmax, cancel):
                 out.append(Flowline(path,es,label))
                 G.remove_edges_from(zip(path[:-1],path[1:]))
                 G.remove_nodes_from([v for v in list(G.nodes) if G.degree[v]==0])
+    out=_spiral_rings(mesh,out)
     # A spiral revisits an opposite edge family before closing; expose its turns separately.
     opposite=defaultdict(set)
     for a,b in topo.opposite:
@@ -227,6 +240,62 @@ def _reliable_paths(mesh, edge_labels, keep, dmax, cancel):
         if start<len(flow.edges):
             split.append(Flowline(flow.vertices[start:],flow.edges[start:],flow.strand))
     return sorted(split,key=lambda f:(f.strand,int(f.edges[0])))
+
+
+def _spiral_rings(mesh, flows, reach=2.5, min_turn=8.0):
+    """Close the turns of spiralling flowlines into rings (§6.2: remeshing can make flowlines spiral; split them
+    where a full turn is complete). A turn is found where the flowline comes back within `reach` average edges
+    of an earlier point, at least `min_turn` edges further along and running the same way; it becomes a closed
+    ring through the shortest mesh path back to that point. A helix climbing more than a quad per turn never
+    lies next to itself, so the opposite-edge test below cannot see it; it drew as one long coil."""
+    from scipy.sparse import csr_matrix
+    from scipy.sparse.csgraph import dijkstra
+    from scipy.spatial import cKDTree
+    topo=mesh.topology; V=mesh.vertices; E=topo.edges
+    L=float(topo.lengths.mean())
+    graph=None; lookup=None
+    out=[]
+    for f in flows:
+        if f.closed or len(f.edges)<2*min_turn:
+            out.append(f); continue
+        ids=f.vertices; P=V[ids]
+        arc=np.r_[0.0,np.cumsum(np.linalg.norm(np.diff(P,axis=0),axis=1))]
+        if arc[-1]<2*min_turn*L:
+            out.append(f); continue
+        T=unit(P[np.minimum(np.arange(len(P))+1,len(P)-1)]-P[np.maximum(np.arange(len(P))-1,0)])
+        tree=cKDTree(P)
+        pieces=[]; start=0
+        for j in range(1,len(ids)):
+            near=[i for i in tree.query_ball_point(P[j],reach*L)
+                  if start<=i<j and arc[j]-arc[i]>=min_turn*L and float(T[i]@T[j])>0.7]
+            if not near:
+                continue
+            i=min(near,key=lambda i:float(np.linalg.norm(P[i]-P[j])))
+            if graph is None:
+                graph=csr_matrix((topo.lengths,(E[:,0],E[:,1])),shape=(len(V),len(V)))
+                lookup={(int(a),int(b)):k for k,(a,b) in enumerate(E)}
+            dist,pred=dijkstra(graph,directed=False,indices=int(ids[j]),limit=2*reach*L,return_predecessors=True)
+            if not np.isfinite(dist[int(ids[i])]):
+                continue
+            path=[int(ids[i])]
+            while path[-1]!=int(ids[j]):
+                path.append(int(pred[path[-1]]))
+            path=path[::-1]                          # ids[j] ... ids[i]
+            turn=[int(v) for v in ids[i:j+1]]
+            if set(path[1:-1])&set(turn):
+                continue                             # the shortcut would cross the turn itself
+            ring=np.array(turn+path[1:],np.int64)
+            edges=np.array([lookup[(min(a,b),max(a,b))] for a,b in zip(ring[:-1],ring[1:])],np.int64)
+            if i>start:
+                pieces.append(Flowline(ids[start:i+1],f.edges[start:i],f.strand))
+            pieces.append(Flowline(ring,edges,f.strand))
+            start=j
+        if not pieces:
+            out.append(f); continue
+        if start<len(ids)-1:
+            pieces.append(Flowline(ids[start:],f.edges[start:],f.strand))
+        out.extend(pieces)
+    return out
 
 
 def compute_flowlines(mesh, options, progress=None, cancel=None, reliable_sigma=7.5):

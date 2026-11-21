@@ -6,7 +6,7 @@
 - **Only real sharp features become feature curves.** A remeshed model's coarse quads made every tight but
   smooth fold (nostrils, lids, lips, ears) look sharp, and each became a short feature curve drawn as a stray
   fleck. Now a crease must also be sharp on the original surface. Small clusters of creases that touch nothing
-  are left out (*Shortest sharp feature*, advanced). On *Sculpted head_flow*, 228 feature curves became 33.
+  are left out (*Shortest sharp feature*, advanced). On *Sculpted head_flow*, 228 feature curves became 13.
 - **No flowline ends in mid-air.** The paper's last step is back: a dangling end reaches the nearest curve
   when it is at most three edges away, or is shortened to its last junction, whenever the shape is still
   described within Descriptiveness.
@@ -19,9 +19,20 @@
   between its vertices, and follows the mesh exactly along real creases such as a cut base. It used to be a
   chain of mesh edges that broke into hundreds of dashes on sculpted models. *Silhouette style › Mesh edges*
   (advanced) keeps the old look.
+- **Tubes and round forms draw like the paper's.** Bottles, glasses, handles and remeshed rounded shapes came
+  out as stacks of parallel rings. A one-quad strip between two rings counted as perfectly described, so
+  the meridians were stripped away first and the rings could never go. Such strips are now judged by
+  their boundary, as the paper judges a region's inside. Tested against the authors' own networks for six
+  of the paper's models: the bottle went from 109 strokes to 49 (theirs: 38), the phone from 54 to 16
+  (theirs: 20), the wineglass from 82 to 57. Spiralling flowlines from the remesher (a rounded cube wound by
+  one coil) become rings, and a few faces round a remesh singularity no longer pin the curves next to them
+  (a teapot kept a dense grid).
+- **Fewer loose ends.** A line that stops just short of another (within 0.8 mm) is drawn on to meet it,
+  floating flecks under 3 mm are left out, and short sharp-feature spurs are pruned. On the catalogue's
+  David head, loose stroke ends went from 183 to 87 and floating flecks from 22 to 7.
 - **Long strokes.** Short hidden gaps from grazing rays are drawn, and strokes that continue each other across
   a junction are joined. One view of the sculpted head (6000 quads, 20°) went from 1611 strokes (691 under
-  2 mm) to 235 (52), with 228 flowlines and 33 feature curves instead of 190 and 228. At 30°, the paper's
+  2 mm) to 217 (44), with 231 flowlines and 13 feature curves instead of 190 and 228. At 30°, the paper's
   setting for organic models (now suggested in the Descriptiveness help), it draws about 190 strokes. The README's
   FlowRep picture is drawn again.
 
