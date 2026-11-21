@@ -28,19 +28,35 @@ from PySide6.QtWidgets import (QButtonGroup, QCheckBox, QComboBox, QDialog, QFil
                                QHBoxLayout, QLabel, QLineEdit, QMessageBox, QPlainTextEdit, QPushButton, QRadioButton,
                                QTabWidget, QVBoxLayout, QWidget)
 
-from ..core import prefs, runtimes
+from ..core import prefs, runtimes, updates
 from ..core.paths import PORTABLE_DIR, cache_dir, config_dir, program_inside, reveal
 from ..core.settings import ToolSettings
-from ..version import APP_NAME
+from ..version import APP_NAME, __version__
 from .about import (_card, _logo, _page, _scroll, _text, _tile, display_path, folder_size, generic_locations,
                     human_size, portable, runtime_users, setup_commands)
 from .theme import icon, mono, sans
-from .widgets.common import badge, hint, label, set_badge
+from .widgets.common import badge, hairline, hint, label, set_badge
 from .widgets.flow import FlowLayout
 from .widgets.spin import IntSpin
 
 
 _INSTALLERS: dict = {}                    # runtime key -> its open installer window (they outlive the Setup window)
+
+
+def when(stamp, now: float | None = None) -> str:
+    """An epoch time in words for a status line: "today at 14:05", "yesterday at 09:30" or "on 3 Nov 2026"."""
+    import datetime as dt
+    try:
+        t = dt.datetime.fromtimestamp(float(stamp))
+    except (TypeError, ValueError, OverflowError, OSError):
+        return "at an unknown time"
+    today = dt.datetime.fromtimestamp(now).date() if now is not None else dt.date.today()
+    days = (today - t.date()).days
+    if days == 0:
+        return f"today at {t:%H:%M}"
+    if days == 1:
+        return f"yesterday at {t:%H:%M}"
+    return f"on {t.day} {t:%b %Y}"
 
 
 def venv_exists(folder) -> bool:
@@ -198,9 +214,11 @@ class SetupDialog(QDialog):
         g = self._grid()
         self._option(g, "New versions", "Once a day the app asks atlas-toolkit.org for the latest version number, "
                                         "and says when a newer one is out. Nothing about you or your files is "
-                                        "sent. About › Check for updates asks at any time.",
+                                        "sent.",
                      self._combo("update_check", prefs.UPDATE_CHECKS))
         cl.addLayout(g)
+        cl.addWidget(hairline())
+        cl.addLayout(self._version_row())
         lay.addWidget(card)
 
         card, cl = _card("Preview")
@@ -218,6 +236,74 @@ class SetupDialog(QDialog):
         lay.addWidget(card)
         lay.addStretch(1)
         return _scroll(w)
+
+    def _version_row(self) -> QHBoxLayout:
+        """This version, what the last check found, and Check now (whatever the schedule above says)."""
+        row = QHBoxLayout()
+        row.setSpacing(24)
+        col = QVBoxLayout()
+        col.setSpacing(2)
+        top = QHBoxLayout()
+        top.setSpacing(10)
+        top.addWidget(_text(f"Version {__version__}", "muted", wrap=False))
+        self.version_badge = badge("")
+        top.addWidget(self.version_badge)
+        top.addStretch(1)
+        col.addLayout(top)
+        self.update_note = hint("")
+        self.update_note.setTextFormat(Qt.RichText)
+        col.addWidget(self.update_note)
+        row.addLayout(col, 1)
+        self.btn_check = QPushButton("Check now")
+        self.btn_check.setIcon(icon("refresh", self.theme["text-2"], 14))
+        self.btn_check.setMinimumWidth(150)
+        self.btn_check.setToolTip("Ask atlas-toolkit.org for the latest version number now (nothing about you is sent)")
+        self.btn_check.clicked.connect(lambda: self.check_updates())
+        self.btn_check.setEnabled(callable(getattr(self.ctx, "check_updates", None)))
+        row.addWidget(self.btn_check, 0, Qt.AlignRight | Qt.AlignVCenter)
+        self._show_update_state()
+        return row
+
+    def _show_update_state(self, note: str = "") -> None:
+        """The badge and the line under the version, from what the last check left in app.json."""
+        s = self.ctx.settings
+        offered = updates.offer(s) if s.get("update_last") else None
+        latest = s.get("update_latest")
+        if offered:
+            set_badge(self.version_badge, f"{offered} is out", "live")
+        elif latest and not updates.newer(latest):
+            set_badge(self.version_badge, "latest", "success")
+        self.version_badge.setVisible(bool(offered or (latest and not updates.newer(latest))))
+        if not note:
+            note = f"Last checked {when(s.get('update_last'))}." if s.get("update_last") else "Not checked yet."
+            if offered:
+                note += f" <b>{APP_NAME} {offered}</b> is out: Download it from the strip at the top of the window."
+        self.update_note.setText(note)
+
+    def check_updates(self) -> None:
+        """Ask now (the main window's update strip does the work and shows a newer version)."""
+        check = getattr(self.ctx, "check_updates", None)
+        if not callable(check):
+            return
+        self.btn_check.setEnabled(False)
+        self.btn_check.setText("Checking…")
+
+        def done(latest, offered):
+            if not isValid(self):
+                return
+            self.btn_check.setEnabled(True)
+            self.btn_check.setText("Check now")
+            if latest is None:
+                self._show_update_state("Could not reach atlas-toolkit.org or GitHub. Check the connection and try "
+                                        "again.")
+            elif offered:
+                set_badge(self.version_badge, f"{offered} is out", "live")
+                self.version_badge.show()
+                self.update_note.setText(f"<b>{APP_NAME} {offered}</b> is out: Download it from the strip at the top "
+                                         "of the window.")
+            else:
+                self._show_update_state(f"{__version__} is the latest version. Checked just now.")
+        check(done)
 
     # ------------------------------------------------------------------ Outputs
     def _outputs_tab(self) -> QWidget:

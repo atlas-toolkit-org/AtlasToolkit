@@ -1104,6 +1104,25 @@ class GuiFlowTests(unittest.TestCase):
             d.btn_update.click()
             wait()
             self.assertIn("Could not reach", d.update_note.text())
+            setup = self.win.show_setup("general")                              # Setup › Updates: Check now
+            self.addCleanup(setup.close)
+            site["version"] = "99.0.0"
+            setup.btn_check.click()
+            self.assertEqual(setup.btn_check.text(), "Checking…")
+            wait()
+            self.assertEqual(setup.btn_check.text(), "Check now")
+            self.assertIn("99.0.0", setup.update_note.text())
+            self.assertIn("99.0.0", setup.version_badge.text())
+            site["version"] = __version__                                       # up to date
+            setup.btn_check.click()
+            wait()
+            self.assertIn("latest", setup.update_note.text())
+            self.assertEqual(setup.version_badge.text(), "LATEST")
+            self.assertIn("Last checked today", (setup._show_update_state(), setup.update_note.text())[1])
+            site.clear()
+            setup.btn_check.click()
+            wait()
+            self.assertIn("Could not reach", setup.update_note.text())
             bar.btn_close.click()
             self.ctx.set_pref("update_check", "ask")
         for k in ("update_check", "update_last", "update_latest", "update_skip"):

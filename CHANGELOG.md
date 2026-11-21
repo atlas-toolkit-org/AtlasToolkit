@@ -1,5 +1,47 @@
 # Changelog
 
+## 2.4.3 (unreleased)
+
+**Updates**
+- **Setup › General › Updates** has **Check now**: under New versions, this version with a badge (*latest*, or
+  the newer version that is out), when the app last checked, and a button that asks at once, whatever the schedule.
+
+**Aim keeps up**
+- **Aim no longer freezes on scaled displays.** Every Aim tab drew its lines with round caps: Plotter Vision, Hatch
+  Maker, Contour Lines, Sketch Hatching, Stipple, FlowRep Sketch, and Workflows' **Aim in tool…**. When a display
+  is scaled above 100 % (125 %, 150 %, 175 %…), or Setup › UI scale is above 1, Qt strokes round caps 50 to 100 times
+  slower. A frame of *Head of Michelangelo's David · light_stairs* (8 300 lines) took 1.4 s at 175 %. A paint also
+  holds Python's lock, so the hidden lines waited too, and after every stop the window froze for seconds. Lines now
+  have flat caps (the caps never showed at these widths). They are drawn once into layers shown inside and outside
+  the frame, and the hidden lines are added batch by batch as they come. On that laptop, for the David head:
+
+  | | before | after |
+  |---|---|---|
+  | frames while dragging | 2 per second | 46 per second |
+  | longest freeze | 0.5–1.1 s | under 0.05 s |
+  | lines done after a stop | 6.0 s | 1.0 s |
+
+  On *Sculpted head_strata*, dragging went from under 1 frame per second (2 s behind the mouse) to 39, and lines
+  are done 1.7 s after a stop instead of 31 s. At 100 % nothing changes but the speed.
+- **The view keeps up with the mouse.** A move only turns the camera, and what the camera sees is worked out once
+  per frame; it used to be worked out for every move, so the view trailed the hand. When a frame would still take
+  over 33 ms (Exact lines on big models), it draws the outline and an even share of the other edges until you stop,
+  and the read-out says how many.
+- **Pause lines** (`P`, or the button beside Always fit) stops the black lines from being worked out after every
+  stop. Turn, move and zoom over the trace as long as you like, and the view still goes into the settings. Then
+  **Resume lines** draws them once, for the view you landed on. It helps most on heavy models, where those lines
+  take a few seconds and every nudge started them again. Like Always fit, it is never saved.
+- **The light trace is always light.** Decimation could stall far above the 20 000 faces asked: *Head of Pierre de
+  Wissant · light_motion* (480 000 faces) stayed at 327 000, and Aim showed no lines within 90 s. Vertex clustering
+  now finishes the job (17 000 faces), and that model's lines come about 4 s after a stop, with the window answering
+  meanwhile. The copy is made once per file, so a new Up, Front or turn only places it again: 9 s to 1.1 s on the
+  David. Only Aim uses this copy; what Preview and Draw make is unchanged, and no tool's version changes.
+- `scripts/dev/aim_perf.py` drives the real Aim tab at mouse speed (drag, Shift-drag, wheel, a new Up) on a sphere,
+  on stepped spheres of 4 000 to 256 000 faces (every step a crease, like Stair Sculpt's output) and on your own
+  models. It reports freezes, lag, frames per second and the time to final lines, PASS or FAIL per model, and
+  `--scale` tries another display scaling. `tests/test_aim_view.py` draws at 2x on purpose, since CI runs at 100 %,
+  where round caps were never slow.
+
 ## 2.4.2 (2026-11-20)
 
 **Painting on big models**

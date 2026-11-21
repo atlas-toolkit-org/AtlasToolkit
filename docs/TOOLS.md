@@ -287,7 +287,7 @@ Every Mesh → SVG tool (Plotter Vision, Hatch Maker, Contour Lines, Sketch Hatc
 on its **Aim** tab, marked with a crosshair. Aim is the one place the drawing's view is set: the paper's drawing
 area is framed, and what is in the frame is what Preview and Draw make. The model shows as a light trace (a copy of
 at most 20 000 faces, its outline and creases, hidden lines removed when you stop), so it turns smoothly whatever
-its size. The real drawing comes from **Preview** or **Draw**, in the Drawing tab.
+its size, on any display scaling. The copy is made once per file: a new Up, Front or turn only places it again. The real drawing comes from **Preview** or **Draw**, in the Drawing tab.
 
 The **Input** tab beside it is for looking the model over: it turns to the side you are aiming at when you open
 it, and its toolbar says *Inspect only · view set in Aim*; orbiting it changes nothing (click the note to go
@@ -304,10 +304,12 @@ Every Aim tab is driven the same way:
 | `1` `2` `3` `4` `5` | front, side, back, other side, top |
 | `F` or double-click | fit: the model's picture centred and as large as the frame allows (a stage set: its whole box) |
 | `A` or **Always fit** | fit after every move, so the model stays framed while you orbit; `A` again, Shift-drag or the wheel goes back to framing by hand |
+| `P` or **Pause lines** | stop drawing the black lines after each move: aim over the trace as long as you like, then `P` again (**Resume lines**) draws them once, for the view you landed on |
 | `R` | the start view |
 
-Always fit is a way of aiming, not a setting: the camera it leaves is what Draw uses, and it is off whenever the
-tab opens. The Hatch Maker's camera is the same one, always orthographic (the distance sets the size), plus Roll,
+Always fit and Pause lines are ways of aiming, not settings: the camera they leave is what Draw uses (a paused view
+still goes into the settings), and both are off whenever the tab opens. Pause lines helps most on heavy models,
+where the black lines take a few seconds after every stop. The Hatch Maker's camera is the same one, always orthographic (the distance sets the size), plus Roll,
 which turns the picture.
 
 ## Plotter Vision
@@ -322,14 +324,17 @@ through it, so what is in the frame is what Draw writes, cut at the frame in mm.
 | wheel / Ctrl+wheel | distance / field of view |
 | `1` `2` `3` `4` `5` | front, side, back, other side, top |
 | `F` or double-click | fit the model in the frame (`A`: after every move) |
+| `P` or **Pause lines** | no hidden lines after a move until `P` again |
 | `R` | plotter.vision's start view |
 | `E` or **Exact lines** | the exact drawing instead of the light trace (and back) |
 | `T` | red-blue stereo (with Exact lines) |
 
 Aim shows the light trace by default (the Sketch preset's look), quick on any model. **Exact lines** draws what
 Draw will write, live, as plotter.vision did, with your edge, decimation, depth and stereo settings: it can be slow
-on big models, and it is never saved, so the page always opens on the trace. While you move, every candidate edge
-shows in the accent colour; when you stop, hidden lines are removed and the drawing fills in from the middle. Letting go writes the camera into the settings, so presets keep it and Draw uses
+on big models, and it is never saved, so the page always opens on the trace. While you move, the candidate edges
+show in the accent colour (when there are too many to keep up with your hand, the outline and an even share of the
+rest, and the read-out says how many); when you stop, hidden lines are removed and the drawing fills in from the
+middle, while the window keeps answering. Letting go writes the camera into the settings, so presets keep it and Draw uses
 it. It draws the same lines as plotter.vision (checked against its own JavaScript on a reference scene), but hides
 them exactly. Lines inside other solids, faces crossing the window edge or the near plane, and tiny faces no longer
 leak hidden lines, and no edge is drawn twice.
@@ -569,8 +574,8 @@ way. All of it is remembered.
 
 - **General:** the theme and artwork the app opens in (the last one used, dark, light or the system's), the interface
   scale (next start), what opens at start (Home, or the tool or workflow it was closed on), asking before quitting
-  during a run, the preview delay, and **New versions**: ask me, check once a day, or never check (see
-  [Updates](#updates)).
+  during a run, the preview delay, and **New versions**: ask me, check once a day, or never check, with this
+  version, when it last checked and **Check now** under it (see [Updates](#updates)).
 - **Outputs:** when an output file exists, for tools and workflows alike: **overwrite** without asking (the default),
   **ask** first, or **keep both**: the new file gets the run's date and time, `head_contours_20261103-142530.svg`,
   for random variations and new seeds. Where a tool's outputs go until it has its own choice, how many heavy jobs
@@ -636,6 +641,8 @@ On its first start the app asks, once, in a strip under the top bar: *Hear about
 - When a newer version is out, the strip says so: **Download** opens the download page, **What's new** the release
   notes, **Skip this version** stops offering that one (a later one is offered), and **×** hides it until the next start.
 - **No thanks:** it never checks. Setup › General › New versions changes the answer at any time.
+- **Check now** (Setup › General › Updates, or **Check for updates** in About) asks at once, whatever the schedule,
+  and says what it found: the latest version, a newer one (offered even if you skipped it), or no connection.
 
 The app never downloads or installs anything by itself. Packagers and managed computers can turn checking off for
 everyone with the environment variable `ATLAS_TOOLKIT_NO_UPDATE_CHECK=1`.

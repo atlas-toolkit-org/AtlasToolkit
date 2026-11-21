@@ -178,7 +178,10 @@ The drawing tools share one path from a mesh to the paper:
    Plotter Vision's live view (`tools/plotter_vision/aim.py`), fed the same frame, so its numbers are the engine's.
    Every Mesh → SVG tool aims there, Plotter Vision (light trace, Exact lines on E) and the Hatch Maker (the same
    camera, orthographic only, `camera_params(ortho_only=True)`) included; it is the only tab that sets the view. F
-   and Always fit use `geom/camera.fit_view`, a tight fit of the picture.
+   and Always fit use `geom/camera.fit_view`, a tight fit of the picture. It shows a light copy of the model
+   (`model.load_light`: within 20 000 faces, reduced once per file) and keeps up with the hand
+   (`plotter_vision/viewer.py`): flat-capped pens, lines drawn once into layers, candidates worked out once per frame,
+   a time budget per moving frame. `scripts/dev/aim_perf.py` measures it.
 3. **Rays** (`geom/raycast`): embree, every ray of a step in one batch: visibility (Contour Lines), a G-buffer per
    paper pixel, ambient occlusion and soft shadows (`geom/shading`, Sketch Hatching and Stipple).
 4. **Paper** (`geom/sketch`, `geom/svgout`): strokes in mm, one layer per pen, ordered, signed.

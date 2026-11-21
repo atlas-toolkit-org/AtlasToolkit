@@ -14,6 +14,25 @@ import numpy as np
 import trimesh
 
 
+def stepped_sphere(path: Path, steps: int = 60, sections: int = 96) -> Path:
+    """A sphere of stacked cylinders, like Stair Sculpt's output: nearly every edge is a crease, so the light trace
+    has thousands of lines (about 10 000 here, from 23 000 faces)."""
+    if not path.exists():
+        parts, h = [], 100.0 / steps
+        for i in range(steps):
+            z = -50.0 + h * (i + 0.5)
+            c = trimesh.creation.cylinder(radius=max(float(np.sqrt(max(2500.0 - z * z, 0.0))), 1.0), height=h,
+                                          sections=sections)
+            c.apply_translation((0.0, 0.0, z))
+            parts.append(c)
+        trimesh.util.concatenate(parts).export(path)
+    return path
+
+
+def pixels(img) -> np.ndarray:
+    return np.frombuffer(img.constBits(), np.uint8, count=img.sizeInBytes()).reshape(img.height(), -1).copy()
+
+
 class AimViewTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -200,6 +219,177 @@ class AimViewTests(unittest.TestCase):
         self.assertFalse(v.always_fit)
         self.assertNotIn("always_fit", page.values())
 
+    def aim_on(self, src: Path, tool: str = "contour-lines"):
+        """The Aim tab of `tool` on src, once its hidden lines are done."""
+        page = self.win.open_tool(tool, [str(src)])
+        self.win.show()
+        self.wait(lambda: page.runnable() and page.idle())
+        key = str(src.resolve())
+        page.queue.setCurrentItem(page.rows[key].item)
+        page.stage.show_aim()
+        v = page.viewer
+        self.wait(lambda: v.path == key and v.model is not None and v.state == "done")
+        return page, v
+
+    def press(self, w, kind, x, y):
+        from PySide6.QtCore import QEvent, QPointF, Qt
+        from PySide6.QtGui import QMouseEvent
+        kinds = {"press": QEvent.MouseButtonPress, "move": QEvent.MouseMove, "release": QEvent.MouseButtonRelease}
+        self.app.sendEvent(w, QMouseEvent(kinds[kind], QPointF(x, y), w.mapToGlobal(QPointF(x, y)),
+                                          Qt.LeftButton if kind != "move" else Qt.NoButton,
+                                          Qt.LeftButton if kind != "release" else Qt.NoButton, Qt.NoModifier))
+
+    def test_lines_draw_fast_on_hidpi_screens(self):
+        """Above 100 % display scaling Qt stroked the Aim's round-capped lines through its outline stroker: 1.4 s a
+        frame for 8 600 edges at 175 %, with the hidden-line thread stopped meanwhile (the paint holds the GIL). CI
+        runs at 100 %, where it never showed, so this draws at 2x on purpose, every edge (the frame budget would
+        otherwise thin a slow frame and hide it)."""
+        from PySide6.QtCore import Qt
+        from PySide6.QtGui import QColor, QImage
+        from atlas_toolkit.tools.plotter_vision import viewer as vw
+        self.assertEqual(vw._pen(QColor("#000000"), 1.0).capStyle(), Qt.FlatCap)
+        self.assertEqual(vw._pen(QColor("#000000"), 1.0, dashed=True).capStyle(), Qt.FlatCap)
+        _page, v = self.aim_on(stepped_sphere(self.tmp / "stepped.stl"))
+        self.assertGreater(v.edges, 5000)                          # a crease-heavy trace, or this proves nothing
+        self.press(v, "press", 200, 200)                           # moving: every candidate edge is drawn
+        self.assertEqual(v.state, "moving")
+        times = []
+        for _ in range(3):
+            v._budget = 10 ** 9                                    # every edge, not what the frame budget allows
+            img = QImage(v.width() * 2, v.height() * 2, QImage.Format_ARGB32_Premultiplied)
+            img.setDevicePixelRatio(2.0)
+            t0 = time.perf_counter()
+            v.render(img)
+            times.append(time.perf_counter() - t0)
+            self.assertEqual(v.shown, v.edges)
+        self.press(v, "release", 200, 200)
+        self.assertEqual(v._live.image.devicePixelRatio(), 2.0)    # drawn at the resolution it is shown at
+        # flat caps: under 0.01 s on a laptop; round ones: 0.5 s
+        self.assertLess(min(times), 0.15, f"a moving frame of {v.edges} edges at 2x took {min(times):.2f} s")
+        self.wait(lambda: v.state == "done")
+
+    def test_mouse_moves_only_move_the_camera(self):
+        """A mouse sends hundreds of moves a second: each only turns the camera, and the next frame works out what it
+        sees, once (it used to work it out for every move, so the view fell behind the hand)."""
+        from atlas_toolkit.geom.camera import wrap
+        from atlas_toolkit.tools.plotter_vision.viewer import DRAG_DEG, VisionView
+        from PySide6.QtGui import QImage
+        _page, v = self.aim_on(stepped_sphere(self.tmp / "stepped.stl"))
+        psi = v.cam.psi
+        with mock.patch.object(VisionView, "_candidates", autospec=True,
+                               side_effect=VisionView._candidates) as cand:
+            self.press(v, "press", 100, 200)
+            for i in range(1, 41):
+                self.press(v, "move", 100 + 3 * i, 200)
+            self.assertEqual(cand.call_count, 0)
+            self.assertAlmostEqual((v.cam.psi - wrap(psi + 120 * DRAG_DEG) + 180.0) % 360.0 - 180.0, 0.0, places=6)
+            v.render(QImage(v.width(), v.height(), QImage.Format_ARGB32_Premultiplied))
+            self.assertEqual(cand.call_count, 1)
+            v.render(QImage(v.width(), v.height(), QImage.Format_ARGB32_Premultiplied))
+            self.assertEqual(cand.call_count, 1)                    # nothing moved since
+            self.press(v, "release", 220, 200)
+        self.wait(lambda: v.state == "done")
+        self.wait(lambda: not v.commit.isActive())
+        self.assertAlmostEqual(_page.values()["psi"], round(v.cam.psi, 2), places=2)
+
+    def pump(self, seconds):
+        t0 = time.monotonic()
+        while time.monotonic() - t0 < seconds:
+            self.app.processEvents()
+            time.sleep(0.01)
+
+    def test_pause_lines_lets_you_aim_over_the_trace(self):
+        """Pause lines (P, or the corner button): a move no longer starts hidden-line work, the trace shows in full,
+        and the camera still goes into the settings. Resuming draws the lines for the view as it is, once. Pausing
+        while lines are worked out stops that work. It is view state, never saved."""
+        from PySide6.QtCore import Qt
+        page, v = self.aim_on(stepped_sphere(self.tmp / "stepped.stl"))
+        self.assertFalse(v.paused or v.btn_pause.isChecked())
+        self.assertEqual(v.btn_pause.text(), "Pause lines · P")
+        self.key(v, Qt.Key_P)
+        self.assertTrue(v.paused and v.btn_pause.isChecked())
+        self.assertEqual(v.btn_pause.text(), "Resume lines · P")
+        self.assertEqual(v.state, "done")                           # the lines on screen stay until a move
+        psi = page.values()["psi"]
+        self.drag(v, 60, 0)
+        self.wheel(v)
+        self.wait(lambda: page.values()["psi"] != psi and not v.commit.isActive())   # the view still goes back
+        self.pump(0.4)                                              # time enough for work to start: none does
+        self.assertEqual((v.state, v.pieces), ("paused", []))
+        self.assertNotIn("paused", page.values())
+        v.btn_pause.click()                                         # resume: the lines of this view, now
+        self.assertFalse(v.paused)
+        self.assertEqual(v.btn_pause.text(), "Pause lines · P")
+        self.assertEqual(v.state, "computing")
+        self.wait(lambda: v.state == "done")
+        self.assertTrue(v.pieces)
+        self.drag(v, -40, 0)                                        # pausing while lines are worked out
+        self.wait(lambda: v.state == "computing")
+        self.key(v, Qt.Key_P)
+        gen = v.gen
+        self.pump(0.5)
+        self.assertEqual((v.state, v.pieces, v.gen), ("paused", [], gen))
+        self.key(v, Qt.Key_P)
+        self.wait(lambda: v.state == "done")
+        self.assertTrue(v.pieces)
+
+    def test_slow_moving_frames_draw_fewer_edges_next(self):
+        """The frame budget: after a moving frame over FRAME_S the next one thins the candidates (the outline
+        stays), and says so; once frames are quick again it draws more, up to every edge."""
+        from PySide6.QtGui import QImage
+        from atlas_toolkit.tools.plotter_vision.viewer import DRAG_MIN, FRAME_S
+        _page, v = self.aim_on(stepped_sphere(self.tmp / "stepped.stl"))
+        img = QImage(v.width(), v.height(), QImage.Format_ARGB32_Premultiplied)
+        self.press(v, "press", 200, 200)
+        v._budget = 10 ** 9
+        v.render(img)
+        self.assertEqual(v.shown, v.edges)
+        v._pace(FRAME_S * 4)                                       # as if that frame had taken four times too long
+        self.assertLess(v._budget, v.edges)
+        self.assertGreaterEqual(v._budget, DRAG_MIN)
+        thinned = v._budget
+        v.render(img)
+        self.assertEqual(v.shown, thinned)
+        for _ in range(20):                                        # quick frames: back to every edge
+            v._pace(FRAME_S / 10)
+        self.assertGreaterEqual(v._budget, v.edges)
+        self.press(v, "release", 200, 200)
+        self.wait(lambda: v.state == "done")
+
+    def test_lines_filled_in_batch_by_batch_match_a_full_redraw(self):
+        """While the hidden lines come in, each frame draws only the batches that arrived since the last one (it used
+        to redraw them all every time). The finished picture is the same as drawing everything at once."""
+        from PySide6.QtGui import QImage
+        from atlas_toolkit.tools.plotter_vision.viewer import VisionView
+        _page, v = self.aim_on(stepped_sphere(self.tmp / "stepped.stl"))
+        batches = list(v.pieces)
+        self.assertGreater(len(batches), 1)
+
+        def frame():
+            img = QImage(v.width(), v.height(), QImage.Format_ARGB32_Premultiplied)
+            img.setDevicePixelRatio(1.0)
+            v.render(img)
+            return img
+
+        drawn = []
+        draw = VisionView._draw_pieces
+        with mock.patch.object(VisionView, "_draw_pieces", autospec=True,
+                               side_effect=lambda self, qp, b, *a: (drawn.append(len(b)), draw(self, qp, b, *a))):
+            v._clear_pieces()
+            blank = pixels(frame()).astype(int)
+            for b in batches:
+                v.pieces.append(b)
+                frame()
+            step_by_step = pixels(frame()).astype(int)
+            self.assertEqual(drawn, [1] * len(batches))             # each batch drawn once, on its own
+            v._result.clear()
+            at_once = pixels(frame()).astype(int)
+        self.assertEqual(drawn[-1], len(batches))
+        ink = int((np.abs(at_once - blank) > 48).sum())
+        self.assertGreater(ink, 1000)
+        # the same picture: only where lines of different batches cross can antialiasing differ a little
+        self.assertLess(int((np.abs(step_by_step - at_once) > 48).sum()), 0.02 * ink)
+
     def test_missing_blender_shows_a_notice_and_blocks_runs(self):
         from atlas_toolkit.core import runtimes
         src = self.tmp / "ball.stl"
@@ -217,6 +407,68 @@ class AimViewTests(unittest.TestCase):
         if runtimes.find("blender") is not None:            # Blender is installed here: the notice goes away
             self.assertFalse(page.notices[0].isVisible())
             self.assertTrue(page.btn_run.isEnabled())
+
+
+class FrameBudgetTests(unittest.TestCase):
+    def test_thinning_keeps_the_outline(self):
+        from atlas_toolkit.tools.plotter_vision.viewer import _thin
+        outline = np.zeros(10_000, bool)
+        outline[::50] = True                                       # 200 outline edges
+        keep = _thin(outline, 1000)
+        self.assertEqual(len(np.unique(keep)), 1000)
+        self.assertTrue(set(np.flatnonzero(outline)) <= set(keep.tolist()))
+        keep = _thin(outline, 100)                                 # fewer than the outline: an even share of it
+        self.assertEqual(len(np.unique(keep)), 100)
+        self.assertTrue(outline[keep].all())
+
+
+class LightTraceTests(unittest.TestCase):
+    """The Aim tabs' light copy of a model (plotter_vision/model.py: load_light)."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.tmp = Path(tempfile.mkdtemp(prefix="atlas_light_"))
+
+    @classmethod
+    def tearDownClass(cls):
+        shutil.rmtree(cls.tmp, ignore_errors=True)
+
+    def test_stays_within_budget_when_decimation_stalls(self):
+        """Quadric decimation can stop far short of the budget (two thirds of a 480 000-face Motion Sculpture model
+        stayed, and its hidden lines took 30 s): vertex clustering then finishes the job."""
+        from atlas_toolkit.tools.plotter_vision import model as pm
+        src = self.tmp / "stalls.stl"
+        trimesh.creation.icosphere(subdivisions=5, radius=20.0).export(src)       # 20 480 faces
+        with mock.patch.object(trimesh.Trimesh, "simplify_quadric_decimation",
+                               lambda self, face_count=None, **_k: self.copy()):
+            m = pm.load_light(str(src), 5000)
+        self.assertLessEqual(m.faces, 5000)
+        self.assertGreater(m.faces, 1500)
+        np.testing.assert_allclose(np.ptp(m.V, axis=0).max(), 100.0, rtol=0.02)   # the whole model, still
+
+    def test_a_new_frame_does_not_decimate_again(self):
+        """A new Up, Front or turn places the reduced model again: the file is decimated once."""
+        from atlas_toolkit.geom import frame3d, mesh as gm
+        from atlas_toolkit.tools.contour_lines import TOOL
+        from atlas_toolkit.tools.plotter_vision import model as pm
+        src = self.tmp / "box_ball.stl"
+        ball = trimesh.creation.icosphere(subdivisions=5, radius=10.0)
+        ball.apply_scale((1.0, 2.0, 3.0))
+        ball.export(src)
+        values = dict(TOOL.defaults())
+        with mock.patch.object(gm, "simplify_faces", wraps=gm.simplify_faces) as simplify:
+            a = pm.load_light(str(src), 4000, True, frame=frame3d.frame_for(str(src), {**values, "up_axis": "+z"}))
+            b = pm.load_light(str(src), 4000, True, frame=frame3d.frame_for(str(src), {**values, "up_axis": "+y"}))
+        self.assertEqual(simplify.call_count, 1)
+        self.assertEqual(a.faces, b.faces)
+        self.assertLessEqual(a.faces, 4000)
+        self.assertFalse(np.allclose(np.ptp(a.V, axis=0), np.ptp(b.V, axis=0)))   # placed differently
+
+    def test_light_enough_models_keep_their_faces(self):
+        from atlas_toolkit.tools.plotter_vision import model as pm
+        src = self.tmp / "small.stl"
+        trimesh.creation.icosphere(subdivisions=3, radius=10.0).export(src)       # 1 280 faces
+        self.assertEqual(pm.load_light(str(src), 20_000).faces, 1280)
 
 
 class HatchAimMathTests(unittest.TestCase):

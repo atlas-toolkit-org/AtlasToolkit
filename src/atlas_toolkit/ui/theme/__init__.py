@@ -51,6 +51,7 @@ EXTRA_ICONS = {
     "play": '<path d="M7 5v14l11-7z"/>',
     "stop": '<rect x="6" y="6" width="12" height="12" rx="2"/>',
     "reset": '<path d="M4 12a8 8 0 1 0 2.4-5.7"/><path d="M4 4v4.5h4.5"/>',
+    "refresh": '<path d="M19.5 9A8 8 0 0 0 5 7.5M4.5 15A8 8 0 0 0 19 16.5"/><path d="M19.5 4v5H15M4.5 20v-5H9"/>',
     "save": '<path d="M5 4h11l3 3v13H5z"/><path d="M8 4v5h7V4M8 20v-6h8v6"/>',
     "trash": '<path d="M4.5 7h15M10 7V4.5h4V7M6.5 7l1 13h9l1-13"/>',
     "send": '<path d="M4 12h13M13 7l5 5-5 5"/><path d="M20 5v14"/>',

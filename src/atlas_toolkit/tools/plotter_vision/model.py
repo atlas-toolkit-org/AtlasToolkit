@@ -206,6 +206,15 @@ def prepare(mesh, target_faces: int = 0, fix_winding: bool = True, log=None, cro
 
 
 _CACHE: dict = {}
+_LIGHT: dict = {}                 # light copies for the Aim tabs, in the file's own coordinates
+LIGHT_SLACK = 1.25                # quadric decimation may stop short of the budget by this much before clustering
+
+
+def _remember(cache: dict, key, value, keep: int = 6):
+    if len(cache) > keep:
+        cache.pop(next(iter(cache)))
+    cache[key] = value
+    return value
 
 
 def load(path, target_faces: int = 0, fix_winding: bool = True, log=None, crossings: bool = True,
@@ -218,8 +227,39 @@ def load(path, target_faces: int = 0, fix_winding: bool = True, log=None, crossi
     hit = _CACHE.get(key)
     if hit is not None:
         return hit
-    mdl = prepare(load_mesh(path), target_faces, fix_winding, log, crossings, frame)
-    if len(_CACHE) > 6:
-        _CACHE.pop(next(iter(_CACHE)))
-    _CACHE[key] = mdl
-    return mdl
+    return _remember(_CACHE, key, prepare(load_mesh(path), target_faces, fix_winding, log, crossings, frame))
+
+
+def light_mesh(path, budget: int):
+    """The file as a trimesh of at most about `budget` faces, in its own coordinates, cached by file, size and time.
+
+    Quadric decimation first (it keeps the shape); when it stalls short of the budget (it can stop at two thirds of
+    a model with many thin parts), vertex clustering finishes the job, so a light copy is always light. A mesh
+    already within the budget comes back as loaded (an OBJ's or PLY's polygons stay)."""
+    import trimesh
+    from atlas_toolkit.geom.mesh import decimate, load_mesh, simplify_faces
+    st = os.stat(path)
+    key = (os.path.abspath(path), st.st_size, st.st_mtime_ns, int(budget))
+    hit = _LIGHT.get(key)
+    if hit is not None:
+        return hit
+    mesh = load_mesh(path)
+    if budget and len(mesh.faces) > budget:
+        V, F = simplify_faces(mesh.vertices, mesh.faces, int(budget))
+        if len(F) > budget * LIGHT_SLACK:
+            V, F = decimate(V, F, int(budget))
+        mesh = trimesh.Trimesh(np.asarray(V, dtype=np.float64), np.asarray(F, dtype=np.int64), process=False)
+    return _remember(_LIGHT, key, mesh, keep=3)
+
+
+def load_light(path, budget: int, fix_winding: bool = True, frame=None) -> Model:
+    """The Aim tabs' light copy of a file (no crossings): light_mesh(), then placed (`frame`) and prepared. A new
+    Up, Front or turn only places the reduced mesh again; the file is not read or decimated twice. The engines use
+    load(), so no drawing changes with it."""
+    st = os.stat(path)
+    key = ("light", os.path.abspath(path), st.st_size, st.st_mtime_ns, int(budget), bool(fix_winding)) + (
+        (frame.key(),) if frame is not None else ())
+    hit = _CACHE.get(key)
+    if hit is not None:
+        return hit
+    return _remember(_CACHE, key, prepare(light_mesh(path, budget), 0, fix_winding, None, False, frame))
