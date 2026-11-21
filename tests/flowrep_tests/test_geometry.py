@@ -166,6 +166,74 @@ class GeometryTests(unittest.TestCase):
             np.testing.assert_array_equal(a.vertices,b.vertices)
             np.testing.assert_array_equal(a.reference_vertices,mesh.reference_vertices)
 
+    def test_remesh_healing_repairs_instant_meshes_defects(self):
+        # The defects Instant Meshes left in a sculpted head (2.4.4): a near-duplicate vertex, a fin edge shared
+        # by four quads, a folded pair of quads, a quad that repeats a corner, and a hole in a closed surface.
+        from flowrep3d.mesh import _heal_polygons
+        base=torus(); V=base.vertices.copy(); F=[list(map(int,f)) for f in base.faces]
+        reference=from_arrays(V,base.triangles)
+        V=np.vstack([V,V[F[0][0]]+1e-12,V[F[5][0]]+[0,0,.3],V[F[5][1]]+[0,0,.3],V[F[5][0]]-[0,0,.3],V[F[5][1]]-[0,0,.3]])
+        n=len(base.vertices)
+        F[0][0]=n                                          # near-duplicate corner
+        a,b=F[5][0],F[5][1]
+        F+= [[a,b,n+2,n+1],[b,a,n+3,n+4]]                  # fin: four quads on edge (a, b)
+        F.append(F[9][::-1])                               # folded duplicate of a quad
+        F[20]=[F[20][0],F[20][1],F[20][0],F[20][3]]        # repeated corner
+        del F[40]                                          # hole
+        with self.assertRaises(FlowRepError):
+            from_arrays(V,F)
+        V2,F2,report=_heal_polygons(V,F,reference.vertices,reference.triangles)
+        healed=from_arrays(V2,F2)
+        self.assertEqual(int((healed.topology.edge_faces[:,1]<0).sum()),0)
+        self.assertEqual(report["welded_vertices"],1)
+        self.assertGreaterEqual(report["removed_faces"],4)
+        self.assertGreaterEqual(report["holes_filled"],2)
+        self.assertEqual(report["holes_kept"],0)
+        # patch vertices are laid back on the surface: within the tube around the ring of radius 2
+        if len(V2)>len(V):
+            self.assertLess(float(np.abs(np.linalg.norm(V2[len(V):,:2],axis=1)-2).max()),0.61)
+
+    def test_remesh_healing_keeps_real_openings(self):
+        from flowrep3d.mesh import _heal_polygons
+        base=grid(7); F=[list(map(int,f)) for f in base.faces]
+        rim=int((base.topology.edge_faces[:,1]<0).sum())
+        del F[3*6+3]                                       # an interior hole the reference does not have
+        V2,F2,report=_heal_polygons(base.vertices,F,base.vertices,base.triangles)
+        healed=from_arrays(V2,F2)
+        self.assertEqual(report["holes_filled"],1); self.assertEqual(report["holes_kept"],1)
+        self.assertEqual(int((healed.topology.edge_faces[:,1]<0).sum()),rim)
+
+    def test_unusable_remesh_retries_at_another_resolution_and_caches_mixed_faces(self):
+        import sys
+        import types
+        from unittest import mock
+        quads=torus(); triangles=from_arrays(quads.vertices,quads.triangles)
+        calls=[]
+        def remesh(v,f,target,**kw):
+            calls.append(int(target))
+            faces=np.asarray(quads.faces,np.uint32).copy()
+            if len(calls)==1:
+                faces[:]=0                                 # nothing usable: every polygon collapses
+            else:
+                faces=np.vstack([faces[1:],[[faces[0][0],faces[0][1],faces[0][2],faces[0][2]]]])
+            return v,faces
+        stub=types.SimpleNamespace(remesh=remesh)
+        with mock.patch.dict(sys.modules,{"pynanoinstantmeshes":stub}),tempfile.TemporaryDirectory() as tmp:
+            options=FlowRepOptions(target_faces=400,cache_dir=tmp)
+            first=prepare_mesh(triangles,options)
+            repairs=first.metadata["remesh_repairs"]
+            self.assertEqual(repairs["remesh_attempts"],2); self.assertEqual(repairs["remesh_target"],416)
+            self.assertIn(3,{len(f) for f in first.faces})    # healed patch triangles next to the quads
+            self.assertEqual(int((first.topology.edge_faces[:,1]<0).sum()),0)
+            again=prepare_mesh(triangles,options)
+            self.assertTrue(again.metadata["preparation_cached"]); self.assertEqual(len(calls),2)
+            self.assertEqual(again.metadata["remesh_repairs"],repairs)
+            self.assertEqual([f.tolist() for f in again.faces],[f.tolist() for f in first.faces])
+            calls.clear(); stub.remesh=lambda v,f,target,**kw:(calls.append(1),(v,np.zeros((4,4),np.uint32)))[1]
+            with self.assertRaisesRegex(FlowRepError,"another Remesh resolution"):
+                prepare_mesh(triangles,FlowRepOptions(target_faces=401,cache_dir=None))
+            self.assertEqual(len(calls),3)
+
     def test_network_formats_and_author_chains(self):
         net=CurveNetwork([[0,0,0],[1,0,0],[1,1,0]],[[0,1,2]],["trim"],
                          [np.array([4,5])],[2],{"max_error_deg":12.},{"source_mesh":"example.obj"})

@@ -6,11 +6,11 @@ Needs macOS 15 or later on Apple Silicon (M1 or newer). Intel Macs are not suppo
 
 Download the disk image from [atlas-toolkit.org/download](https://atlas-toolkit.org/download/) or from the
 [latest release](https://github.com/atlas-toolkit-org/AtlasToolkit/releases/latest) on GitHub. The current version is
-**2.4.3**:
+**2.4.6**:
 
 | File |
 |---|
-| [`AtlasToolkit-2.4.3-macos-arm64.dmg`](https://github.com/atlas-toolkit-org/AtlasToolkit/releases/download/v2.4.3/AtlasToolkit-2.4.3-macos-arm64.dmg) |
+| [`AtlasToolkit-2.4.6-macos-arm64.dmg`](https://github.com/atlas-toolkit-org/AtlasToolkit/releases/download/v2.4.6/AtlasToolkit-2.4.6-macos-arm64.dmg) |
 
 Later versions keep these names with a new number. Each release also lists `SHA256SUMS.txt`, the checksum of
 every file.
@@ -27,7 +27,7 @@ It prints `OK` when the file matches.
 
 ## Install
 
-1. Open `AtlasToolkit-2.4.3-macos-arm64.dmg`.
+1. Open `AtlasToolkit-2.4.6-macos-arm64.dmg`.
 2. Drag **Atlas Toolkit** onto **Applications**.
 3. Eject the disk image.
 

@@ -23,14 +23,21 @@ def run(ctx,src,dst,p):
     cache=Path(os.environ.get("FLOWREP_CACHE") or cache_dir()/"flowrep")
     opts=FlowRepOptions(dmax=float(p.dmax),prepare=p.prepare,target_faces=min(int(p.target_faces),1500) if ctx.draft else int(p.target_faces),
                         crease_angle=float(p.crease_angle),regularize_iterations=min(1,int(p.regularize)) if ctx.draft else int(p.regularize),
-                        local_passes=0 if ctx.draft else 2,clustering_passes=2 if ctx.draft else 8,cache_dir=str(cache))
+                        local_passes=0 if ctx.draft else 2,clustering_passes=2 if ctx.draft else 8,cache_dir=str(cache),
+                        relaxed_declutter=bool(p.declutter),min_trim_edges=int(p.min_trim_edges))
     mesh=load_mesh(src)
+    # The Aim tab's placement, exactly: Up and Front come from geom/frame3d like every drawing tool's (a frame stored
+    # in the file, its stage set, then a guess), not from flowrep3d's own guess, which ignores a stored frame.
+    import numpy as np
+    from atlas_toolkit.geom import frame3d
+    up,front,rotate,_source=frame3d.resolve_axes(src,p,np.ptp(np.asarray(mesh.reference_vertices),axis=0))
     net=extract_network(mesh,opts,lambda f,m:ctx.progress(f*0.78,m),ctx.check_cancel)
     options=RenderOptions(paper=p.paper,orientation=p.orientation,margin=float(p.margin),
                           line_width=float(p.line_width),tolerance=float(p.tolerance),
                           min_length=float(p.min_length),silhouette=bool(p.silhouette),hidden=bool(p.show_hidden),
-                          up=p.up_axis,front=p.front,rotate=tuple(p.rotate),fit_camera=False,
-                          sample_step=0.7 if ctx.draft else 0.35)
+                          up=up,front=front,rotate=tuple(rotate),fit_camera=False,
+                          sample_step=0.7 if ctx.draft else 0.35,smoothing=float(p.smoothing),
+                          silhouette_style=p.silhouette_style)
     drawing=render_network(mesh,net,camera_from(p),frame_for(p.paper,p.orientation,float(p.margin)),options,
                            lambda f,m:ctx.progress(0.78+0.20*f,m),ctx.check_cancel)
     outputs=[]
@@ -43,8 +50,17 @@ def run(ctx,src,dst,p):
           for name,lines in drawing.layers.items() if lines]
     preview=AtlasDrawing(drawing.width,drawing.height,(0.,0.,drawing.width,drawing.height),pens)
     error=net.diagnostics["max_error_deg"]
+    repairs=net.diagnostics.get("remesh_repairs") or {}
+    rebuilt=int(repairs.get("removed_faces",0))+int(repairs.get("dropped_polygons",0))
+    healed=", ".join(part for part in (
+        f"{repairs['holes_filled']} hole{'s' if repairs['holes_filled']!=1 else ''} filled" if repairs.get("holes_filled") else "",
+        f"{rebuilt} broken face{'s' if rebuilt!=1 else ''} rebuilt" if rebuilt else "",
+        f"{repairs['welded_vertices']} duplicate vertices welded" if repairs.get("welded_vertices") else "",
+        f"remeshed at {repairs['remesh_target']} after {repairs['remesh_attempts']} tries" if repairs.get("remesh_attempts",1)>1 else "",
+    ) if part)
     report=(f"{Path(src).name}\n"
             f"  3D network: {len(net.curves)} curves, {net.edge_count} edges\n"
+            +(f"  Remesh repairs: {healed}\n" if healed else "")+
             f"  Descriptiveness: {error:.2f}° / {opts.dmax:g}°\n"
             f"  Drawing: {drawing.stats['strokes']} strokes, {drawing.stats['ink_mm']:.0f} mm ink\n"
             f"  Network cache: {'hit' if net.diagnostics.get('cache_hit') else 'computed'}\n"

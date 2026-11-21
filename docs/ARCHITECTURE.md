@@ -85,6 +85,9 @@ src/atlas_toolkit/
   - seeded randomness;
   - settings stored in SVG `<metadata>` and in the history;
   - every output signed for Atlas.
+- **Each input keeps its own view.** Parameters marked `per_input` (a camera, a frame, a plane, a painted area) are
+  held per file by the tool page; every result carries the signature of the values it was made with, so a preview
+  stays valid until its own file's values change, and earlier previews come back with their settings.
 - **Originals are never changed.** Outputs are named by template, and the app asks before overwriting.
 - **Geometry is shared.** All SVG tools read SVGs through the Overlap Cleaner's parser: transforms, units, curves
   and pens are treated the same way everywhere. Mesh tools share loading, cleaning, saving and previews.

@@ -195,7 +195,7 @@ See [Surface Stripes](SURFACE_STRIPES.md) for controls, build instructions and l
 | **Contour Lines** 1.1.0 | Mesh → SVG | new | A model as horizontal slices seen through a camera, hidden lines removed by ray casting: the melting and twisting heads' line language, for any model, without Blender. Spacing in mm on paper, converging lines tapered, strokes chained for few pen lifts. Draws a Twist or Melt stage set with one frame (same scale, position and slice heights on every plate). `<name>_contours.svg` |
 | **Sketch Hatching** 1.0.2 | Mesh → SVG | new | A model as an illustrator's pen sketch: lost-and-found outline, suggestive contours, valleys, creases, and hatching that follows the form in tone bands, with cast shadows and ambient occlusion; a focus point and a portrait light for a face. Two pens. `<name>_sketch.svg` |
 | **Stipple** 1.0 | Mesh → SVG | Digital divide's sphere (`projects/blender3d_project/digital_divide_1`) | A model in dots only: blue-noise stippling of its ray-cast light and shade, an empty highlight, edge darkening instead of an outline, a dot budget. `<name>_stipple.svg` |
-| **FlowRep Sketch** 0.1.2 | Mesh → SVG | new (FlowRep, Gori et al. 2017) | A model as a sparse network of curvature-aligned curves that describe its form, seen through a camera with hidden lines removed, plus an optional silhouette. Triangle meshes are remeshed into quads (Instant Meshes); quad-dominant OBJ/PLY keeps its topology. Descriptiveness sets how many curves remain (presets Clean, Detailed, Sparse); the 3D network is cached, so aiming again only redraws. `<name>_flowrep.svg` |
+| **FlowRep Sketch** 0.2.0 | Mesh → SVG | new (FlowRep, Gori et al. 2017) | A model as a sparse network of curvature-aligned curves that describe its form, seen through a camera with hidden lines removed, plus an optional silhouette. Triangle meshes are remeshed into quads (Instant Meshes); quad-dominant OBJ/PLY keeps its topology. Descriptiveness sets how many curves remain (presets Clean, Detailed, Sparse; 25-30° suits organic models). As in the paper: only real sharp features become feature curves, side-by-side flowlines are decluttered (*Declutter parallel curves*), and no flowline ends in mid-air. Curves are smoothed between junctions (*Curve smoothing*), the silhouette is a smooth contour, and continuing strokes are joined. The 3D network is cached, so aiming again only redraws. `<name>_flowrep.svg` |
 | **Photo Hatching** 1.1.0 | Image → SVG | the DPT notebooks (a–d) in `google_colab` | Engraving-style hatching of a photo, guided by depth from a transformer (MiDaS 3.1 BEiT-L-512, DPT-Large or Depth Anything V2 Large on the GPU): strokes wrap the forms, ink density follows the tone, crossing layers only in the shadows, occlusion outlines. Also the notebooks' patches (mosaic) and depth contours, fixed. `<name>_photohatch.svg` |
 | **Cubic Replicator** 3.1 | Mesh → mesh | STL Cubic Replicator v2 | Copies of a model on a 3D grid, mirrored and turned at random (seeded). `<name>_replicated_3x3x1.stl` |
 | **Form Replicator** 1.0.2 | Mesh → mesh | new | Compose one model into planar/spatial crosses and stars, clock rings, rosettes, sea urchins, sunflower spirals, helices, toroidal wreaths, trefoil knots and Möbius bands. Aim, stretch, taper and roll copies with seeded variation; touching copies are always fused into solids. `<name>_forms_star2d.stl` |
@@ -293,6 +293,13 @@ The **Input** tab beside it is for looking the model over: it turns to the side 
 it, and its toolbar says *Inspect only · view set in Aim*; orbiting it changes nothing (click the note to go
 back to Aim). The Camera settings show Aim's numbers, to read or fine-tune. In Workflows, **Aim in tool…** opens
 the same tab with the step's input and settings, and **Back to workflow** brings the view back.
+
+**Each file has its own Aim.** With several files in the list, the Aim tab and the Camera settings show the selected
+file's view, and aiming it moves no other file. **Draw** writes each file with its own view. A file you add starts
+from the selected file's view (so the stages of a sequence start alike), or from the view it had when you last aimed
+it in this tool. To share a view, right-click a file: **Use its Aim for every file** (or for the selected files).
+The same holds for every per-file setting: a model's Up, Front and Extra turn, Plane Cut's and Mirror's plane, a
+painted area. Their tooltips say *Each file in the list keeps its own value*.
 
 Every Aim tab is driven the same way:
 
@@ -558,6 +565,10 @@ Mosaic.
   - **SVG tools** analyse every file again as you change a setting.
   - **Mesh tools** have **Preview**, a dry run of the selected file. **Run** (or Clean, Cut, Draw…) writes every
     file. An output that exists is overwritten, or kept, as Setup says (below); originals are never changed.
+  - **Each file keeps its preview.** Preview one file, then another: both stay, and a preview still running goes
+    on while you select or aim another file. A preview shows while its file's settings are the ones it was made
+    with; after a change the file says *Outdated*, and going back to those settings (a preset, the same
+    value again) shows it again at once. The last four previews of each file are kept.
 - **Mesh → SVG tools:** aim in the Aim tab (see [Aim](#aim-where-a-drawings-view-is-set)), then **Preview** or
   **Draw**; presets change the lines, never the view. The Input tab is for looking only.
 - **Home** shows the tools as cards or as a one-line **List**; each section (Workflows and each tool group)

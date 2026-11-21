@@ -78,6 +78,44 @@ Working sets and cumulative process peaks are recorded at stage boundaries in th
 isolated allocation peaks for each stage. Parallel cases used a fresh worker per model; the espresso
 and plane topology-repair reruns share one process and are labeled accordingly.
 
+## FlowRep Sketch 0.2.0 against the authors' networks (2026-11-21)
+
+Six of the paper's models were run with the paper's settings: 20°, 30° for doghead and phone, 10° for wineglass,
+each input's own quads. The authors' supplied networks, regularized where supplied, were drawn through the same
+renderer, view and A4 sheet. The catalogue models are remeshed to about 3000 quads (20° for designed shapes, 30°
+for organic ones).
+
+*Strokes* counts pen-down strokes. *Free ends* counts stroke ends touching no other stroke within 0.35 mm.
+*Floating* counts strokes under 10 mm free at both ends. Each cell reads 0.1.3 → 0.2.0.
+
+| Model | Flowlines | Strokes | Free ends | Authors' strokes / free ends |
+|---|---|---|---|---|
+| bottle | 95 → 39 | 109 → 49 | 6 → 2 | 38 / 1 |
+| phone | 48 → 13 | 54 → 16 | 6 → 1 | 20 / 1 |
+| wineglass | 79 → 18 | 82 → 57 | 1 → 1 | 33 / 3 |
+| mug | 20 → 23 | 41 → 57 | 15 → 7 | 29 / 14 |
+| doghead | 23 → 26 | 55 → 60 | 9 → 7 | 54 / 5 |
+| mouse | 29 → 43 | 81 → 108 | 4 → 2 | 54 / 2 |
+
+| Catalogue model | Flowlines | Trims | Strokes | Free ends | Floating |
+|---|---|---|---|---|---|
+| David head (light) | 124 → 90 | 49 → 15 | 324 → 206 | 183 → 87 | 22 → 7 |
+| rook | 163 → 106 | 34 → 21 | 221 → 195 | 39 → 17 | 0 → 0 |
+| teapot | 94 → 81 | 8 → 5 | 157 → 158 | 44 → 30 | 6 → 1 |
+| Venus of Willendorf (light) | 36 → 40 | 4 → 4 | 97 → 116 | 54 → 37 | 3 → 1 |
+| rounded cube | 5 → 6 | 0 | 17 → 8 | 0 | 0 |
+| spot | 44 → 40 | 0 | 53 → 39 | 1 → 1 | 0 |
+| goblet | 65 → 92 | 3 | 54 → 76 | 31 → 25 | 0 → 1 |
+| cube | 5 → 6 | 12 | 17 → 19 | 2 → 0 | 0 |
+
+Tubes and surfaces of revolution (bottle, phone, wineglass, rounded cube) used to come out as stacks of
+parallel rings; they now draw a few rings and meridians, close to the authors' networks. The change is the
+thin-region rule, plus spiral rings for the rounded cube's remesh helix. The mouse and the goblet gain
+curves: their meridians must now actually describe the strips between rings. The goblet's foot also still
+draws broken arcs (its network is fragmented there). The doghead and bottle keep their input-mesh creases
+as feature curves, and the authors' networks have none. Wall-clock time: about seven minutes for all 14
+models, six at a time; the paper inputs are their own 6k-30k quad meshes.
+
 ## Dense triangle preparation
 
 A subdivided dog-head STL with 117,760 triangles produced 6,070 quads

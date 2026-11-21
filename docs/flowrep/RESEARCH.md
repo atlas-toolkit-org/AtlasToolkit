@@ -50,7 +50,8 @@ curvature, projection and occlusion. OBJ negative indices, mixed face arities, d
 open boundaries, duplicate vertices/faces and winding correction are handled before extraction.
 Disconnected face fans touching at a vertex are split into separate vertices and recorded in
 the preparation metadata. This repair is needed by the supplied espresso and plane inputs.
-Remaining non-manifold edges, branching vertex links and non-orientable surfaces are rejected.
+In a preserved polygon input, remaining non-manifold edges, branching vertex links and non-orientable
+surfaces are rejected. Remeshed inputs are healed first (below).
 
 Triangle inputs use PyNanoInstantMeshes 0.0.3, an Instant Meshes binding with Windows ABI3 wheels.
 The binding is called with 4-RoSy/4-PoSy, extrinsic smoothing, boundary alignment, feature detection
@@ -58,6 +59,23 @@ and deterministic mode. Its mandatory pure-quad subdivision multiplies the nomin
 by approximately four, so the requested intermediate count is corrected accordingly.
 The final number of faces remains approximate. Anisotropic curvature alignment and sampled
 surface deviation are reported; successful remeshing alone is not proof of an ideal FlowRep input.
+
+Instant Meshes' extraction leaves local defects, and which ones appear depends on the resolution. They
+include near-duplicate vertices, quads with two welded corners, folded pairs of quads with the same corners,
+"fin" edges shared by four quads around a pinched singularity, and holes in closed surfaces. A 524k-triangle
+sculpted head showed some of these at every resolution tried. `mesh._heal_polygons` repairs the remesh before
+the strict loader runs:
+1. It welds vertices within 1e-6 of the diagonal.
+2. It drops polygons that repeat a corner, all copies of a folded face and zero-area faces.
+3. It removes the faces around any vertex on an edge with more than two faces, or with a branching link,
+   until none is left.
+4. It patches every open loop that is not a real opening of the reference surface (a loop with a vertex
+   within one mean edge of the reference's boundary is kept), using Atlas's hole patcher (`geom.repair.fill_loop`,
+   or a centroid fan standalone), and projects the new vertices onto the reference surface.
+
+Holes therefore no longer become trim loops. If the healed remesh still fails the checks, the target is
+retried at +4 % and -4 %. The repairs are recorded as `remesh_repairs` in the preparation metadata and the
+network diagnostics.
 
 Initial signed affinities follow equations 6–7: positive near parallel, negative near orthogonal,
 with negative weight -5, angular widths 5° and 15°, and opposite-quad weight 0.05.
@@ -69,6 +87,11 @@ Initial paths end at ambiguous/irregular and trim vertices. The second graph use
 affinities with 7.5° width, normalized opposite-edge affinities, and -25 crossing penalties.
 Reliable strands yield closed cycles before open paths. Weighted tree diameters choose long
 remaining paths; projectivity resolves cycle preferences. Opposite-edge revisits expose spiral turns.
+Spirals that climb more than one quad per turn never lie next to themselves, and the opposite-edge
+test misses them (a remeshed rounded cube had one flowline winding it 11 times). A flowline that comes
+back within 2.5 average edges of an earlier point, at least eight edges further along and running the
+same way, has completed a turn: that turn is closed into a ring through the shortest mesh path back.
+This follows the paper's §6.2 (split spirals once they complete a full cycle).
 
 ### Descriptiveness and simplification
 
@@ -81,7 +104,19 @@ Planar patches skip unnecessary boundary tracing internally; their cycle count i
 For an interior vertex, the implementation interpolates boundary normals along each crossing
 reliable flowline, takes the largest directional prediction error, and then the 90th percentile
 over the region. Consistent with the paper, isolated unpredicted vertices are omitted and counted.
-A wholly unpredicted non-planar region is explicitly uncovered.
+A wholly unpredicted non-planar region is explicitly uncovered, unless all it has inside is up to three
+vertices: flowlines end at remesh singularities rather than cross them, so a few faces round a
+singularity could never be predicted. Treating them as uncovered blocked the removal of every flowline
+next to a singularity, and a remeshed teapot stayed a dense grid (120 flowlines; 81 now).
+
+A region with no interior vertex at all (a strip one quad wide, or one quad) is judged by its boundary:
+each stretch between two junctions is predicted from the normals at its ends, as interior vertices are
+along a crossing flowline. A fully dense network (every side one edge) still scores 0. Without this
+rule, zero interior vertices meant zero error, which made the dense start network trivially
+descriptive. The simplifier then removed meridians first (open, with endpoint costs) down to the one
+needed to break the annuli, and the rings could no longer go. Bottles, glasses and handles came out as
+stacks of parallel rings. With it, the paper's models come out close to the authors' networks (see
+Validation below).
 Geometrically planar patches have zero error, avoiding spurious penalties from normals averaged
 across sharp trim boundaries.
 
@@ -93,8 +128,23 @@ the threshold. A priority queue refreshes neighboring candidates after each acce
 
 Local optimization tries the two strongest available parallel neighbors in the same strand,
 checking the full context-dependent objective before accepting a replacement. Default search
-uses two passes, with early exit when nothing improves. The optional final decluttering step
-allows the paper's 20% error relaxation; it is disabled by default and reported explicitly.
+uses two passes, with early exit when nothing improves.
+
+The final decluttering step follows §7.2. It looks at every pair of selected flowlines that share
+no vertex and run side by side, with the shorter one's median distance (and 60% of its vertices)
+within two average edge lengths of the other. Of each pair it removes the flowline whose removal
+raises the error least, when every affected region stays within the paper's 20% relaxation
+(dmax × 1.2). The library leaves it off (`relaxed_declutter`); FlowRep Sketch turns it on by default
+(*Declutter parallel curves*). It used to consider only flowlines one quad apart in the same strand,
+which missed most bundles.
+
+The network then gets the paper's last shortening pass (§7.2: "no open-ended curves"). A flowline
+end that stops in nothing is valence 1, or valence 2 at a corner of 90° or less; an obtuse valence-2
+joint reads as one continuing curve and is left alone. Such an end first tries to reach the network
+along its own flowline, at most three more edges. Otherwise it is shortened back to its last junction
+(cascading to curves that this frees). Each change is checked like a removal and kept only when every
+affected region stays within the bound. `dangling_ends_before`/`_after` and `ends_extended`/`_shortened`
+are reported.
 
 Regularization uses tangent-plane Gauss–Seidel smoothing, angle equalization at crossings and
 T junctions, and projection to the original surface. Compatible near-planar and near-linear
@@ -125,10 +175,37 @@ visibility testing to prevent planar-snapping self-occlusion artifacts. Visibili
 paper units, including intermediate points even when segment endpoints have matching visibility,
 and transitions are bisected.
 
-Silhouettes are geometric front/back triangle boundaries, not traced raster contours.
-Near-plane and paper-frustum clipping happens before sampling. Projected strokes retain network
-junctions as fixed endpoints. Exact coincident ink is removed before short-stroke filtering and
-Atlas-style nearest-endpoint ordering.
+Network curves follow the quad proxy's edges, so they kink at every proxy vertex, while the paper's
+drawings show smooth regularized curves. Before projection, each curve between junctions is resampled
+at half an average edge and Taubin-smoothed (λ = 0.5, μ = -0.53, 30 × *smoothing* passes; trims get
+half). This takes out kinks about two edges long and leaves bends of ten edges or more practically
+untouched. Junctions stay fixed, and every sample is laid back on the reference surface.
+
+Silhouettes are interpolated contours by default (Hertzmann and Zorin 2000). They are the zero set of
+n·(eye − p) over the reference's vertex normals, smoothed by 2 + 6 × *smoothing* neighbour averages,
+with one segment per triangle the zero set crosses. The segments are chained through shared edges
+into long curves. Averaged normals mean nothing along a real crease (a cut base, a box's edges): there
+the interpolation would cut across flat faces or lose the outline. Real creases are clusters of edges
+sharper than 60° that are at least 8% of the model's size; smaller clusters are sculpt noise. Triangles
+touching them are left out of the interpolation, and the contour there is the exact one: the edge
+between a front- and a back-facing face. Open boundaries are added. Contour pieces shorter than 2 mm on
+paper (loops around noise) are left out. A ray to a contour point grazes the surface, so visibility is
+tested half an average edge off the surface along the normal. The contour is drawn where it lies: an
+earlier build drew the lifted points, which moved the outline outward visibly on coarse models
+(15k-triangle Venus). The older front/back triangle boundaries remain as *Silhouette style: Mesh
+edges*. On a 524k-triangle sculpted head they gave 652 pieces in one view; the contours give 32.
+
+Near-plane and paper-frustum clipping happens before sampling. Hidden stretches shorter than 0.4 mm
+between visible runs of one curve are drawn (grazing rays flicker). In each layer, strokes whose ends
+meet within 0.05 mm and continue each other (turning by 40° or less) are joined, best-aligned pairs
+first: a flowline through a junction becomes one stroke, a corner stays two. Exact coincident ink is
+then removed before short-stroke filtering. Loose ends are then tidied on paper. An end that touches
+nothing but stops within 0.8 mm short of another stroke, heading towards it (within 60°), is drawn on to
+meet it: a curve passing behind a contour ends on it rather than a hair before. An open stroke under
+3 mm that touches nothing at either end is a floating fleck and is left out (`snap`, `floating`).
+The contour lift is capped at 1% of the model's size. The same lift was tried for network curves; it
+was dropped, because curves on the far side near the outline then peeked past it (more fragments on
+smooth models). Strokes are then put in Atlas-style nearest-endpoint order.
 
 SVGs contain native paths only. Fitted cubic segments are checked using a convex-hull bound on
 the complete cubic against each original piecewise-linear interval. This supplies a continuous,
@@ -142,8 +219,13 @@ than the reserved fitting tolerance.
   Its networks can differ substantially from the authors' examples even when the measured
   descriptiveness constraint is satisfied.
 - Sharp trims use conservative polygon dihedral angles and open boundaries, rather than
-  reproducing Yoshizawa's full ridge/valley detector. Small coarse meshes can make smooth
-  bends appear sharp; increase resolution or adjust the sharp-feature angle in that case.
+  reproducing Yoshizawa's full ridge/valley detector. On a remeshed input, a crease must also be
+  sharp on the reference surface: the area-weighted normals a fifth of an edge to each side must
+  differ by at least 75% of the sharp-feature angle. Otherwise the coarse proxy turns tight but
+  smooth folds (nostrils, lids, ears) into trims. Clusters of creases shorter than *Shortest sharp
+  feature* (4 edges) that close no loop and touch no boundary are dropped. On the sculpted head,
+  587 proxy creases became 61, and trim curves fell from 228 to 13. Short crease spurs that leave a
+  junction and stop in nothing are pruned by the same length (that took 85 creases to 61).
 - Reliable open-path selection uses weighted tree diameters; spiral handling and local search
   are bounded practical implementations. These choices are visible in the reported networks.
 - The geometric normal metric depends on sampled directions and does not guarantee perceptual
@@ -155,8 +237,11 @@ than the reserved fitting tolerance.
   for several examples. Reproduction is deterministic for fixed prepared geometry.
 - Visibility sampling defaults to 0.35 mm on paper. Features thinner than the sampling scale may
   require a smaller step. The scalar reference ray caster remains available when Embree is absent.
-- Rendering may emit more pen lifts than an artist's drawing because it preserves real junctions,
-  clipping boundaries and occlusion transitions.
+- Rendering still lifts the pen at real occlusion transitions, clipping boundaries and corners. Strokes
+  that continue each other across junctions are joined.
+- The paper uses dmax = 20° for design shapes and 30° for organic ones (dog head, phone). On sculpted
+  organic models, 20° keeps many parallel flowlines, because without sharp features nothing else
+  bounds the regions; 25-30° is closer to the paper's look there.
 - Sparse Python optimization is slower than the authors' C++ implementation on complex meshes.
   Camera-only redraws reuse the cached extraction and avoid that cost.
 

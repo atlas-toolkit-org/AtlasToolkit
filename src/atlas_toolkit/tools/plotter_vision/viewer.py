@@ -561,6 +561,13 @@ class VisionView(QWidget):
         self.page.form.set_values(vals)
         self.page._settings_changed()
 
+    def flush(self) -> None:
+        """The page is about to show another input: a camera still on its way to the settings goes there now, so it
+        lands on the file it was aimed at (each file keeps its own camera)."""
+        if self.commit.isActive() and self.model is not None:
+            self.commit.stop()
+            self._commit()
+
     def _set_view(self, theta: float, psi: float) -> None:
         self.cam.theta, self.cam.psi = theta, psi
         self._moved()

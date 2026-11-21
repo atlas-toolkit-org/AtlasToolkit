@@ -67,7 +67,7 @@ TOOL = Tool(
             "Camera",
             *view_params(),
             Float("roll", "Roll", 0.0, unit="°", min=-180, max=180, step=5, decimals=1,
-                  help="Turns the drawing on the paper."),
+                  per_input=True, help="Turns the drawing on the paper."),
             Choice("light", "Light", "front", LIGHT_CHOICES,
                    help="Where the light comes from, seen from the camera. It sets the tone: darker where the "
                         "surface turns away from it."),

@@ -1,5 +1,81 @@
 # Changelog
 
+## 2.4.6 (2026-11-21)
+
+**Several files in a tool: each keeps its own Aim and its own preview**
+- **Aiming one file no longer aims them all.** With several files in a tool's list, the camera you set in the Aim
+  tab (and the Camera settings) belonged to the tool, so turning, moving or zooming one file turned every file.
+  Now each file keeps its own view, and the form shows the selected file's. Draw writes each file with its own.
+  The same goes for every setting that belongs to a model rather than to the tool: Up, Front and Extra turn (every
+  3D tool), Hatch Maker's Roll, Plane Cut's and Mirror's plane, and the painted area of Crumble, Stairs and
+  Surface Eject. Their tooltips say so.
+- **A new file starts from the selected file's view**, so the stages of a sequence still start alike, or from the
+  view it had when you last aimed it in that tool (the last 200 files are remembered).
+- **Share a view on purpose:** right-click a file › **Use its Aim for every file** (or for the selected files).
+- **A preview stays with its file.** Previewing another file, or aiming it, no longer throws away or cancels the
+  first file's preview: each file keeps its own until its own settings change. A file whose preview no longer
+  matches says *Outdated*; going back to the settings it was made with (a preset, the same value again) shows it
+  again at once, without running it again. Each file keeps its last four previews.
+- **A camera still settling lands on its own file.** Selecting another file within a moment of aiming no longer
+  hands the last move to the next file.
+- For tool authors: a parameter's `per_input=True` (set by `camera_params()` and `frame_params()`) is what makes a
+  value each file's own; see `docs/ADDING_A_TOOL.md`.
+
+**FlowRep Sketch 0.2.0: drawings closer to the paper's, and where you aimed them**
+- **The drawing now lands exactly where the Aim tab shows the model.** The Aim tab places a model the way every
+  drawing tool does: with the Up and Front stored in the file (every catalogue model has them), its stage set's, or
+  a guess. FlowRep Sketch's engine ignored a stored frame and made its own guess, which differs for flat or wide
+  models: the catalogue's Torus and Figure-eight knot were drawn turned and up to 41 mm away from where they were
+  aimed. Now both take Up and Front from the same place; on those two models the drawing and the Aim tab agree to
+  0.1 mm.
+- **Only real sharp features become feature curves.** A remeshed model's coarse quads made every tight but
+  smooth fold (nostrils, lids, lips, ears) look sharp, and each became a short feature curve drawn as a stray
+  fleck. Now a crease must also be sharp on the original surface. Small clusters of creases that touch nothing
+  are left out (*Shortest sharp feature*, advanced). On *Sculpted head_flow*, 228 feature curves became 13.
+- **No flowline ends in mid-air.** The paper's last step is back: a dangling end reaches the nearest curve
+  when it is at most three edges away, or is shortened to its last junction, whenever the shape is still
+  described within Descriptiveness.
+- **Declutter parallel curves** (new, on): of two flowlines running side by side (within two edges), the one
+  whose removal costs least goes, within the paper's 20 % allowance. Curves that cross the removed line stay
+  whole: curves meeting head-on keep going as one, and a staggered one reaches across to the next line. On the
+  sculpted head at 20°, 64 of 292 flowlines go; it used to be off, and only looked at directly adjacent lines.
+- **Smooth curves and silhouettes.** Curves are smoothed between junctions (*Curve smoothing*, 0.5), so
+  they no longer kink at every quad corner. The silhouette is a smooth contour that follows the surface
+  between its vertices, and follows the mesh exactly along real creases such as a cut base. It used to be a
+  chain of mesh edges that broke into hundreds of dashes on sculpted models. *Silhouette style › Mesh edges*
+  (advanced) keeps the old look.
+- **Tubes and round forms draw like the paper's.** Bottles, glasses, handles and remeshed rounded shapes came
+  out as stacks of parallel rings. A one-quad strip between two rings counted as perfectly described, so
+  the meridians were stripped away first and the rings could never go. Such strips are now judged by
+  their boundary, as the paper judges a region's inside. Tested against the authors' own networks for six
+  of the paper's models: the bottle went from 109 strokes to 49 (theirs: 38), the phone from 54 to 16
+  (theirs: 20), the wineglass from 82 to 57. Spiralling flowlines from the remesher (a rounded cube wound by
+  one coil) become rings, and a few faces round a remesh singularity no longer pin the curves next to them
+  (a teapot kept a dense grid).
+- **Fewer loose ends.** A line that stops just short of another (within 0.8 mm) is drawn on to meet it,
+  floating flecks under 3 mm are left out, and short sharp-feature spurs are pruned. On the catalogue's
+  David head, loose stroke ends went from 183 to 87 and floating flecks from 22 to 7.
+- **Long strokes.** Short hidden gaps from grazing rays are drawn, and strokes that continue each other across
+  a junction are joined. One view of the sculpted head (6000 quads, 20°) went from 1611 strokes (691 under
+  2 mm) to 217 (44), with 231 flowlines and 13 feature curves instead of 190 and 228. At 30°, the paper's
+  setting for organic models (now suggested in the Descriptiveness help), it draws about 190 strokes. The README's
+  FlowRep picture is drawn again.
+
+**FlowRep Sketch: remeshed models that used to fail now draw**
+- **Remeshed models no longer stop with "non-manifold edges remain".** Instant Meshes leaves small defects in
+  its quads: near-duplicate vertices, quads that repeat a corner, folded pairs of quads, "fin" edges shared by
+  four quads, and holes in closed surfaces. Which defect appeared depended on the Remesh resolution, so a model
+  failed at one value and passed at the next. FlowRep now heals the remesh before its strict checks. It welds
+  the duplicates, rebuilds the faces around a defect, patches every hole the original model does not have
+  (with Repair Mesh's patcher, laid back onto the surface), and keeps real openings as boundaries. If a remesh
+  still cannot be used, it tries again at ±4 % before saying so. *Sculpted head_flow* (524k triangles) now
+  extracts at 3000, 6000, 10000 and 20000 quads; it used to fail at 6000 and 10000.
+- **No more stray loops from remesh holes.** The holes used to become boundaries, drawn as small closed
+  squiggles on the face, with flowlines forced to end there. The report lists the repairs (*Remesh repairs: 3
+  holes filled, 13 broken faces rebuilt*). Remeshes are cached again when they mix quads and triangles. The
+  cache revision changed, so the first run after updating remeshes once more.
+
+
 ## 2.4.3 (2026-11-21)
 
 **Updates**

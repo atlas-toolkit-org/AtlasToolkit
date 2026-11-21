@@ -680,6 +680,18 @@ def fill_holes(V, F, max_edges: int | None = None, shape: str = "auto"):
     return np.concatenate(newV), np.concatenate(newF), note
 
 
+def boundary_loops(half_edges):
+    """Loops of open half-edges (a, b) of any polygon mesh, each in the order a patch must follow; an open chain
+    that does not come back to its start ends with None."""
+    return _boundary_loops(None, np.asarray(half_edges, np.int64).reshape(-1, 2))
+
+
+def fill_loop(V, idx, shape: str = "auto", base: int | None = None):
+    """Triangles closing one loop of vertex ids (patch order, as boundary_loops gives) and the new vertices they
+    use, numbered from base (default len(V)); (None, None) when the loop cannot be closed."""
+    return _patch(np.asarray(V, float), np.asarray(idx, np.int64), shape, len(V) if base is None else base)
+
+
 def _patch(V, idx, shape, base):
     """Triangles closing one loop (vertex ids `idx`, in patch order) and any new vertices (numbered from base).
     Small holes are triangulated straight across (earcut); larger ones get graded rings of new vertices, so the
