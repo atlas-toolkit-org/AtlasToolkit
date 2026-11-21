@@ -167,11 +167,16 @@ untouched. Junctions stay fixed, and every sample is laid back on the reference 
 Silhouettes are interpolated contours by default (Hertzmann and Zorin 2000). They are the zero set of
 n·(eye − p) over the reference's vertex normals, smoothed by 2 + 6 × *smoothing* neighbour averages,
 with one segment per triangle the zero set crosses. The segments are chained through shared edges
-into long curves, and open boundaries are added. Contour pieces shorter than 2 mm on paper (loops
-around sculpt noise) are left out. Contour points are lifted half an average reference edge along the
-normal before the visibility test, because a ray to a contour grazes the surface. The older front/back
-triangle boundaries remain as *Silhouette style: Mesh edges*. On a 524k-triangle sculpted head they
-gave 652 pieces in one view; the contours give 30.
+into long curves. Averaged normals mean nothing along a real crease (a cut base, a box's edges): there
+the interpolation would cut across flat faces or lose the outline. Real creases are clusters of edges
+sharper than 60° that are at least 8% of the model's size; smaller clusters are sculpt noise. Triangles
+touching them are left out of the interpolation, and the contour there is the exact one: the edge
+between a front- and a back-facing face. Open boundaries are added. Contour pieces shorter than 2 mm on
+paper (loops around noise) are left out. A ray to a contour point grazes the surface, so visibility is
+tested half an average edge off the surface along the normal. The contour is drawn where it lies: an
+earlier build drew the lifted points, which moved the outline outward visibly on coarse models
+(15k-triangle Venus). The older front/back triangle boundaries remain as *Silhouette style: Mesh
+edges*. On a 524k-triangle sculpted head they gave 652 pieces in one view; the contours give 32.
 
 Near-plane and paper-frustum clipping happens before sampling. Hidden stretches shorter than 0.4 mm
 between visible runs of one curve are drawn (grazing rays flicker). In each layer, strokes whose ends

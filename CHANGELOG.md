@@ -16,12 +16,14 @@
   sculpted head at 20°, 64 of 292 flowlines go; it used to be off, and only looked at directly adjacent lines.
 - **Smooth curves and silhouettes.** Curves are smoothed between junctions (*Curve smoothing*, 0.5), so
   they no longer kink at every quad corner. The silhouette is a smooth contour that follows the surface
-  between its vertices; it used to be a chain of mesh edges that broke into hundreds of dashes on sculpted
-  models. *Silhouette style › Mesh edges* (advanced) keeps the old look.
+  between its vertices, and follows the mesh exactly along real creases such as a cut base. It used to be a
+  chain of mesh edges that broke into hundreds of dashes on sculpted models. *Silhouette style › Mesh edges*
+  (advanced) keeps the old look.
 - **Long strokes.** Short hidden gaps from grazing rays are drawn, and strokes that continue each other across
   a junction are joined. One view of the sculpted head (6000 quads, 20°) went from 1611 strokes (691 under
-  2 mm) to 233 (52), with 228 flowlines and 33 feature curves instead of 190 and 228. At 30°, the paper's
-  setting for organic models (now suggested in the Descriptiveness help), it draws 194 strokes.
+  2 mm) to 235 (52), with 228 flowlines and 33 feature curves instead of 190 and 228. At 30°, the paper's
+  setting for organic models (now suggested in the Descriptiveness help), it draws about 190 strokes. The README's
+  FlowRep picture is drawn again.
 
 ## 2.4.4 (unreleased)
 

@@ -124,6 +124,30 @@ class RenderQualityTests(unittest.TestCase):
         self.assertLess(float(np.abs(P@w).max()),0.03)                       # on the plane facing the camera
         self.assertLess(float(np.abs(np.linalg.norm(P,axis=1)-1).max()),0.01)  # and on the sphere
 
+    def test_smooth_contour_stays_on_a_coarse_model_and_is_drawn_whole(self):
+        # a coarse model: the contour must not move outward (it did by half an edge), nor break into dashes
+        mesh=icosphere(2)
+        net=from_arrays_network()
+        cam=Camera(theta=80,psi=-150,radius=6)
+        options=RenderOptions(paper="A5",silhouette=True)
+        smooth=render_network(mesh,net,cam,options=options)
+        edges=render_network(mesh,net,cam,options=replace(options,silhouette_style="mesh",join=False,gap=0))
+        S=np.concatenate(smooth.layers["silhouette"]); M=np.concatenate(edges.layers["silhouette"])
+        centre=M.mean(0); outer=float(np.linalg.norm(M-centre,axis=1).max())
+        self.assertLessEqual(float(np.linalg.norm(S-centre,axis=1).max()),outer+0.05)
+        length=sum(float(np.linalg.norm(np.diff(p,axis=0),axis=1).sum()) for p in smooth.layers["silhouette"])
+        self.assertEqual(len(smooth.layers["silhouette"]),1)
+        self.assertGreater(length,0.9*2*np.pi*float(np.linalg.norm(M-centre,axis=1).mean()))
+
+    def test_sharp_edged_models_keep_their_exact_outline(self):
+        box=trimesh.creation.box(); mesh=from_arrays(box.vertices,box.faces)
+        cam=Camera(theta=60,psi=-140,radius=6)
+        options=RenderOptions(paper="A5",silhouette=True,up="+z")
+        smooth=render_network(mesh,from_arrays_network(),cam,options=options)
+        edges=render_network(mesh,from_arrays_network(),cam,options=replace(options,silhouette_style="mesh"))
+        ink=lambda d: sum(float(np.linalg.norm(np.diff(p,axis=0),axis=1).sum()) for p in d.layers["silhouette"])
+        self.assertAlmostEqual(ink(smooth),ink(edges),delta=0.05*ink(edges))
+
     def test_noisy_model_silhouette_is_a_few_long_strokes(self):
         mesh=icosphere(5,noise=0.004)
         net=from_arrays_network()

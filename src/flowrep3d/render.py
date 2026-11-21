@@ -108,13 +108,31 @@ def _smooth_polyline(P,iterations,spacing):
 
 def _contours(V,F,cam,normal_passes=3):
     """Interpolated contours (Hertzmann and Zorin 2000): the zero set of n·(eye − p) over smoothed vertex normals,
-    one segment per triangle it crosses, chained through shared edges into long smooth curves, plus open
-    boundaries. Returns [(points, normals)] so visibility can test them just off the surface."""
+    one segment per triangle it crosses, chained through shared edges into long smooth curves. Along real creases
+    (a cut base, a box's edges) averaged normals are meaningless, so there the contour is the exact one: the mesh
+    edge between a front- and a back-facing face. Open boundaries are contours too.
+    Returns [(points, normals)] so visibility can test them just off the surface."""
     E,FE,EF,counts=edge_topology(F)
+    eye,_,_,w=cam.basis()
+    FN,_=face_normals(V,F)
+    front=FN@w>=0 if cam.ortho else (FN*(eye-V[F].mean(1))).sum(1)>=0
+    # real creases: sharp edges in clusters long enough not to be sculpt noise
+    inner=counts==2
+    sharp=np.zeros(len(E),bool)
+    sharp[inner]=(FN[EF[inner,0]]*FN[EF[inner,1]]).sum(1)<np.cos(np.radians(SHARP_CONTOUR))
+    crease=np.zeros(len(E),bool)
+    if sharp.any():
+        from scipy.sparse import coo_matrix
+        from scipy.sparse.csgraph import connected_components
+        ids=np.flatnonzero(sharp); S=E[ids]
+        _,label=connected_components(coo_matrix((np.ones(len(ids)),(S[:,0],S[:,1])),shape=(len(V),len(V))),directed=False)
+        group=label[S[:,0]]
+        length=np.bincount(group,weights=np.linalg.norm(V[S[:,0]]-V[S[:,1]],axis=1))
+        crease[ids[length[group]>=SHARP_CONTOUR_SHARE*float(np.ptp(V,axis=0).max())]]=True
+    near_crease=np.zeros(len(V),bool); near_crease[E[crease].ravel()]=True
     N=vertex_normals(V,F)
     for _ in range(int(normal_passes)):
         N=N+neighbour_average(N,E,len(V)); N/=np.maximum(np.linalg.norm(N,axis=1,keepdims=True),1e-30)
-    eye,_,_,w=cam.basis()
     if cam.ortho:
         g=N@w
     else:
@@ -126,17 +144,49 @@ def _contours(V,F,cam,normal_passes=3):
     point=V[a]+t[:,None]*(V[b]-V[a])
     normal=N[a]+t[:,None]*(N[b]-N[a])
     hit=crossed[FE]
-    two=hit.sum(1)==2
+    two=(hit.sum(1)==2)&~near_crease[F].any(1)
     segments=np.sort(FE[two][hit[two]].reshape(-1,2),axis=1) if two.any() else np.zeros((0,2),np.int64)
     out=[]
     if len(segments):
         chains,_=graph_chains(segments,np.arange(len(segments)))
         out+=[(point[c],normal[c]) for c in chains]
-    boundary=np.flatnonzero(counts==1)
-    if len(boundary):
-        for c in graph_chains(E,boundary)[0]:
-            out.append((V[c],N[c]))
+    flip=np.zeros(len(E),bool); flip[crease]=front[EF[crease,0]]!=front[EF[crease,1]]
+    for ids in (np.flatnonzero(flip),np.flatnonzero(counts==1)):
+        if len(ids):
+            for c in graph_chains(E,ids)[0]:
+                out.append((V[c],N[c]))
     return out
+
+
+SHARP_CONTOUR = 60.0        # degrees: on edges sharper than this the contour follows the mesh edge
+SHARP_CONTOUR_SHARE = 0.08  # of the model's size: smaller clusters of sharp edges are sculpt noise, not creases
+
+
+def _sample_with_normals(P,N,cam,frame,step):
+    """_sample for a contour, carrying its normals along (the same points, the same interpolation)."""
+    C=cam.to_camera(P); screen=frame.to_mm(cam.project(C))
+    lengths=np.linalg.norm(np.diff(screen,axis=0),axis=1); out=[P[0]]; normals=[N[0]]
+    for i,length in enumerate(lengths):
+        ratio=1.0 if cam.ortho else max(C[i,2],C[i+1,2])/max(min(C[i,2],C[i+1,2]),NEAR)
+        n=max(1,min(65536,int(np.ceil(length/step*ratio))))
+        t=np.arange(1,n+1)/n
+        out.extend(P[i]+t[:,None]*(P[i+1]-P[i])); normals.extend(N[i]+t[:,None]*(N[i+1]-N[i]))
+    normals=np.array(normals)
+    return np.array(out),normals/np.maximum(np.linalg.norm(normals,axis=1,keepdims=True),1e-30)
+
+
+def _runs(P,visible,closed):
+    """A polyline cut into [(visible, points)] where its samples' visibility changes; a closed loop that starts and
+    ends in the same state is joined across its start."""
+    cuts=np.flatnonzero(visible[1:]!=visible[:-1])+1
+    bounds=[0,*cuts.tolist(),len(P)]
+    runs=[]
+    for a,b in zip(bounds[:-1],bounds[1:]):
+        piece=P[max(0,a-1):b]                    # each run starts where the last one ended
+        if len(piece)>=2: runs.append((bool(visible[a]),piece))
+    if closed and len(runs)>1 and runs[0][0]==runs[-1][0]:
+        state,last=runs.pop(); runs[0]=(state,np.vstack([last,runs[0][1][1:]]))
+    return runs
 
 
 def _close_gaps(runs,to_mm,gap):
@@ -295,23 +345,36 @@ def render_network(mesh,network: CurveNetwork,camera=None,paper=None,options=Non
     for kind,P in _split_junctions(display_network):
         P=_smooth_polyline(P,iterations//2 if kind=="trim" else iterations,spacing)
         raw.append(("features" if kind=="trim" else "flowlines",transform.apply(P)))
+    contours=[]; lift=0.0
     if options.silhouette:
         if options.silhouette_style=="smooth":
             ER=edge_topology(F)[0]
+            # A ray to a contour point grazes the surface, and sculpt noise next to it can hide it. Visibility is
+            # tested half an edge off the surface along the normal; the contour is drawn where it lies (drawing the
+            # lifted points moved the outline outward by as much, visibly so on coarse models).
             lift=0.5*float(np.linalg.norm(V[ER[:,0]]-V[ER[:,1]],axis=1).mean())
-            # lift contour points a little off the surface along the normal: a ray to a contour grazes it
-            raw.extend(("silhouette",P+lift*N) for P,N in _contours(V,F,cam,int(round(2+6*options.smoothing))))
+            contours=_contours(V,F,cam,int(round(2+6*options.smoothing)))
         else:
             raw.extend(("silhouette",P) for P in _silhouettes(V,F,cam))
     def paper_length(P):
         return float(np.linalg.norm(np.diff(frame.to_mm(cam.project(cam.to_camera(P))),axis=0),axis=1).sum())
-    curves=[]; kinds=[]
+    curves=[]; kinds=[]; lifted={}
     for kind,P in raw:
         checkpoint(cancel)
         for piece in _clip_3d(P,cam,frame):
-            if kind=="silhouette" and options.silhouette_style=="smooth" and paper_length(piece)<options.min_contour:
-                continue                     # a contour loop around a bump of sculpt noise
             curves.append(_sample(piece,cam,frame,options.sample_step)); kinds.append(kind)
+    if contours:
+        from scipy.spatial import cKDTree
+        for P,N in contours:
+            checkpoint(cancel)
+            pieces=_clip_3d(P,cam,frame)
+            tree=cKDTree(P) if len(pieces)!=1 or len(pieces[0])!=len(P) else None
+            for piece in pieces:
+                if paper_length(piece)<options.min_contour:
+                    continue                 # a contour loop around a bump of sculpt noise
+                normals=N if tree is None else N[tree.query(piece)[1]]
+                S,SN=_sample_with_normals(piece,normals,cam,frame,options.sample_step)
+                lifted[len(curves)]=S+lift*SN; curves.append(S); kinds.append("silhouette")
     samples=sum(len(p) for p in curves)
     progress_to(progress,0.30,f"checking visibility of {samples} curve samples",cancel)
     # Interpolating between attached vertices can still cut slightly beneath a
@@ -327,8 +390,19 @@ def render_network(mesh,network: CurveNetwork,camera=None,paper=None,options=Non
             count=len(curves[i]); curves[i]=closest[cursor:cursor+count]; cursor+=count
         checkpoint(cancel)
     caster=raycast.Caster(V,F)
-    runs=raycast.split_visible(caster,cam,curves,[np.linalg.norm(p[0]-p[-1])<1e-8 for p in curves],
-                              eps=0.015,iters=12,hidden=True)
+    runs=[None]*len(curves)
+    ids=[i for i in range(len(curves)) if i not in lifted]
+    if ids:
+        found=raycast.split_visible(caster,cam,[curves[i] for i in ids],[np.linalg.norm(curves[i][0]-curves[i][-1])<1e-8 for i in ids],
+                                    eps=0.015,iters=12,hidden=True)
+        for i,r in zip(ids,found): runs[i]=r
+    if lifted:
+        order=sorted(lifted)
+        flags=raycast.visible(caster,cam,np.concatenate([lifted[i] for i in order]),0.015)
+        cursor=0
+        for i in order:
+            n=len(curves[i]); runs[i]=_runs(curves[i],flags[cursor:cursor+n],np.linalg.norm(curves[i][0]-curves[i][-1])<1e-8)
+            cursor+=n
     to_mm=lambda P: frame.to_mm(cam.project(cam.to_camera(P)))
     layers={"features":[],"silhouette":[],"flowlines":[],"hidden":[]}
     for kind,parts in zip(kinds,runs):
