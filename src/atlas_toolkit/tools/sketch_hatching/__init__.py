@@ -23,7 +23,7 @@ def focused(v):
 TOOL = Tool(
     id="sketch-hatching",
     name="Sketch Hatching",
-    version="1.0.2",
+    version="1.1.0",
     category="mesh2svg",
     icon="sketch",
     action="Draw",

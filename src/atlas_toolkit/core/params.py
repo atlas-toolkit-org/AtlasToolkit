@@ -367,7 +367,7 @@ def paper_params(default: str = "A3", orientation: str = "portrait", margin: flo
     return out
 
 
-CAMERA_KEYS = ("theta", "psi", "radius", "lookat", "fov", "projection")
+CAMERA_KEYS = ("theta", "psi", "radius", "lookat", "fov", "projection", "roll")
 # The note on a camera section: the Aim tab sets the drawing's view, these fields only show (and fine-tune) it.
 CAMERA_NOTE = "Set by aiming in the Aim tab; these numbers are its camera."
 
@@ -389,6 +389,7 @@ def camera_params(theta: float = 70.0, psi: float = -150.0, radius: float = 170.
                   help="How far the camera stands back, in plotter.vision's units (the model's largest side is "
                        "100): smaller draws the model larger. The view is orthographic, so it only sets the size."),
             Vec3("lookat", "Look at", tuple(lookat), help="The point the camera turns around (same units)."),
+            _roll(),
         ])
     return _per_input([
         Float("theta", "Tilt (θ)", theta, unit="°", min=-180, max=180, step=1, decimals=1,
@@ -404,7 +405,16 @@ def camera_params(theta: float = 70.0, psi: float = -150.0, radius: float = 170.
         Choice("projection", "Projection", projection, [("perspective", "Perspective"),
                                                          ("orthographic", "Ortho")], segmented=True,
                help="Perspective as plotter.vision; orthographic keeps parallel lines parallel."),
+        _roll(),
     ])
+
+
+def _roll() -> Param:
+    return Float("roll", "Roll", 0.0, unit="°", min=-180, max=180, step=5, decimals=1,
+                 help="Turns the model like a clock hand about the line of sight (clockwise is positive), through the "
+                      "look-at point. What the tool keeps level stays level: Contour Lines' slices, Hatch Maker's "
+                      "hatching, a light set on the model. In the Aim tab: drag the ring round the frame, Q / E, "
+                      "0 or the dial to set it upright again.")
 
 
 def _per_input(params: list[Param]) -> list[Param]:

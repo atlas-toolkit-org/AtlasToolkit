@@ -310,7 +310,7 @@ class LiveViewTests(unittest.TestCase):
         self.assertLessEqual(v.model.faces, AIM_FACES)
         self.assertEqual(v._p(v.values).flat_angle, 35.0)
         before = page.values()
-        self.key(v, Qt.Key_E)
+        self.key(v, Qt.Key_X)
         self.assertTrue(v.exact and v.btn_exact.isChecked())
         self.wait(lambda: v.state == "done" and v.model is not None)
         self.assertGreater(v.model.faces, AIM_FACES)

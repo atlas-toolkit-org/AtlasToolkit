@@ -4,7 +4,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from atlas_toolkit.core import Result, Stat
-from atlas_toolkit.geom.drawing import Drawing, Pen, fmt_duration, fmt_length
+from atlas_toolkit.geom.drawing import Drawing, Pen, fmt_duration, fmt_length, plot_tiles
 from atlas_toolkit.geom.svgout import write_svg
 
 from . import TOOL
@@ -34,10 +34,7 @@ def run(ctx, src: Path, dst: Path | None, p) -> Result:
     cam = out["camera"]
     secs = sum(out["timings"].values())
     stats = [Stat("strokes", "Strokes", st.strokes),
-             Stat("ink", "Ink", fmt_length(st.ink), fmt="{}"),
-             Stat("travel", "Pen-up travel", fmt_length(after), before=fmt_length(before), fmt="{}"),
-             Stat("time", "Plot time", fmt_duration(st.seconds()), fmt="{}"),
-             Stat("seconds", "Computed in", secs, "s", fmt="{:.1f}")]
+             *plot_tiles(st, secs, (before, after))]
     look = ", ".join(f"{x:g}" for x in cam.lookat)
 
     def n(x: int) -> str:
@@ -48,7 +45,8 @@ def run(ctx, src: Path, dst: Path | None, p) -> Result:
              + (f", {n(mdl.faces)} after decimation" if mdl.faces != mdl.faces_in else "")
              + f", {'watertight' if mdl.watertight else 'open'}; " + ("both sides" if out["two_sided"] else "front faces"),
              f"  camera     θ {cam.theta:g}°, ψ {cam.psi:g}°, distance {cam.radius:g}, look at ({look}), "
-             f"{cam.fov:g}° {'orthographic' if cam.ortho else 'perspective'}",
+             f"{cam.fov:g}° {'orthographic' if cam.ortho else 'perspective'}"
+             + (f", model rolled {cam.roll:g}°" if cam.roll else ""),
              f"  edges      {n(out['edges'])} candidates (flatter than {p.flat_angle:g}° left out), "
              f"{n(out['front_faces'])} faces facing the camera",
              f"  paper      {p.paper} {p.orientation}, margin {p.margin:g} mm" + ("  (draft)" if ctx.draft else "")]

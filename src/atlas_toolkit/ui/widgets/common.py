@@ -176,29 +176,47 @@ class Segmented(QFrame):
 
 
 class StatTile(QFrame):
-    """.ds-stat: micro-label, a mono value and an optional 'before' line."""
+    """.ds-stat: micro-label over a mono value, with an optional 'was …' beside the value (one line, so the row of
+    tiles stays short)."""
 
     def __init__(self, title: str):
         super().__init__()
         self.setObjectName("stat")
         lay = QVBoxLayout(self)
-        lay.setContentsMargins(12, 9, 12, 9)
-        lay.setSpacing(3)
+        lay.setContentsMargins(10, 5, 10, 6)
+        lay.setSpacing(1)
         lay.addWidget(label(title, 10))
+        row = QHBoxLayout()
+        row.setContentsMargins(0, 0, 0, 0)
+        row.setSpacing(8)
         self.value = QLabel("—")
         self.value.setObjectName("statValue")
         self.value.setTextInteractionFlags(Qt.TextSelectableByMouse)
-        lay.addWidget(self.value)
-        self.before = QLabel("")
+        row.addWidget(self.value)
+        self.before = QLabel("")               # whole or not at all (a narrow tile keeps it in its tooltip)
         self.before.setObjectName("statBefore")
-        lay.addWidget(self.before)
+        self.before.setMinimumWidth(0)
+        self.before.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Preferred)
+        self._was = ""
+        row.addWidget(self.before, 1, Qt.AlignBottom)
+        lay.addLayout(row)
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
 
     def set(self, value: str, before: str = "", tone: str = "") -> None:
         self.value.setText(value)
         self.value.setProperty("tone", tone)
         repolish(self.value)
-        self.before.setText(f"was {before}" if before else " ")    # keeps every tile the same height
+        self._was = f"was {before}" if before else ""
+        self.setToolTip(self._was)
+        self._fit()
+
+    def _fit(self) -> None:
+        room = self.contentsRect().width() - 20 - self.value.sizeHint().width() - 8
+        self.before.setText(self._was if self.before.fontMetrics().horizontalAdvance(self._was) <= room else "")
+
+    def resizeEvent(self, e):
+        super().resizeEvent(e)
+        self._fit()
 
 
 def draw_reg_marks(p: QPainter, rect: QRectF, color: QColor, arm: float = 12.0, inset: float = -7.0,

@@ -60,7 +60,7 @@ TOOL = Tool(
 | `Text` | |
 | `FileRef` | a second input file |
 | `paper_params()` | size, orientation and margin |
-| `camera_params()` | plotter.vision's orbit camera (θ, ψ, distance, look-at, field of view, projection); put it in `Section("Camera", ..., note=CAMERA_NOTE)` so the form says the Aim tab sets it |
+| `camera_params()` | plotter.vision's orbit camera (θ, ψ, distance, look-at, field of view, projection, Roll); put it in `Section("Camera", ..., note=CAMERA_NOTE)` so the form says the Aim tab sets it |
 | `frame_params()` | how a model stands (Up, Front, Extra turn) and, for drawings, which models share one frame |
 | `Section(title, ..., note="…")` | a group of settings; `help` is its header's tooltip, `note` a short line shown at its top |
 | `influence_params()` | where a mesh tool acts: whole model, a feathered height band or a sphere (`geom/influence.weights`) |
@@ -115,7 +115,9 @@ TOOL = Tool(
   to `input_view()`; an orthographic-only tool uses `camera_params(ortho_only=True)` and a LightAim with a fixed
   field of view, as `stl_hatch_maker/aim.py` does); `geom/frame3d.frame_for` the model's
   frame (a stage set shares one); `geom/raycast` embree visibility; `geom/shading.View3D` + `trace` a G-buffer with
-  light, shadows and feature lines. Mesh tools that make sequences publish with `geom/stages.StageOutput` (stage
+  light, shadows and feature lines (it applies Roll itself). The engine honours `roll`, the model turned about the
+  line of sight: `geom/camera.turn_in_view` on the model's vertices when the tool keeps something level in the world
+  (slices, a model light), or `Camera.roll` when it draws only the model's own lines. Mesh tools that make sequences publish with `geom/stages.StageOutput` (stage
   files plus `stages.json`, all or nothing).
 - `needs="solid"` (or `"manifold"`: clean, openings allowed) says what a mesh input must be. As soon as a file is
   added, the page checks it and marks one that will not do *Needs repair*, with **Open in Repair Mesh**. In the

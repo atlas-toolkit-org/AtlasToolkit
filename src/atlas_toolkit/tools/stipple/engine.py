@@ -9,7 +9,7 @@ import numpy as np
 from atlas_toolkit.core import Result, Stat
 from atlas_toolkit.geom import shading
 from atlas_toolkit.geom import sketch as sk
-from atlas_toolkit.geom.drawing import Drawing, Pen, fmt_duration, fmt_length
+from atlas_toolkit.geom.drawing import Drawing, Pen, fmt_duration, fmt_length, plot_tiles
 from atlas_toolkit.geom.image import view as raster_view
 from atlas_toolkit.geom.svgout import Layer, order_polylines, write_svg
 
@@ -32,7 +32,7 @@ def run(ctx, src: Path, dst: Path | None, p) -> Result:
         notes.append("the model is outside the paper's drawing area: aim the camera in the Aim tab (F fits it)")
     else:
         light = view.proj.light(p.light_az, p.light_el) if p.light_frame == "camera" else \
-            shading.model_light(p.light_az, p.light_el, view.frame.rotate)
+            view.model_dir(shading.model_light(p.light_az, p.light_el, view.frame.rotate))
         ao_rays = (8 if draft else 16) if p.ao > 0 else 0
         params = view.passes(dict(contour_smooth=2, tone_smooth=2), notes)
         ctx.progress(0.05, "analysing the model")
@@ -127,11 +127,8 @@ def run(ctx, src: Path, dst: Path | None, p) -> Result:
     ctx.progress(1.0)
     return Result(outputs=outputs,
                   stats=[Stat("dots", "Dots", len(dots_pls)),
-                         Stat("time", "Plot time", fmt_duration(stats_.seconds()), fmt="{}"),
-                         Stat("travel", "Pen-up travel", fmt_length(stats_.travel), fmt="{}"),
-                         Stat("coverage", "Max coverage", coverage, fmt="{:.2f}",
-                              tone="warning" if coverage > 0.7 else ""),
-                         Stat("seconds", "Computed in", secs, "s", fmt="{:.1f}")],
+                         *plot_tiles(stats_, secs, extra=[Stat("coverage", "Max coverage", coverage, fmt="{:.2f}",
+                                                               tone="warning" if coverage > 0.7 else "")])],
                   report="\n".join(lines),
                   preview={"views": [{"title": "Drawing", "kind": "svg", "drawing": drawing}] + extra_views,
                            "prefer": "Drawing"},

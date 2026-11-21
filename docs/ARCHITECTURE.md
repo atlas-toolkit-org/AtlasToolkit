@@ -179,7 +179,7 @@ The drawing tools share one path from a mesh to the paper:
    union of its stages' bounds.
 2. **Camera** (`geom/camera`): plotter.vision's orbit camera through the paper's drawing area. The Aim tab is
    Plotter Vision's live view (`tools/plotter_vision/aim.py`), fed the same frame, so its numbers are the engine's.
-   Every Mesh → SVG tool aims there, Plotter Vision (light trace, Exact lines on E) and the Hatch Maker (the same
+   Every Mesh → SVG tool aims there, Plotter Vision (light trace, Exact lines on X) and the Hatch Maker (the same
    camera, orthographic only, `camera_params(ortho_only=True)`) included; it is the only tab that sets the view. F
    and Always fit use `geom/camera.fit_view`, a tight fit of the picture. It shows a light copy of the model
    (`model.load_light`: within 20 000 faces, reduced once per file) and keeps up with the hand

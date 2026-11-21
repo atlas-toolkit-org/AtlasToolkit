@@ -63,6 +63,17 @@ class AdapterTests(unittest.TestCase):
             aimed = paper.to_mm(cam.project(cam.to_camera(frame3d.frame_for(str(model), p, V=V).apply(V))))
             np.testing.assert_allclose(drawn.min(0), aimed.min(0), atol=2.0)
             np.testing.assert_allclose(drawn.max(0), aimed.max(0), atol=2.0)
+            # Roll: the drawing turns as the Aim tab turns its picture (the network is cached: this only redraws)
+            from atlas_toolkit.geom.camera import roll_screen
+            p = Params(dict(p, roll=40.0))
+            with patch.dict(os.environ, {"FLOWREP_CACHE": str(tmp / "cache")}):
+                res = tool.engine_fn()(JobContext(lambda *a: None, lambda: False, "draft"), str(model), None, p)
+            drawn = np.concatenate([np.asarray(pl, float).reshape(-1, 2)
+                                    for pen in res.preview["views"][0]["drawing"].pens for pl in pen.polylines()])
+            aimed = paper.to_mm(roll_screen(cam.project(cam.to_camera(frame3d.frame_for(str(model), p, V=V).apply(V))),
+                                            40.0))
+            np.testing.assert_allclose(drawn.min(0), aimed.min(0), atol=2.0)
+            np.testing.assert_allclose(drawn.max(0), aimed.max(0), atol=2.0)
 
 
 if __name__ == "__main__":

@@ -21,6 +21,29 @@
 - For tool authors: a parameter's `per_input=True` (set by `camera_params()` and `frame_params()`) is what makes a
   value each file's own; see `docs/ADDING_A_TOOL.md`.
 
+**Aim: roll the model like a clock hand**
+- **New Roll in every drawing tool's camera** (Plotter Vision 1.6.0, Contour Lines 1.2.0, Sketch Hatching 1.1.0,
+  Stipple 1.1, FlowRep Sketch; Hatch Maker had one already). Roll turns the model about the line of sight through
+  the look-at point, clockwise positive, so it leans on the paper. It turns the model, not the paper: Contour
+  Lines' slices stay level across a leaning head, Hatch Maker's hatching stays level, a light set on the model
+  turns with it and a camera light stays put. Like the rest of the camera it is kept per file and never in presets.
+- **The ring:** a ring round the frame in every Aim tab; drag its grip round to roll (Ctrl snaps to 15°). The
+  lines already drawn just turn with it, so rolling is instant even on heavy models.
+- **The dial** in the top-right corner shows where the model's top points; click it (or press `0`) to set the
+  model upright again. `R` (the start view) sets it upright too.
+- **Keys:** `Q` / `E` roll 5° anticlockwise / clockwise (Shift: 1°); Shift+`↑` / `↓` tilt by 5° (there was no
+  tilt key); hold Ctrl while orbiting to snap Tilt and Turn to 15°.
+- **Plotter Vision's Exact lines moves from `E` to `X`**, since `E` now rolls.
+
+**The same result tiles for every Mesh → SVG tool, in a shorter bar**
+- Every drawing tool now shows Ink, Pen-up travel, Plot time, at most one tile of its own, and Computed in, in
+  that order (`geom/drawing.plot_tiles`). FlowRep Sketch showed only its region error; it now shows them all,
+  with Region error as its own tile (amber when it is over Descriptiveness). Hatch Maker gains Computed in,
+  Sketch Hatching and Contour Lines gain Pen-up travel, and Stipple gains Ink.
+- The tiles are about 40% shorter: the label sits over the value, and "was …" goes beside the value
+  when the tile has room, otherwise in its tooltip. A tile with a "was …" gets twice the width when there is
+  room to share.
+
 **FlowRep Sketch 0.2.0: drawings closer to the paper's, and where you aimed them**
 - **The drawing now lands exactly where the Aim tab shows the model.** The Aim tab places a model the way every
   drawing tool does: with the Up and Front stored in the file (every catalogue model has them), its stage set's, or

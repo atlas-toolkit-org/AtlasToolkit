@@ -31,6 +31,7 @@ class Camera:
     lookat: tuple = (0.0, 0.0, 0.0)
     fov: float = 60.0               # degrees across the frame's long side
     ortho: bool = False
+    roll: float = 0.0               # degrees, clockwise on the picture (turn_in_view); camera_from leaves it at 0
 
     def basis(self):
         th, ps = math.radians(self.theta), math.radians(self.psi)
@@ -46,6 +47,9 @@ class Camera:
         else:
             u /= n
         v = np.cross(w, u)
+        if self.roll:                    # the picture turned clockwise: the same as the model turned about the
+            c, s = math.cos(math.radians(self.roll)), math.sin(math.radians(self.roll))     # line of sight
+            u, v = u * c + v * s, -u * s + v * c
         return eye, u, v, w
 
     @property
@@ -110,7 +114,7 @@ class Camera:
 
     def stereo(self, separation: float) -> "Camera":
         """plotter.vision's second eye: the same camera turned `separation` degrees further round Z."""
-        return Camera(self.theta, self.psi + separation, self.radius, self.lookat, self.fov, self.ortho)
+        return Camera(self.theta, self.psi + separation, self.radius, self.lookat, self.fov, self.ortho, self.roll)
 
     def as_values(self) -> dict:
         """The camera as settings, at the settings' own precision (so writing them back changes nothing)."""
@@ -177,6 +181,30 @@ def roll_screen(S: np.ndarray, roll: float) -> np.ndarray:
     c, s = math.cos(math.radians(roll)), math.sin(math.radians(roll))
     S = np.asarray(S, dtype=float)
     return np.stack([S[..., 0] * c + S[..., 1] * s, -S[..., 0] * s + S[..., 1] * c], axis=-1)
+
+
+def turn_matrix(cam: Camera, roll: float) -> np.ndarray:
+    """The rotation (3x3, for column vectors) that turns the model `roll` degrees about the camera's line of sight,
+    clockwise as the picture shows it (Roll in the Aim tab)."""
+    if not roll:
+        return np.eye(3)
+    _eye, u, v, w = cam.basis()
+    B = np.stack([u, v, w])                                    # world -> camera
+    c, s = math.cos(math.radians(roll)), math.sin(math.radians(roll))
+    Z = np.array([[c, s, 0.0], [-s, c, 0.0], [0.0, 0.0, 1.0]])  # roll_screen, in camera axes
+    return B.T @ Z @ B
+
+
+def turn_in_view(P: np.ndarray, cam: Camera, roll: float) -> np.ndarray:
+    """Points of the model turned `roll` degrees about the line of sight through the look-at point (Roll, clockwise on
+    the picture). The axis runs through the eye, so the turned model's picture is the picture turned (roll_screen,
+    exactly, in perspective too) while what a tool keeps fixed in the world stays: Contour Lines' level slices, a
+    light set on the model. Tools that draw only the model's own lines may roll the camera instead (Camera.roll)."""
+    P = np.asarray(P, dtype=float)
+    if not roll:
+        return P
+    look = np.asarray(cam.lookat, dtype=float)
+    return (P - look) @ turn_matrix(cam, roll).T + look
 
 
 def fit_view(cam: Camera, points: np.ndarray, frame: Frame, roll: float = 0.0, margin: float = 1.02) -> None:

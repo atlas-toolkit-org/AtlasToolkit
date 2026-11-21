@@ -10,7 +10,7 @@ from atlas_toolkit.core import (CAMERA_KEYS, CAMERA_NOTE, FRAME_KEYS, Bool, Floa
 TOOL = Tool(
     id="contour-lines",
     name="Contour Lines",
-    version="1.1.0",
+    version="1.2.0",
     category="mesh2svg",
     icon="contours",
     action="Draw",

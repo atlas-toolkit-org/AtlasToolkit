@@ -632,7 +632,7 @@ class View3D:
     def __init__(self, src, p, draft: bool = False, draft_faces: int = 150_000, log=None):
         from . import frame3d
         from . import mesh as gm
-        from .camera import Camera, camera_from, frame_for
+        from .camera import Camera, camera_from, frame_for, turn_in_view, turn_matrix
         from .raycast import Caster
         mesh = gm.load_mesh(src)
         from .surface import polygon_data
@@ -650,6 +650,11 @@ class View3D:
         self.V, self.F = V * self.s2, F
         c = camera_from(p)
         self.cam = Camera(c.theta, c.psi, c.radius * self.s2, tuple(np.asarray(c.lookat) * self.s2), c.fov, c.ortho)
+        # Roll turns the model about the line of sight (geom/camera.turn_in_view): a light set on the model and the
+        # hatching's world axes stay as they are, so the shading is the turned model's, not the picture turned
+        self.roll = float(p.get("roll", 0.0) or 0.0)
+        self.turn = turn_matrix(self.cam, self.roll)
+        self.V = turn_in_view(self.V, self.cam, self.roll)
         self.paper = frame_for(p.paper, p.orientation, p.margin)
         self.proj = Projector(self.cam, self.paper)
         self.caster = Caster(self.V, self.F)
@@ -660,7 +665,12 @@ class View3D:
         self.edge = sm.mean_edge_length(self.V, sm.edge_topology(self.F)[0]) if len(self.F) else E_SKETCH
         import os
         st = os.stat(src)
-        self.key = (str(src), st.st_size, st.st_mtime_ns, self.frame.key(), bool(draft), int(draft_faces), len(self.F))
+        self.key = (str(src), st.st_size, st.st_mtime_ns, self.frame.key(), bool(draft), int(draft_faces), len(self.F),
+                    tuple(np.round(self.turn, 9).ravel()) if self.roll else None)      # a rolled model: per view
+
+    def model_dir(self, d):
+        """A direction set on the model (a model-frame light), turned with it by Roll."""
+        return d if not self.roll or isinstance(d, dict) else self.turn @ np.asarray(d, dtype=float)
 
     def passes(self, params: dict, notes: list | None = None) -> dict:
         """Smoothing pass counts for this mesh: the pieces' counts were tuned on Augustus; a pass spreads over about

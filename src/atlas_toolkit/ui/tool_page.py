@@ -240,9 +240,10 @@ class ToolPage(QWidget):
         tiles.setSpacing(8)
         self.tiles = [StatTile("—") for _ in range(5)]
         for t in self.tiles:
-            tiles.addWidget(t)
+            tiles.addWidget(t, 1)                # even widths; a tile with a 'was …' gets twice (_show_tiles)
             t.hide()
         sl.addLayout(tiles)
+        self.tile_row = tiles
         split.addWidget(stage)
         split.setSizes([440, 740])
         split.setStretchFactor(1, 1)
@@ -1349,6 +1350,7 @@ class ToolPage(QWidget):
                 s = stats[i]
                 t.layout().itemAt(0).widget().setText(s.label.upper())
                 t.set(s.text(), s.text(s.before) if s.before is not None else "", s.tone)
+                self.tile_row.setStretch(i, 2 if s.before is not None else 1)
                 t.show()
             else:
                 t.hide()

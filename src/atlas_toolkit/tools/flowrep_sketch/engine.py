@@ -2,12 +2,13 @@
 from __future__ import annotations
 
 import os
+import time
 from pathlib import Path
 
 from atlas_toolkit.core import Result, Stat
 from atlas_toolkit.core.paths import cache_dir
 from atlas_toolkit.geom.camera import camera_from,frame_for
-from atlas_toolkit.geom.drawing import Drawing as AtlasDrawing,Pen
+from atlas_toolkit.geom.drawing import Drawing as AtlasDrawing,Pen,plot_tiles
 from atlas_toolkit.geom.svg import write_run_metadata
 
 from . import TOOL
@@ -20,6 +21,7 @@ def run(ctx,src,dst,p):
     import xml.etree.ElementTree as ET
 
     # the toolkit's own cache (per user, or the portable folder); FLOWREP_CACHE overrides it
+    t0=time.perf_counter()
     cache=Path(os.environ.get("FLOWREP_CACHE") or cache_dir()/"flowrep")
     opts=FlowRepOptions(dmax=float(p.dmax),prepare=p.prepare,target_faces=min(int(p.target_faces),1500) if ctx.draft else int(p.target_faces),
                         crease_angle=float(p.crease_angle),regularize_iterations=min(1,int(p.regularize)) if ctx.draft else int(p.regularize),
@@ -38,7 +40,10 @@ def run(ctx,src,dst,p):
                           up=up,front=front,rotate=tuple(rotate),fit_camera=False,
                           sample_step=0.7 if ctx.draft else 0.35,smoothing=float(p.smoothing),
                           silhouette_style=p.silhouette_style)
-    drawing=render_network(mesh,net,camera_from(p),frame_for(p.paper,p.orientation,float(p.margin)),options,
+    # Roll turns the model about the line of sight; FlowRep draws only the model's own lines, so turning the camera
+    # gives the same picture and keeps the network (cached for the mesh as it is in the file)
+    cam=camera_from(p); cam.roll=float(p.get("roll",0.0) or 0.0)
+    drawing=render_network(mesh,net,cam,frame_for(p.paper,p.orientation,float(p.margin)),options,
                            lambda f,m:ctx.progress(0.78+0.20*f,m),ctx.check_cancel)
     outputs=[]
     if dst is not None:
@@ -69,7 +74,11 @@ def run(ctx,src,dst,p):
     ctx.progress(1.0,"Saved" if outputs else "Previewed")
     return Result(outputs=outputs,
                   stats=[Stat("curves","Curves",len(net.curves)),Stat("strokes","Strokes",drawing.stats["strokes"]),
-                         Stat("error","Region error",error,"°",fmt="{:.2f}")],
+                         # the plot tiles every drawing tool shows, from the drawing as the preview has it, and how
+                         # faithful the network is: its worst region error against the tool's limit
+                         *plot_tiles(preview.stats(),time.perf_counter()-t0,
+                                     extra=[Stat("error","Region error",error,"°",fmt="{:.2f}",
+                                                 tone="warning" if error>float(p.dmax) else "")])],
                   report=report,
                   preview={"views":[{"title":"Drawing","kind":"svg","drawing":preview}],"prefer":"Drawing"},
                   status="Saved" if outputs else ("Draft" if ctx.draft else "Previewed"),

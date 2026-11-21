@@ -31,9 +31,9 @@ def _psi_from_azimuth(az):            # 6.x: the 3D viewer's azimuth (-90: the f
 def view_params() -> list:
     """The shared orbit camera without field of view or projection (always orthographic), front and a little above;
     6.x's Azimuth and Elevation carry over (its own fit-to-paper framing does not: F in the Aim tab fits)."""
-    theta, psi, radius, lookat = camera_params(80.0, 180.0, 130.0, ortho_only=True)
+    theta, psi, radius, lookat, roll = camera_params(80.0, 180.0, 130.0, ortho_only=True)
     return [dataclasses.replace(theta, former=("elevation",), former_convert=_theta_from_elevation),
-            dataclasses.replace(psi, former=("azimuth",), former_convert=_psi_from_azimuth), radius, lookat]
+            dataclasses.replace(psi, former=("azimuth",), former_convert=_psi_from_azimuth), radius, lookat, roll]
 
 
 TOOL = Tool(
@@ -66,8 +66,6 @@ TOOL = Tool(
         Section(
             "Camera",
             *view_params(),
-            Float("roll", "Roll", 0.0, unit="°", min=-180, max=180, step=5, decimals=1,
-                  per_input=True, help="Turns the drawing on the paper."),
             Choice("light", "Light", "front", LIGHT_CHOICES,
                    help="Where the light comes from, seen from the camera. It sets the tone: darker where the "
                         "surface turns away from it."),

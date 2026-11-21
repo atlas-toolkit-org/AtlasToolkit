@@ -5,14 +5,17 @@ the camera, inside the toolkit (the tool spec's `viewer`).
 The paper is drawn with its drawing area framed: the camera looks through that frame, so what is inside it is what
 Draw writes (lines outside stay faint). Moving works as on plotter.vision:
 
-    drag                orbit (θ, ψ), at plotter.vision's speed
+    drag                orbit (θ, ψ), at plotter.vision's speed; with Ctrl, θ and ψ snap to 15°
     Shift-drag / right  move the look-at point (in the picture's plane; plotter.vision moved it along x and z)
+    the ring            drag it round to roll the model like a clock hand (Ctrl snaps to 15°); the dial in the
+                        corner shows the roll and sets the model upright again (0 does too)
+    Q E                 roll 5° anticlockwise / clockwise (Shift: 1°)
     wheel               distance (Ctrl+wheel: field of view)
     1 2 3 4 5           front, side, back, other side, top
-    arrows              turn and come closer, like plotter.vision's
+    arrows              turn and come closer, like plotter.vision's (Shift+up/down: tilt)
     F / double-click    fit the model in the frame (its picture, centred and as large as the frame allows)
     A                   always fit: F after every move, until A again, Shift-drag or the wheel
-    R                   plotter.vision's start view          T  red/blue stereo on/off
+    R                   plotter.vision's start view, upright  T  red/blue stereo on/off
     P / Pause lines     no hidden lines after a move until P again: aim a heavy model over its trace, then draw
                         the lines once, where it landed (the camera still goes into the settings)
 
@@ -55,12 +58,14 @@ except Exception:   # pragma: no cover
     arrayToQPath = None
 
 MODEL_KEYS = ("decimate", "target_faces", "fix_winding", "crossings")
-CAMERA_KEYS = ("theta", "psi", "radius", "lookat", "fov", "projection")
+CAMERA_KEYS = ("theta", "psi", "radius", "lookat", "fov", "projection", "roll")
 PAINT_ONLY = ("line_width", "outline_width", "optimise", "simplify", "min_stroke", "far_dashed")
 VIEWS = {Qt.Key_1: (90.0, 0.0), Qt.Key_2: (90.0, 90.0), Qt.Key_3: (90.0, 180.0), Qt.Key_4: (90.0, -90.0),
          Qt.Key_5: (1.0, 1.0)}                     # plotter.vision's 1-5
 START = {"theta": 70.0, "psi": -150.0, "radius": 170.0, "lookat": (0.0, 0.0, 0.0), "fov": 60.0}
 DRAG_DEG = math.degrees(0.005)                     # plotter.vision: 0.5 px x 0.01 rad
+SNAP_DEG = 15.0                                    # Ctrl while orbiting or rolling
+RING_GRAB = 9.0                                    # px either side of the roll ring that grab it
 DRAG_LINES = 60_000                                # the first moving frame draws at most this many candidate edges
 DRAG_MIN = 4_000                                   # thinning while moving never goes below this many
 FRAME_S = 0.033                                    # a moving frame's budget: under it the view keeps up with the hand
@@ -179,6 +184,42 @@ def _same_camera(a: Camera, b: Camera) -> bool:
             and np.allclose(a.lookat, b.lookat, atol=1e-6) and abs(a.fov - b.fov) < 1e-6 and a.ortho == b.ortho)
 
 
+class _RollDial(QWidget):
+    """The roll as a small clock in the view's top-right corner: the hand points where the model's top has turned to.
+    A click sets the model upright again (roll 0)."""
+
+    def __init__(self, view: "VisionView"):
+        super().__init__(view)
+        self.view = view
+        self.setFixedSize(34, 34)
+        self.setCursor(Qt.PointingHandCursor)
+        self.setFocusPolicy(Qt.NoFocus)
+        self.setToolTip("Roll: where the model's top points. Click (or press 0) to set it upright again.")
+
+    def paintEvent(self, e) -> None:
+        v = self.view
+        if not v.has_roll:
+            return
+        th = v.theme
+        qp = QPainter(self)
+        qp.setRenderHint(QPainter.Antialiasing)
+        c, r = QPointF(17, 17), 13.0
+        qp.setPen(_pen(qcolor(th["text-3"]), 1.0))
+        qp.setBrush(qcolor(th["bg-1"]))
+        qp.drawEllipse(c, r, r)
+        for i in range(4):                       # 12, 3, 6 and 9 o'clock
+            a = math.radians(90 * i)
+            qp.drawLine(QPointF(c.x() + (r - 3) * math.sin(a), c.y() - (r - 3) * math.cos(a)),
+                        QPointF(c.x() + r * math.sin(a), c.y() - r * math.cos(a)))
+        a = math.radians(v.roll)
+        qp.setPen(_pen(qcolor(th["highlight"] if v.roll else th["text-2"]), 2.0))
+        qp.drawLine(c, QPointF(c.x() + (r - 4) * math.sin(a), c.y() - (r - 4) * math.cos(a)))
+        qp.end()
+
+    def mousePressEvent(self, e) -> None:
+        self.view.set_roll(0.0)
+
+
 class VisionView(QWidget):
     """Plotter Vision's live view. Tools that draw through a camera host a subclass to aim
     (tools/plotter_vision/aim.py); these class attributes are what such a subclass changes."""
@@ -190,8 +231,8 @@ class VisionView(QWidget):
     MODEL_KEYS = MODEL_KEYS              # settings that reload the model
     STEREO = True                        # T toggles the red/blue pair
     REDRAW_KEYS = None                   # settings (besides the camera) that recompute the lines; None: any other
-    KEYS = ("drag orbit · shift-drag move · wheel distance · 1-5 views · F fit · A always fit · P pause lines · R reset"
-            " · T stereo")
+    KEYS = ("drag orbit · shift-drag move · ring / Q E roll · wheel distance · 1-5 views · F fit · A always fit · "
+            "P pause lines · R reset · T stereo")
     FIT_POINTS = 50_000                  # at most this many vertices are fitted (F, Always fit)
 
     def __init__(self, page):
@@ -209,6 +250,11 @@ class VisionView(QWidget):
         self.model = None
         self.values = dict(page.values())
         self.cam = self._camera_from_values(self.values)
+        self.roll = self._roll_of(self.values)   # the model's roll as shown: ahead of the settings while it moves
+        self.drag = ""                  # what the pointer is doing: "" | "orbit" | "roll"
+        self._raw = (0.0, 0.0)          # orbit: (θ, ψ) as dragged, before snapping; roll: the roll as dragged
+        self._grab = 0.0                # roll: the pointer's last angle round the ring
+        self._ring_hover = False
         self.cand: list = []            # per eye: (A, B, outline) on screen, nothing hidden
         self.pieces: list = []          # (P0, P1, depth, outline, hidden, eye) batches
         self.state = "empty"            # empty | loading | moving | computing | paused | done | error
@@ -237,6 +283,8 @@ class VisionView(QWidget):
             "Pause lines · P", "P: stop drawing the black lines (hidden lines removed) after each move. Turn, move and "
                                "zoom over the trace as long as you like, then resume to draw them once, for the view you "
                                "landed on. The view still goes into the settings.", self.set_paused)
+        self.dial = _RollDial(self)
+        self.setMouseTracking(True)     # the ring lights up under the pointer
 
     def _corner_button(self, text: str, tip: str, slot) -> QPushButton:
         """A small checkable button in the strip under the paper (the keys line's font; the theme's colours)."""
@@ -296,6 +344,8 @@ class VisionView(QWidget):
             model_changed = any(self.values.get(k) != vals.get(k) for k in self.MODEL_KEYS)
             self.values = vals
             self.cam = self._camera_from_values(vals)
+            self.roll = self._roll_of(vals)
+            self.dial.update()
             if self.path is not None and (model_changed or str(path or "") != self.path):
                 self.path = None                 # reload below
             elif self.model is not None:
@@ -321,12 +371,20 @@ class VisionView(QWidget):
             return
         if any(old.get(k) != values.get(k) for k in self.MODEL_KEYS):
             self.cam = self._camera_from_values(values)
+            self.roll = self._roll_of(values)
+            self.dial.update()
             self._load_model()
             return
         cam = self._camera_from_values(values)
         # A camera still on its way to the settings is newer than these values, which were already waiting to arrive.
         ahead = self.commit.isActive() or self.last is not None
         moved = not ahead and not _same_camera(cam, self.cam)
+        roll = self._roll_of(values)
+        if not ahead and abs(roll - self.roll) > 1e-9:      # typed into Roll: the lines only turn
+            self.roll = roll
+            self.dial.update()
+            if self.always_fit:
+                moved = True
         other = any(old.get(k) != values.get(k) for k in values
                     if k not in CAMERA_KEYS and k not in self.MODEL_KEYS and k not in PAINT_ONLY
                     and (self.REDRAW_KEYS is None or k in self.REDRAW_KEYS))
@@ -364,8 +422,42 @@ class VisionView(QWidget):
             fit_view(self.cam, self.fit_points(), self._paper_frame(), self._roll_deg())
 
     def _roll_deg(self) -> float:
-        """Roll of the picture about the view axis (a host's `roll` setting; 0 for the others)."""
-        return float(self.values.get("roll", 0.0) or 0.0)
+        """The model's roll about the line of sight, as shown (the host's `roll` setting; 0 for a host without one).
+        The trace is outline and creases, so the turned model's picture is the picture turned (geom/camera)."""
+        return self.roll
+
+    @staticmethod
+    def _roll_of(values: dict) -> float:
+        return float(values.get("roll", 0.0) or 0.0)
+
+    @property
+    def has_roll(self) -> bool:
+        return "roll" in self.values
+
+    def set_roll(self, roll: float) -> None:
+        """Roll the model to `roll` degrees (clockwise on the picture) and write it back like any camera move."""
+        if self.model is None or not self.has_roll:
+            return
+        self.roll = wrap(float(roll))
+        self._rolled()
+        self._roll_settle()
+
+    def _rolled(self) -> None:
+        """The roll changed under the hand. The lines are worked out over every turn of the picture (_region), so
+        they only turn with it; Always fit frames the turned picture again, which is a move."""
+        self.commit.stop()
+        self.dial.update()
+        if self.always_fit:
+            self._moved()
+        else:
+            self.update()
+
+    def _roll_settle(self) -> None:
+        """A roll is over: it goes into the settings; the lines need no new work unless Always fit moved the camera."""
+        if self.always_fit:
+            self._settle()
+        else:
+            self.commit.start()
 
     def set_always_fit(self, on: bool) -> None:
         on = bool(on)
@@ -557,6 +649,8 @@ class VisionView(QWidget):
         vals = c.as_values()
         c.theta, c.psi, c.radius, c.lookat, c.fov = (vals["theta"], vals["psi"], vals["radius"], vals["lookat"],
                                                     vals["fov"])
+        if self.has_roll:
+            self.roll = vals["roll"] = round(self.roll, 1)
         self.values.update(vals)
         self.page.form.set_values(vals)
         self.page._settings_changed()
@@ -574,19 +668,56 @@ class VisionView(QWidget):
         self._settle()
 
     # ================================================================== input
+    def ring(self) -> tuple[QPointF, float]:
+        """The roll ring: centred on the look-at point (the frame's middle), inside the frame (centre, radius, px)."""
+        frame, s, ox, oy = self._layout()
+        x0, y0, w, h = frame.area
+        return QPointF(ox + (x0 + w / 2.0) * s, oy + (y0 + h / 2.0) * s), max(min(w, h) * s / 2.0 - 4.0, 12.0)
+
+    def _on_ring(self, pos: QPointF) -> bool:
+        if not self.has_roll or self.model is None:
+            return False
+        c, r = self.ring()
+        return abs(math.hypot(pos.x() - c.x(), pos.y() - c.y()) - r) <= RING_GRAB
+
+    def _clock_angle(self, pos: QPointF) -> float:
+        """The pointer's angle round the ring, clockwise from 12 o'clock (degrees)."""
+        c, _r = self.ring()
+        return math.degrees(math.atan2(pos.x() - c.x(), c.y() - pos.y()))
+
     def mousePressEvent(self, e) -> None:
         self.setFocus()
         if self.model is None:
             return
         self.last = e.position()
+        if e.button() == Qt.LeftButton and not (e.modifiers() & Qt.ShiftModifier) and self._on_ring(self.last):
+            self.drag, self._raw = "roll", (self.roll, 0.0)
+            self._grab = self._clock_angle(self.last)
+            self.setCursor(Qt.ClosedHandCursor)
+            self._rolled()
+            return
+        self.drag, self._raw = "orbit", (self.cam.theta, self.cam.psi)
         self._moved()
 
     def mouseMoveEvent(self, e) -> None:
-        if self.last is None or self.model is None:
-            return
         pos = e.position()
+        if self.last is None or self.model is None:
+            hover = self._on_ring(pos)               # the ring answers the pointer: it can be grabbed here
+            if hover != self._ring_hover:
+                self._ring_hover = hover
+                self.setCursor(Qt.OpenHandCursor if hover else Qt.ArrowCursor)
+                self.update()
+            return
         dx, dy = pos.x() - self.last.x(), pos.y() - self.last.y()
         self.last = pos
+        snap = bool(e.modifiers() & Qt.ControlModifier)
+        if self.drag == "roll":                       # a clock hand: the turn follows the pointer round the ring
+            a = self._clock_angle(pos)
+            raw = self._raw[0] + wrap(a - self._grab)
+            self._grab, self._raw = a, (raw, 0.0)
+            self.roll = wrap(round(raw / SNAP_DEG) * SNAP_DEG if snap else raw)
+            self._rolled()
+            return
         c = self.cam
         pan = bool(e.buttons() & (Qt.RightButton | Qt.MiddleButton)) or bool(e.modifiers() & Qt.ShiftModifier)
         if pan:
@@ -594,17 +725,36 @@ class VisionView(QWidget):
             frame, s, _, _ = self._layout()
             per_px = c.radius / (c.k * frame.half * s)       # model units per pixel at the look-at distance
             _, u, v, _ = c.basis()
-            c.lookat = tuple(np.asarray(c.lookat) - u * dx * per_px + v * dy * per_px)
+            r = math.radians(self.roll)                      # the picture is turned by the roll: so is the hand
+            ux = (dx * math.cos(r) - dy * math.sin(r)) * per_px
+            uy = (dx * math.sin(r) + dy * math.cos(r)) * per_px
+            c.lookat = tuple(np.asarray(c.lookat) - u * ux + v * uy)
+            self._raw = (c.theta, c.psi)
         else:
-            c.psi = wrap(c.psi + dx * DRAG_DEG)
-            c.theta = wrap(c.theta - dy * DRAG_DEG)
+            th, ps = self._raw[0] - dy * DRAG_DEG, self._raw[1] + dx * DRAG_DEG
+            self._raw = (th, ps)
+            if snap:
+                th, ps = round(th / SNAP_DEG) * SNAP_DEG, round(ps / SNAP_DEG) * SNAP_DEG
+            c.theta, c.psi = wrap(th), wrap(ps)
         self._dirty = True               # only the camera moves here: the next frame works out what it sees
         self.update()
 
     def mouseReleaseEvent(self, e) -> None:
         if self.last is not None:
             self.last = None
-            self._settle()
+            rolled, self.drag = self.drag == "roll", ""
+            if rolled:
+                self.setCursor(Qt.OpenHandCursor if self._on_ring(e.position()) else Qt.ArrowCursor)
+                self._roll_settle()
+            else:
+                self._settle()
+
+    def leaveEvent(self, e) -> None:
+        if self._ring_hover and self.last is None:
+            self._ring_hover = False
+            self.setCursor(Qt.ArrowCursor)
+            self.update()
+        super().leaveEvent(e)
 
     def mouseDoubleClickEvent(self, e) -> None:
         self.fit()
@@ -632,6 +782,15 @@ class VisionView(QWidget):
             c.psi = wrap(c.psi + (-5.0 if k == Qt.Key_Left else 5.0))
             self._moved()
             self._settle()
+        elif k in (Qt.Key_Up, Qt.Key_Down) and e.modifiers() & Qt.ShiftModifier:
+            c.theta = wrap(c.theta + (-5.0 if k == Qt.Key_Up else 5.0))      # tilt: up looks from higher
+            self._moved()
+            self._settle()
+        elif k in (Qt.Key_Q, Qt.Key_E) and self.has_roll:
+            step = 1.0 if e.modifiers() & Qt.ShiftModifier else 5.0
+            self.set_roll(self.roll + (step if k == Qt.Key_E else -step))
+        elif k == Qt.Key_0 and self.has_roll:
+            self.set_roll(0.0)
         elif k in (Qt.Key_Up, Qt.Key_Down):
             self._framing_by_hand()
             c.radius = float(np.clip(c.radius * (0.9 if k == Qt.Key_Up else 1.1), 1.0, 5000.0))
@@ -646,6 +805,8 @@ class VisionView(QWidget):
         elif k == Qt.Key_R:
             c.theta, c.psi, c.radius, c.lookat, c.fov = (START["theta"], START["psi"], START["radius"],
                                                         START["lookat"], START["fov"])
+            self.roll = 0.0
+            self.dial.update()
             self._moved()
             self._settle()
         elif k == Qt.Key_T and self.STEREO:
@@ -665,6 +826,7 @@ class VisionView(QWidget):
     def resizeEvent(self, e) -> None:
         super().resizeEvent(e)
         self._place_corner()
+        self.dial.move(self.width() - self.dial.width() - 8, 6)
         if self.model is not None and self.state in ("done", "computing"):
             self._compute_soon()
 
@@ -685,7 +847,8 @@ class VisionView(QWidget):
         cx, cy = x0 + w / 2.0, y0 + h / 2.0
         left, right = (-ox / s - cx) / frame.half, ((self.width() - ox) / s - cx) / frame.half
         top, bottom = (cy - (-oy / s)) / frame.half, (cy - (self.height() - oy) / s) / frame.half
-        if self._roll_deg():                     # turned: anything that could land on screen
+        if self.has_roll:                        # anything that could land on screen at any roll, so a turn of
+                                                 # the ring only turns the lines already worked out
             m = max(abs(left), abs(bottom), abs(right), abs(top)) * 1.42
             return (-m, -m, m, m)
         return (left, bottom, right, top)
@@ -845,6 +1008,8 @@ class VisionView(QWidget):
                     lp.end()
                 self._waiting.show(qp, inside, outside)
             self._show_result(qp, inside, outside, look, frame, s, ox, oy, dpr)
+        if self.has_roll:
+            self._ring(qp)
         if self.state in ("moving", "computing", "paused"):
             self._axes(qp, frame, s, ox, oy)
         self._hud(qp)
@@ -863,11 +1028,35 @@ class VisionView(QWidget):
             qp.setPen(QPen(QColor(hexa), 2.2, Qt.SolidLine, Qt.RoundCap))
             qp.drawLine(QPointF(*P[0]), QPointF(*P[i]))
 
+    def _ring(self, qp: QPainter) -> None:
+        """The roll ring: faint until the pointer is on it, a tick at 12 o'clock (upright) and a grip where the
+        model's 12 o'clock has turned to."""
+        c, r = self.ring()
+        active = self._ring_hover or self.drag == "roll"
+        col = qcolor(self.theme["highlight"])
+        col.setAlphaF(0.9 if active else 0.28)
+        qp.setBrush(Qt.NoBrush)
+        qp.setPen(_pen(col, 1.6 if active else 1.0))
+        qp.drawEllipse(c, r, r)
+        qp.drawLine(QPointF(c.x(), c.y() - r - 5), QPointF(c.x(), c.y() - r + 5))
+        a = math.radians(self.roll)
+        g = QPointF(c.x() + r * math.sin(a), c.y() - r * math.cos(a))
+        knob = 5.5 if active else 4.0
+        qp.setPen(Qt.NoPen)
+        qp.setBrush(col)
+        qp.drawEllipse(g, knob, knob)
+        qp.setBrush(Qt.NoBrush)
+        if self.drag == "roll":
+            qp.setPen(qcolor(self.theme["text-2"]))
+            qp.setFont(mono(11))
+            qp.drawText(QPointF(g.x() + 10, g.y() - 8), f"{self.roll:+.1f}°")
+
     def _camera_text(self) -> str:
         c = self.cam
         look = ", ".join(f"{x:.0f}" for x in c.lookat)
+        roll = f"   roll {self.roll:+.1f}°" if self.has_roll and self.roll else ""
         return (f"theta {c.theta:.1f}°   psi {c.psi:.1f}°   r {c.radius:.0f}   look ({look})   "     # as plotter.vision
-                f"{c.fov:.0f}° {'ortho' if c.ortho else 'persp'}")
+                f"{c.fov:.0f}° {'ortho' if c.ortho else 'persp'}{roll}")
 
     def _mode_text(self) -> str:
         """What the lines on screen are (an Aim tab's light trace, or the exact drawing), and Always fit."""
@@ -900,8 +1089,9 @@ class VisionView(QWidget):
         if mode and len(lines) > 1:
             lines[1] = f"{mode} · {lines[1]}"
         qp.setPen(qcolor(th["text-2"]))
+        room = max(self.width() - 24 - (self.dial.width() + 8 if self.has_roll else 0), 40)      # stops at the dial
         for i, t in enumerate(lines):
-            qp.drawText(QPointF(12, 20 + 16 * i), t)
+            qp.drawText(QPointF(12, 20 + 16 * i), qp.fontMetrics().elidedText(t, Qt.ElideRight, room))
         qp.setPen(qcolor(th["text-3"]))
         keys = self.KEYS
         room = self.width() - 24 - self._corner_width()

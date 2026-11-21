@@ -224,6 +224,8 @@ def render(model: Model, p, progress=None, log=None, cancel=None) -> dict:
     t0 = time.perf_counter()
     frame = frame_for(p.paper, p.orientation, p.margin, (p.get("paper_width", 200.), p.get("paper_height", 200.)))
     cam = camera_from(p)
+    # Roll: the model turned about the line of sight; edges only, so the same as the camera turned (geom/camera)
+    cam.roll = float(p.get("roll", 0.0) or 0.0)
     cams = [(cam, "")] if not p.stereo else [(cam, "red "), (cam.stereo(float(p.eye_sep)), "blue ")]
     groups, info = [], []
     for ci, (c, prefix) in enumerate(cams):

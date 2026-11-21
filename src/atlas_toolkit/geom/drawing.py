@@ -108,5 +108,19 @@ def fmt_duration(s: float) -> str:
     return f"{m:.0f} min" if m < 90 else f"{int(m // 60)} h {int(m % 60):02d}"
 
 
+def plot_tiles(st: PlotStats, seconds: float, travel: tuple | None = None, extra=()) -> list:
+    """The result tiles every drawing tool shows, in one order: Ink, Pen-up travel (`travel`: the tool's own
+    (before, after) when it ordered the strokes, shown as "was …"), Plot time, then at most one or two of the tool's own (`extra`), then
+    Computed in. Counts the queue shows as columns (strokes, dots, curves) go in the tool's own stats, before these."""
+    from atlas_toolkit.core.tool import Stat
+    before, after = travel if travel is not None else (None, st.travel)
+    return [Stat("ink", "Ink", fmt_length(st.ink), fmt="{}"),
+            Stat("travel", "Pen-up travel", fmt_length(after), fmt="{}",
+                 before=fmt_length(before) if before is not None else None),
+            Stat("time", "Plot time", fmt_duration(st.seconds()), fmt="{}"),
+            *extra,
+            Stat("seconds", "Computed in", seconds, "s", fmt="{:.1f}")]
+
+
 def polyline_length(pts) -> float:
     return sum(math.dist(p, q) for p, q in zip(pts, pts[1:]))

@@ -191,10 +191,10 @@ See [Surface Stripes](SURFACE_STRIPES.md) for controls, build instructions and l
 | **Shape Cutter** 2.0 | SVG → SVG | svg_shape_cutter | Keeps the lines inside (or outside) a closed shape: the element or layer named “shape”, a chosen layer or another SVG. Every island and hole counts. `<name>_cutout.svg` |
 | **Shape Outline** 2.0 | SVG → SVG | SVG_Shape_outline_v1 | One closed outline around a drawing: an envelope that hugs the strokes (bridging gaps under N mm), a concave or a convex hull. All parts or the largest, optional holes, a margin in mm. Written alone on the same sheet (ready as the Shape Cutter's “Another SVG”) or as a new layer. `<name>_outline.svg` |
 | **Hatch Maker** 7.0.0 | Mesh → SVG | STL 3D Hatch Maker v2.1, v3, v5 | Draws a model through an orthographic camera aimed in the Aim tab: seven hatching styles, outlines and creases, hidden lines removed, cut at the paper's frame in mm, one pen per layer, ordered to cut pen travel. `<name>_hatch.svg` |
-| **Plotter Vision** 1.5.0 | Mesh → SVG | plotter.vision (web app, reimplemented) | A model as the edges you can see through a perspective camera, aimed live in the Aim tab: drag to orbit, wheel for distance, 1-5 views, F fit; a light trace while you aim, the exact drawing with E. Edges flatter than an angle left out (0.01° = plotter.vision, a few degrees = clean quads, 30°+ = features; the Sketch preset is the Aim tab's look), lines where parts cross, optional decimation, depth pens, outline and hidden-line pens, red/blue stereo. `<name>_vision.svg` |
-| **Contour Lines** 1.1.0 | Mesh → SVG | new | A model as horizontal slices seen through a camera, hidden lines removed by ray casting: the melting and twisting heads' line language, for any model, without Blender. Spacing in mm on paper, converging lines tapered, strokes chained for few pen lifts. Draws a Twist or Melt stage set with one frame (same scale, position and slice heights on every plate). `<name>_contours.svg` |
-| **Sketch Hatching** 1.0.2 | Mesh → SVG | new | A model as an illustrator's pen sketch: lost-and-found outline, suggestive contours, valleys, creases, and hatching that follows the form in tone bands, with cast shadows and ambient occlusion; a focus point and a portrait light for a face. Two pens. `<name>_sketch.svg` |
-| **Stipple** 1.0 | Mesh → SVG | Digital divide's sphere (`projects/blender3d_project/digital_divide_1`) | A model in dots only: blue-noise stippling of its ray-cast light and shade, an empty highlight, edge darkening instead of an outline, a dot budget. `<name>_stipple.svg` |
+| **Plotter Vision** 1.6.0 | Mesh → SVG | plotter.vision (web app, reimplemented) | A model as the edges you can see through a perspective camera, aimed live in the Aim tab: drag to orbit, wheel for distance, 1-5 views, F fit; a light trace while you aim, the exact drawing with E. Edges flatter than an angle left out (0.01° = plotter.vision, a few degrees = clean quads, 30°+ = features; the Sketch preset is the Aim tab's look), lines where parts cross, optional decimation, depth pens, outline and hidden-line pens, red/blue stereo. `<name>_vision.svg` |
+| **Contour Lines** 1.2.0 | Mesh → SVG | new | A model as horizontal slices seen through a camera, hidden lines removed by ray casting: the melting and twisting heads' line language, for any model, without Blender. Spacing in mm on paper, converging lines tapered, strokes chained for few pen lifts. Draws a Twist or Melt stage set with one frame (same scale, position and slice heights on every plate). `<name>_contours.svg` |
+| **Sketch Hatching** 1.1.0 | Mesh → SVG | new | A model as an illustrator's pen sketch: lost-and-found outline, suggestive contours, valleys, creases, and hatching that follows the form in tone bands, with cast shadows and ambient occlusion; a focus point and a portrait light for a face. Two pens. `<name>_sketch.svg` |
+| **Stipple** 1.1 | Mesh → SVG | Digital divide's sphere (`projects/blender3d_project/digital_divide_1`) | A model in dots only: blue-noise stippling of its ray-cast light and shade, an empty highlight, edge darkening instead of an outline, a dot budget. `<name>_stipple.svg` |
 | **FlowRep Sketch** 0.2.0 | Mesh → SVG | new (FlowRep, Gori et al. 2017) | A model as a sparse network of curvature-aligned curves that describe its form, seen through a camera with hidden lines removed, plus an optional silhouette. Triangle meshes are remeshed into quads (Instant Meshes); quad-dominant OBJ/PLY keeps its topology. Descriptiveness sets how many curves remain (presets Clean, Detailed, Sparse; 25-30° suits organic models). As in the paper: only real sharp features become feature curves, side-by-side flowlines are decluttered (*Declutter parallel curves*), and no flowline ends in mid-air. Curves are smoothed between junctions (*Curve smoothing*), the silhouette is a smooth contour, and continuing strokes are joined. The 3D network is cached, so aiming again only redraws. `<name>_flowrep.svg` |
 | **Photo Hatching** 1.1.0 | Image → SVG | the DPT notebooks (a–d) in `google_colab` | Engraving-style hatching of a photo, guided by depth from a transformer (MiDaS 3.1 BEiT-L-512, DPT-Large or Depth Anything V2 Large on the GPU): strokes wrap the forms, ink density follows the tone, crossing layers only in the shadows, occlusion outlines. Also the notebooks' patches (mosaic) and depth contours, fixed. `<name>_photohatch.svg` |
 | **Cubic Replicator** 3.1 | Mesh → mesh | STL Cubic Replicator v2 | Copies of a model on a 3D grid, mirrored and turned at random (seeded). `<name>_replicated_3x3x1.stl` |
@@ -305,19 +305,29 @@ Every Aim tab is driven the same way:
 
 | Do | To |
 |---|---|
-| drag | orbit (Tilt θ, Turn ψ) |
+| drag | orbit (Tilt θ, Turn ψ); hold Ctrl to snap both to 15° |
 | Shift-drag or right-drag | move the look-at point |
+| drag the **ring** round the frame | roll the model like a clock hand (Ctrl snaps to 15°) |
+| `Q` / `E` | roll 5° anticlockwise / clockwise (with Shift: 1°) |
+| `0` or click the **dial** (top right) | set the model upright again (Roll 0) |
 | wheel / Ctrl+wheel | distance / field of view |
+| `←` `→` / Shift+`↑` `↓` | turn / tilt by 5° (`↑` `↓` alone: distance) |
 | `1` `2` `3` `4` `5` | front, side, back, other side, top |
 | `F` or double-click | fit: the model's picture centred and as large as the frame allows (a stage set: its whole box) |
 | `A` or **Always fit** | fit after every move, so the model stays framed while you orbit; `A` again, Shift-drag or the wheel goes back to framing by hand |
 | `P` or **Pause lines** | stop drawing the black lines after each move: aim over the trace as long as you like, then `P` again (**Resume lines**) draws them once, for the view you landed on |
-| `R` | the start view |
+| `R` | the start view, upright |
+
+**Roll** turns the model about the line of sight, through the look-at point, so it leans on the paper like a clock
+hand; clockwise is positive. It turns the model, not the paper: what the tool keeps level stays level, so Contour
+Lines' slices stay horizontal across a leaning head, and a light set on the model (Sketch Hatching, Stipple) turns
+with it while a camera light stays put. The dial in the corner always shows where the model's top points. Roll is
+a camera setting like the others (in the Camera section, kept per file, never in presets).
 
 Always fit and Pause lines are ways of aiming, not settings: the camera they leave is what Draw uses (a paused view
 still goes into the settings), and both are off whenever the tab opens. Pause lines helps most on heavy models,
-where the black lines take a few seconds after every stop. The Hatch Maker's camera is the same one, always orthographic (the distance sets the size), plus Roll,
-which turns the picture.
+where the black lines take a few seconds after every stop. The Hatch Maker's camera is the same one, always orthographic (the distance sets the size); its Roll
+keeps the hatching level as the model turns.
 
 ## Plotter Vision
 
@@ -328,12 +338,13 @@ through it, so what is in the frame is what Draw writes, cut at the frame in mm.
 |---|---|
 | drag | orbit (θ, ψ) |
 | Shift-drag or right-drag | move the look-at point |
+| the ring, `Q` / `E`, `0` | roll the model, set it upright (as in every Aim tab, above) |
 | wheel / Ctrl+wheel | distance / field of view |
 | `1` `2` `3` `4` `5` | front, side, back, other side, top |
 | `F` or double-click | fit the model in the frame (`A`: after every move) |
 | `P` or **Pause lines** | no hidden lines after a move until `P` again |
 | `R` | plotter.vision's start view |
-| `E` or **Exact lines** | the exact drawing instead of the light trace (and back) |
+| `X` or **Exact lines** | the exact drawing instead of the light trace (and back) |
 | `T` | red-blue stereo (with Exact lines) |
 
 Aim shows the light trace by default (the Sketch preset's look), quick on any model. **Exact lines** draws what

@@ -179,6 +179,94 @@ class AimViewTests(unittest.TestCase):
         self.key(v, Qt.Key_R)
         self.wait(lambda: page.values()["theta"] == 70.0 and page.values()["psi"] == -150.0)
 
+    def ring_drag(self, v, to_deg, mods=None):
+        """Grab the roll ring at 12 o'clock and drag it round to `to_deg` (clockwise from 12)."""
+        from PySide6.QtCore import QEvent, QPointF, Qt
+        from PySide6.QtGui import QMouseEvent
+        c, r = v.ring()
+        at = lambda a: QPointF(c.x() + r * np.sin(np.radians(a)), c.y() - r * np.cos(np.radians(a)))  # noqa: E731
+        steps = [(QEvent.MouseButtonPress, at(0), Qt.LeftButton, Qt.LeftButton)]
+        steps += [(QEvent.MouseMove, at(a), Qt.NoButton, Qt.LeftButton) for a in np.linspace(0, to_deg, 9)[1:]]
+        steps += [(QEvent.MouseButtonRelease, at(to_deg), Qt.LeftButton, Qt.NoButton)]
+        for kind, pt, btn, held in steps:
+            self.app.sendEvent(v, QMouseEvent(kind, pt, v.mapToGlobal(pt), btn, held, mods or Qt.NoModifier))
+
+    def test_roll_ring_keys_and_dial_turn_the_model_per_file(self):
+        """The ring turns the model like a clock hand (Ctrl snaps to 15°), Q / E step it, the dial and 0 set it
+        upright, R too; the roll goes into the settings like the camera, and each file keeps its own. The lines
+        already worked out only turn: a roll starts no new hidden-line work."""
+        from PySide6.QtCore import QEvent, Qt
+        from PySide6.QtGui import QKeyEvent
+        srcs = []
+        for name in ("roll_a.stl", "roll_b.stl"):
+            srcs.append(self.tmp / name)
+            trimesh.creation.box((10.0, 10.0, 40.0)).export(srcs[-1])
+        page = self.win.open_tool("contour-lines", [str(s) for s in srcs])
+        self.win.show()
+        self.wait(lambda: page.runnable() and page.idle())
+        v = page.viewer
+        keys = [str(s.resolve()) for s in srcs]
+        page.queue.setCurrentItem(page.rows[keys[0]].item)
+        self.wait(lambda: v.path == keys[0] and v.state == "done")
+        self.assertTrue(v.has_roll)
+        self.assertEqual(page.values()["roll"], 0.0)
+        gen = v.gen
+        self.ring_drag(v, 50.0)
+        self.assertAlmostEqual(v.roll, 50.0, delta=0.5)
+        self.assertEqual(v.gen, gen)                                 # the lines turned, nothing was worked out again
+        self.wait(lambda: abs(page.values()["roll"] - 50.0) < 0.5)
+        self.ring_drag(v, 50.0, Qt.ControlModifier)                  # 50 + 50 = 100, snapped to 105
+        self.wait(lambda: page.values()["roll"] == 105.0)
+        self.app.sendEvent(v, QKeyEvent(QEvent.KeyPress, Qt.Key_E, Qt.NoModifier))
+        self.wait(lambda: page.values()["roll"] == 110.0)
+        self.app.sendEvent(v, QKeyEvent(QEvent.KeyPress, Qt.Key_Q, Qt.ShiftModifier))
+        self.wait(lambda: page.values()["roll"] == 109.0)
+        self.assertIn("roll +109.0°", v._camera_text())
+        page.queue.setCurrentItem(page.rows[keys[1]].item)          # the other file: upright, its own
+        self.wait(lambda: v.path == keys[1] and v.state == "done")
+        self.assertEqual(page.values()["roll"], 0.0)
+        self.assertEqual(v.roll, 0.0)
+        self.app.sendEvent(v, QKeyEvent(QEvent.KeyPress, Qt.Key_E, Qt.NoModifier))
+        self.wait(lambda: page.values()["roll"] == 5.0)
+        page.queue.setCurrentItem(page.rows[keys[0]].item)          # back: still 109
+        self.wait(lambda: v.path == keys[0] and v.state == "done")
+        self.assertEqual(page.values()["roll"], 109.0)
+        self.assertEqual(v.roll, 109.0)
+        from PySide6.QtCore import QPointF
+        from PySide6.QtGui import QMouseEvent
+        pt = QPointF(17, 17)
+        self.app.sendEvent(v.dial, QMouseEvent(QEvent.MouseButtonPress, pt, v.dial.mapToGlobal(pt), Qt.LeftButton,
+                                               Qt.LeftButton, Qt.NoModifier))
+        self.wait(lambda: page.values()["roll"] == 0.0)
+        page.form.set_values({"roll": -30.0})                         # typed into the Camera section
+        page._settings_changed()
+        self.wait(lambda: v.roll == -30.0)
+        self.key(v, Qt.Key_0)
+        self.wait(lambda: page.values()["roll"] == 0.0)
+        self.app.sendEvent(v, QKeyEvent(QEvent.KeyPress, Qt.Key_E, Qt.NoModifier))
+        self.wait(lambda: page.values()["roll"] == 5.0)
+        self.key(v, Qt.Key_R)                                        # the start view, upright
+        self.wait(lambda: page.values()["roll"] == 0.0 and page.values()["theta"] == 70.0)
+        th = page.values()["theta"]
+        self.app.sendEvent(v, QKeyEvent(QEvent.KeyPress, Qt.Key_Up, Qt.ShiftModifier))       # tilt from higher
+        self.wait(lambda: page.values()["theta"] == th - 5.0)
+
+    def test_ctrl_snaps_the_orbit_to_15_degrees(self):
+        from PySide6.QtCore import Qt
+        src = self.tmp / "snap.stl"
+        trimesh.creation.box((10.0, 10.0, 40.0)).export(src)
+        page = self.win.open_tool("plotter-vision", [str(src)])
+        self.win.show()
+        self.wait(lambda: page.runnable() and page.idle())
+        v = page.viewer
+        key = str(src.resolve())
+        page.queue.setCurrentItem(page.rows[key].item)
+        self.wait(lambda: v.path == key and v.state == "done")
+        self.drag(v, 37, -23, Qt.ControlModifier)
+        self.wait(lambda: not v.commit.isActive() and page.values()["psi"] != -150.0)
+        for k in ("theta", "psi"):
+            self.assertEqual(page.values()[k] % 15.0, 0.0, k)
+
     def test_always_fit_toggles_with_a_and_lets_go_on_framing_by_hand(self):
         """A (or the button) fits after every move; A again, or Shift-drag / the wheel, goes back to framing by
         hand. It is view state: the settings only ever hold a camera."""
@@ -469,6 +557,31 @@ class LightTraceTests(unittest.TestCase):
         src = self.tmp / "small.stl"
         trimesh.creation.icosphere(subdivisions=3, radius=10.0).export(src)       # 1 280 faces
         self.assertEqual(pm.load_light(str(src), 20_000).faces, 1280)
+
+
+class RollMathTests(unittest.TestCase):
+    def test_turning_the_model_is_turning_the_picture(self):
+        """Roll turns the model about the line of sight through the look-at point. That axis runs through the eye, so
+        the turned model's picture is the picture turned (roll_screen, which the Aim tab shows), in perspective and
+        orthographic alike, and the same as a rolled camera (FlowRep, Plotter Vision); depth does not change."""
+        from atlas_toolkit.geom.camera import Camera, roll_screen, turn_in_view, turn_matrix
+        rng = np.random.default_rng(3)
+        P = rng.normal(0.0, 30.0, (200, 3))
+        for th, ps, r, look, ortho, roll in ((70, -150, 170, (0, 0, 0), False, 30.0),
+                                             (120, 45, 260, (12, -5, 8), False, -75.0),
+                                             (5, 10, 90, (3, 2, 1), True, 160.0)):
+            cam = Camera(th, ps, r, look, 50.0, ortho)
+            C0, C1 = cam.to_camera(P), cam.to_camera(turn_in_view(P, cam, roll))
+            np.testing.assert_allclose(C1[:, 2], C0[:, 2], atol=1e-9)
+            np.testing.assert_allclose(cam.project(C1), roll_screen(cam.project(C0), roll), atol=1e-9)
+            rolled = Camera(th, ps, r, look, 50.0, ortho, roll)
+            np.testing.assert_allclose(rolled.project(rolled.to_camera(P)), cam.project(C1), atol=1e-9)
+            M = turn_matrix(cam, roll)
+            np.testing.assert_allclose(M @ M.T, np.eye(3), atol=1e-12)
+            self.assertAlmostEqual(float(np.linalg.det(M)), 1.0, places=12)
+        cam = Camera(90.0, 180.0, 200.0, (0, 0, 0), 40.0, True)     # from the front: clockwise on the paper
+        top = cam.project(cam.to_camera(turn_in_view(np.array([[0.0, 0.0, 10.0]]), cam, 90.0)))[0]
+        np.testing.assert_allclose(top, (10.0 * cam.k / 200.0, 0.0), atol=1e-12)     # 12 o'clock went to 3
 
 
 class HatchAimMathTests(unittest.TestCase):
