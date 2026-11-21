@@ -13,7 +13,7 @@ from shapely.ops import unary_union
 from ._atlas.camera import Camera, NEAR, fit_radius_points, frame_for
 from ._atlas.frame3d import fit_frame, guess_axes
 from ._atlas import raycast
-from ._atlas.curvature import edge_topology, face_normals
+from ._atlas.curvature import edge_topology, face_normals, neighbour_average, vertex_normals
 from .flowlines import graph_chains
 from .mesh import load_mesh
 from .types import CurveNetwork, Drawing, FlowRepError, PolygonMesh, RenderOptions, checkpoint, progress_to
@@ -83,6 +83,124 @@ def _sample(P,cam,frame,step):
     return np.array(out)
 
 
+def _smooth_polyline(P,iterations,spacing):
+    """Resample by arc length, then Taubin lambda/mu smoothing (no shrinkage) with the ends fixed; a closed curve
+    (first point repeated last) is smoothed all round. The quad-edge kinks go, the curve's own shape stays."""
+    P=np.asarray(P,float)
+    if iterations<=0 or len(P)<3: return P
+    closed=np.linalg.norm(P[0]-P[-1])<1e-12
+    seg=np.linalg.norm(np.diff(P,axis=0),axis=1); at=np.r_[0.0,np.cumsum(seg)]; total=float(at[-1])
+    if total<=0: return P
+    n=max(3,int(np.ceil(total/max(spacing,1e-12))))
+    want=np.linspace(0.0,total,n+1)
+    Q=np.stack([np.interp(want,at,P[:,k]) for k in range(3)],1)
+    if closed: Q=Q[:-1]
+    if len(Q)<3: return P
+    for _ in range(int(iterations)):
+        for factor in (0.5,-0.53):
+            if closed:
+                L=(np.roll(Q,1,0)+np.roll(Q,-1,0))/2-Q
+            else:
+                L=np.zeros_like(Q); L[1:-1]=(Q[:-2]+Q[2:])/2-Q[1:-1]
+            Q=Q+factor*L
+    return np.vstack([Q,Q[:1]]) if closed else Q
+
+
+def _contours(V,F,cam,normal_passes=3):
+    """Interpolated contours (Hertzmann and Zorin 2000): the zero set of n·(eye − p) over smoothed vertex normals,
+    one segment per triangle it crosses, chained through shared edges into long smooth curves, plus open
+    boundaries. Returns [(points, normals)] so visibility can test them just off the surface."""
+    E,FE,EF,counts=edge_topology(F)
+    N=vertex_normals(V,F)
+    for _ in range(int(normal_passes)):
+        N=N+neighbour_average(N,E,len(V)); N/=np.maximum(np.linalg.norm(N,axis=1,keepdims=True),1e-30)
+    eye,_,_,w=cam.basis()
+    if cam.ortho:
+        g=N@w
+    else:
+        D=eye-V; g=(N*D).sum(1)/np.maximum(np.linalg.norm(D,axis=1),1e-30)
+    g=np.where(np.abs(g)<1e-12,1e-12,g)
+    a,b=E[:,0],E[:,1]
+    crossed=np.sign(g[a])!=np.sign(g[b])
+    t=np.zeros(len(E)); t[crossed]=g[a[crossed]]/(g[a[crossed]]-g[b[crossed]])
+    point=V[a]+t[:,None]*(V[b]-V[a])
+    normal=N[a]+t[:,None]*(N[b]-N[a])
+    hit=crossed[FE]
+    two=hit.sum(1)==2
+    segments=np.sort(FE[two][hit[two]].reshape(-1,2),axis=1) if two.any() else np.zeros((0,2),np.int64)
+    out=[]
+    if len(segments):
+        chains,_=graph_chains(segments,np.arange(len(segments)))
+        out+=[(point[c],normal[c]) for c in chains]
+    boundary=np.flatnonzero(counts==1)
+    if len(boundary):
+        for c in graph_chains(E,boundary)[0]:
+            out.append((V[c],N[c]))
+    return out
+
+
+def _close_gaps(runs,to_mm,gap):
+    """Visibility runs [(visible, points)] of one curve with hidden stretches shorter than `gap` mm on paper, between
+    visible ones, drawn after all: rays that graze the surface flicker, and that reads as a broken line."""
+    if gap<=0 or len(runs)<3: return runs
+    out=[]
+    for i,(visible,P) in enumerate(runs):
+        if (not visible and out and out[-1][0] and i+1<len(runs) and runs[i+1][0]
+                and float(np.linalg.norm(np.diff(to_mm(P),axis=0),axis=1).sum())<gap):
+            out[-1]=(True,np.vstack([out[-1][1],P[1:]])); continue
+        if visible and out and out[-1][0]:
+            out[-1]=(True,np.vstack([out[-1][1],P[1:]])); continue
+        out.append((visible,P))
+    return out
+
+
+def _join_strokes(lines,tol=0.05,turn=40.0,reach=0.6):
+    """Join strokes whose ends meet (within `tol` mm) and continue each other (they turn by at most `turn` degrees),
+    best-aligned pairs first: a flowline crossing a junction, or a contour cut by a crossing, becomes one stroke.
+    The plotter lifts the pen less and the drawing reads as long curves."""
+    from scipy.spatial import cKDTree
+    lines=[np.asarray(p,float) for p in lines if len(p)>=2]
+    if len(lines)<2: return lines
+    def outward(p,end):
+        q=p if end==0 else p[::-1]
+        d=np.cumsum(np.linalg.norm(np.diff(q,axis=0),axis=1))
+        k=min(len(q)-1,int(np.searchsorted(d,reach))+1)
+        v=q[0]-q[k]; n=np.linalg.norm(v)
+        return v/n if n>0 else v
+    pos=np.array([p[0] for p in lines]+[p[-1] for p in lines])
+    dirs=np.array([outward(p,0) for p in lines]+[outward(p,1) for p in lines])
+    n=len(lines); limit=-np.cos(np.radians(turn))
+    pairs=cKDTree(pos).query_pairs(tol,output_type="ndarray")
+    scored=sorted((float(dirs[x]@dirs[y]),int(x),int(y)) for x,y in pairs if x%n!=y%n)
+    link={}
+    for dot,x,y in scored:
+        if dot>limit: break
+        if x in link or y in link: continue
+        link[x]=y; link[y]=x
+    if not link: return lines
+    used=np.zeros(n,bool); out=[]
+    def walk(i,start_end):
+        parts=[]; end_in=start_end
+        while True:
+            used[i]=True
+            p=lines[i] if end_in==0 else lines[i][::-1]
+            parts.append(p if not parts else p[1:])
+            exit_end=1-end_in; node=exit_end*n+i
+            other=link.get(node)
+            if other is None: break
+            j,e=other%n,other//n
+            if used[j]: break
+            i,end_in=j,e
+        return np.vstack(parts)
+    for i in range(n):
+        if not used[i] and (i not in link or (n+i) not in link):
+            out.append(walk(i,0 if i not in link else 1))
+    for i in range(n):
+        if not used[i]:
+            out.append(walk(i,0))
+    return out
+
+
 def _silhouettes(V,F,cam):
     E,_,EF,counts=edge_topology(F); N,_=face_normals(V,F)
     eye,_,_,w=cam.basis()
@@ -112,11 +230,15 @@ def order_polylines(polylines,start=(0.0,0.0)):
     return out
 
 
-def _clean_layers(layers,bounds,min_length,optimise,cancel):
+def _clean_layers(layers,bounds,min_length,optimise,cancel,join=False):
     area=box(*bounds); ink=GeometryCollection(); out={}; removed=0
     for name in ("features","silhouette","flowlines","hidden"):
         accepted=[]
-        for j,p in enumerate(layers.get(name,[])):
+        source=layers.get(name,[])
+        if join and name!="hidden":
+            # join before the short-stroke filter, so a short piece between two junctions survives as part of a curve
+            source=_join_strokes(source)
+        for j,p in enumerate(source):
             if j%100==0: checkpoint(cancel)
             if len(p)<2: continue
             line=LineString(np.round(p,8)).intersection(area); before=line.length
@@ -130,6 +252,8 @@ def _clean_layers(layers,bounds,min_length,optimise,cancel):
             pieces=[q for q in _pieces(line) if LineString(q).length>=min_length]
             accepted.extend(pieces)
             if pieces and name!="hidden": ink=unary_union([ink,*[LineString(q) for q in pieces]])
+        if join and name!="hidden":
+            accepted=_join_strokes(accepted)
         out[name]=order_polylines(accepted) if optimise else accepted
     return out,removed
 
@@ -162,12 +286,31 @@ def render_network(mesh,network: CurveNetwork,camera=None,paper=None,options=Non
         reference=trimesh.Trimesh(V0,F,process=False)
         attached[used],_,_=trimesh.proximity.closest_point(reference,attached[used])
     display_network=CurveNetwork(attached,network.curves,network.kinds)
-    raw=[("features" if kind=="trim" else "flowlines",transform.apply(P)) for kind,P in _split_junctions(display_network)]
-    if options.silhouette: raw.extend(("silhouette",P) for P in _silhouettes(V,F,cam))
+    # The network follows quad edges, so its curves kink at every proxy vertex. Smooth each curve between
+    # junctions (they stay fixed); the samples are laid back on the surface below.
+    segments=[np.linalg.norm(np.diff(network.vertices[c],axis=0),axis=1) for c in network.curves]
+    spacing=float(np.mean(np.concatenate(segments)))/2 if segments else 0.0   # a quad-edge kink spans ~4 samples
+    iterations=int(round(30*options.smoothing))
+    raw=[]
+    for kind,P in _split_junctions(display_network):
+        P=_smooth_polyline(P,iterations//2 if kind=="trim" else iterations,spacing)
+        raw.append(("features" if kind=="trim" else "flowlines",transform.apply(P)))
+    if options.silhouette:
+        if options.silhouette_style=="smooth":
+            ER=edge_topology(F)[0]
+            lift=0.5*float(np.linalg.norm(V[ER[:,0]]-V[ER[:,1]],axis=1).mean())
+            # lift contour points a little off the surface along the normal: a ray to a contour grazes it
+            raw.extend(("silhouette",P+lift*N) for P,N in _contours(V,F,cam,int(round(2+6*options.smoothing))))
+        else:
+            raw.extend(("silhouette",P) for P in _silhouettes(V,F,cam))
+    def paper_length(P):
+        return float(np.linalg.norm(np.diff(frame.to_mm(cam.project(cam.to_camera(P))),axis=0),axis=1).sum())
     curves=[]; kinds=[]
     for kind,P in raw:
         checkpoint(cancel)
         for piece in _clip_3d(P,cam,frame):
+            if kind=="silhouette" and options.silhouette_style=="smooth" and paper_length(piece)<options.min_contour:
+                continue                     # a contour loop around a bump of sculpt noise
             curves.append(_sample(piece,cam,frame,options.sample_step)); kinds.append(kind)
     samples=sum(len(p) for p in curves)
     progress_to(progress,0.30,f"checking visibility of {samples} curve samples",cancel)
@@ -185,16 +328,17 @@ def render_network(mesh,network: CurveNetwork,camera=None,paper=None,options=Non
         checkpoint(cancel)
     caster=raycast.Caster(V,F)
     runs=raycast.split_visible(caster,cam,curves,[np.linalg.norm(p[0]-p[-1])<1e-8 for p in curves],
-                              eps=0.015,iters=12,hidden=options.hidden)
+                              eps=0.015,iters=12,hidden=True)
+    to_mm=lambda P: frame.to_mm(cam.project(cam.to_camera(P)))
     layers={"features":[],"silhouette":[],"flowlines":[],"hidden":[]}
     for kind,parts in zip(kinds,runs):
-        for visible,P in parts:
-            Q=frame.to_mm(cam.project(cam.to_camera(P)))
-            layers[kind if visible else "hidden"].append(Q)
-    progress_to(progress,0.76,"removing overlap and ordering plotter strokes",cancel)
+        for visible,P in _close_gaps(parts,to_mm,options.gap):
+            if visible or options.hidden:
+                layers[kind if visible else "hidden"].append(to_mm(P))
+    progress_to(progress,0.76,"joining, removing overlap and ordering plotter strokes",cancel)
     W,H=frame.sheet; x,y,w,h=frame.area; half=options.line_width/2
     bounds=(x+half,y+half,x+w-half,y+h-half)
-    layers,removed=_clean_layers(layers,bounds,options.min_length,options.optimise,cancel)
+    layers,removed=_clean_layers(layers,bounds,options.min_length,options.optimise,cancel,join=options.join)
     pls=[p for layer in layers.values() for p in layer]
     ink=sum(float(np.linalg.norm(np.diff(p,axis=0),axis=1).sum()) for p in pls)
     travel=sum(float(np.linalg.norm(a[-1]-b[0])) for a,b in zip(pls[:-1],pls[1:]))

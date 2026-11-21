@@ -57,14 +57,73 @@ def graph_chains(edges, edge_ids, breaks=None):
     return curves,ids
 
 
-def trim_edges(mesh, crease_angle):
+def trim_edges(mesh, crease_angle, min_edges=0, report=None):
+    """Boundary edges and sharp creases (paper §7.1: conservative, only really sharp features).
+
+    A remeshed proxy is much coarser than its source, so a tight but smooth fold (a nostril, a lip) shows up as a
+    sharp dihedral angle between two big quads. On such inputs a crease must also be sharp on the reference surface,
+    measured just beside the edge. Then chains of creases shorter than `min_edges` that end in nothing (no other
+    trim, no boundary) are dropped: they draw as stray flecks and only cut flowlines short."""
     topo=mesh.topology
     EF=topo.edge_faces
     boundary=EF[:,1]<0
     score=np.zeros(len(EF))
     inside=~boundary
     score[inside]=np.degrees(np.arccos(np.clip((topo.face_normals[EF[inside,0]]*topo.face_normals[EF[inside,1]]).sum(1),-1,1)))
-    return boundary | (score>=crease_angle)
+    sharp=inside&(score>=crease_angle)
+    proxy=int(sharp.sum()); unsupported=0
+    if sharp.any() and mesh.metadata.get("preparation")=="instant-meshes":
+        keep=_sharp_on_reference(mesh,np.flatnonzero(sharp),crease_angle)
+        unsupported=int((~keep).sum())
+        sharp[np.flatnonzero(sharp)[~keep]]=False
+    short=0
+    if min_edges>1 and sharp.any():
+        from scipy.sparse import coo_matrix
+        from scipy.sparse.csgraph import connected_components
+        ids=np.flatnonzero(sharp); E=topo.edges[ids]; nv=len(mesh.vertices)
+        _,label=connected_components(coo_matrix((np.ones(len(ids)),(E[:,0],E[:,1])),shape=(nv,nv)),directed=False)
+        on_boundary=np.zeros(nv,bool); on_boundary[topo.edges[boundary].ravel()]=True
+        group=label[E[:,0]]
+        for g in np.unique(group):
+            members=ids[group==g]; vertices=np.unique(topo.edges[members])
+            # a cluster of creases that closes no loop, touches no boundary and is short: a fleck
+            if len(members)<min_edges and len(vertices)>len(members) and not on_boundary[vertices].any():
+                sharp[members]=False; short+=len(members)
+    if report is not None:
+        report.update(crease_edges_proxy=proxy,crease_edges_unsupported=unsupported,
+                      crease_edges_short=short,crease_edges=int(sharp.sum()))
+    return boundary|sharp
+
+
+def _sharp_on_reference(mesh, edge_ids, crease_angle):
+    """Whether each proxy edge is still a crease on the reference surface: the angle between the reference's normals
+    a fifth of an edge to either side (each a small area-weighted average, so sculpt noise does not count)."""
+    import trimesh
+    from scipy.spatial import cKDTree
+    topo=mesh.topology; V=mesh.vertices
+    RV=np.asarray(mesh.reference_vertices,float); RT=np.asarray(mesh.reference_triangles,np.int64)
+    reference=trimesh.Trimesh(RV,RT,process=False)
+    E=topo.edges[edge_ids]; mid=(V[E[:,0]]+V[E[:,1]])/2
+    along=unit(V[E[:,1]]-V[E[:,0]]); length=float(topo.lengths.mean())
+    sides=[]
+    for k in (0,1):
+        faces=topo.edge_faces[edge_ids,k]
+        centre=np.array([V[mesh.faces[f]].mean(0) for f in faces])
+        d=centre-mid; d=unit(d-(d*along).sum(1)[:,None]*along)
+        sides.append(mid+0.2*length*d)
+    P=np.concatenate(sides)
+    closest,_,tri=trimesh.proximity.closest_point(reference,P)
+    FN=reference.face_normals; area=reference.area_faces
+    centres=reference.triangles_center
+    tree=cKDTree(centres); radius=0.12*length
+    N=FN[tri].copy()
+    for i,near in enumerate(tree.query_ball_point(closest,radius)):
+        if len(near)>1:
+            near=np.asarray(near); n=(FN[near]*area[near,None]).sum(0)
+            if np.linalg.norm(n)>0: N[i]=n
+    N=unit(N); n=len(edge_ids)
+    angle=np.degrees(np.arccos(np.clip((N[:n]*N[n:]).sum(1),-1,1)))
+    return angle>=0.75*crease_angle
 
 
 def projectivity(points, normals, dmax=20.0):
@@ -172,7 +231,8 @@ def _reliable_paths(mesh, edge_labels, keep, dmax, cancel):
 
 def compute_flowlines(mesh, options, progress=None, cancel=None, reliable_sigma=7.5):
     topo=mesh.topology; V=mesh.vertices; E=topo.edges; N=topo.normals
-    trim=trim_edges(mesh,options.crease_angle)
+    creases={}
+    trim=trim_edges(mesh,options.crease_angle,options.min_trim_edges,creases)
     pairs=[]; weights=[]
     progress_to(progress,0.12,"building signed edge-affinity graph",cancel)
     for v,incident in enumerate(topo.vertex_edges):
@@ -234,4 +294,4 @@ def compute_flowlines(mesh, options, progress=None, cancel=None, reliable_sigma=
     flows=_reliable_paths(mesh,edge_labels,~trim,options.dmax,cancel)
     return flows,trim,{"edge_clustering":first_info,"flowline_clustering":second_info,
                        "initial_flowlines":len(initial),"reliable_flowlines":len(flows),
-                       "reliable_sigma":reliable_sigma,"trim_edges":int(trim.sum())}
+                       "reliable_sigma":reliable_sigma,"trim_edges":int(trim.sum()),**creases}

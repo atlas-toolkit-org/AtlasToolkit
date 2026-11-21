@@ -37,6 +37,7 @@ class FlowRepOptions:
     prepare: str = "auto"       # auto | preserve | remesh
     target_faces: int = 6000
     crease_angle: float = 45.0
+    min_trim_edges: int = 4      # shorter isolated crease chains are dropped (0 or 1 keeps them all)
     clustering_passes: int = 8
     local_passes: int = 2
     regularize_iterations: int = 5
@@ -57,7 +58,9 @@ class FlowRepOptions:
             raise FlowRepError("iteration counts cannot be negative")
         if self.max_refinements < 1:
             raise FlowRepError("max_refinements must be positive")
-        for key in ("target_faces","clustering_passes","local_passes","regularize_iterations","max_refinements"):
+        if self.min_trim_edges < 0:
+            raise FlowRepError("min_trim_edges cannot be negative")
+        for key in ("target_faces","clustering_passes","local_passes","regularize_iterations","max_refinements","min_trim_edges"):
             if not isinstance(getattr(self,key),(int,np.integer)):
                 raise FlowRepError(f"{key} must be an integer")
 
@@ -78,16 +81,26 @@ class RenderOptions:
     front: str = "auto"
     rotate: tuple = (0.0, 0.0, 0.0)
     optimise: bool = True
+    smoothing: float = 0.5          # 0..1: curve smoothing between junctions, and contour normal smoothing
+    silhouette_style: str = "smooth"  # smooth: interpolated contours; mesh: front/back mesh edges (before 0.2.0)
+    min_contour: float = 2.0        # mm: shorter smooth contour loops (sculpt noise) are left out
+    gap: float = 0.4                # mm: shorter hidden gaps between visible runs are drawn
+    join: bool = True               # join strokes that meet and continue each other
 
     def __post_init__(self):
-        if not all(math.isfinite(float(v)) for v in (self.margin,self.line_width,self.tolerance,self.sample_step,self.min_length,*self.rotate)):
+        if not all(math.isfinite(float(v)) for v in (self.margin,self.line_width,self.tolerance,self.sample_step,self.min_length,
+                                                     self.smoothing,self.min_contour,self.gap,*self.rotate)):
             raise FlowRepError("rendering parameters must be finite")
         if self.orientation not in ("portrait", "landscape"):
             raise FlowRepError("orientation must be portrait or landscape")
         if self.tolerance <= 0 or self.sample_step <= 0 or self.line_width <= 0:
             raise FlowRepError("tolerance, sample_step, and line_width must be positive")
-        if self.margin < 0 or self.min_length < 0:
-            raise FlowRepError("margin and min_length cannot be negative")
+        if self.margin < 0 or self.min_length < 0 or self.min_contour < 0 or self.gap < 0:
+            raise FlowRepError("margin, min_length, min_contour and gap cannot be negative")
+        if not 0 <= self.smoothing <= 1:
+            raise FlowRepError("smoothing must be between 0 and 1")
+        if self.silhouette_style not in ("smooth", "mesh"):
+            raise FlowRepError("silhouette_style must be smooth or mesh")
 
 
 @dataclass

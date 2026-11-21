@@ -23,14 +23,16 @@ def run(ctx,src,dst,p):
     cache=Path(os.environ.get("FLOWREP_CACHE") or cache_dir()/"flowrep")
     opts=FlowRepOptions(dmax=float(p.dmax),prepare=p.prepare,target_faces=min(int(p.target_faces),1500) if ctx.draft else int(p.target_faces),
                         crease_angle=float(p.crease_angle),regularize_iterations=min(1,int(p.regularize)) if ctx.draft else int(p.regularize),
-                        local_passes=0 if ctx.draft else 2,clustering_passes=2 if ctx.draft else 8,cache_dir=str(cache))
+                        local_passes=0 if ctx.draft else 2,clustering_passes=2 if ctx.draft else 8,cache_dir=str(cache),
+                        relaxed_declutter=bool(p.declutter),min_trim_edges=int(p.min_trim_edges))
     mesh=load_mesh(src)
     net=extract_network(mesh,opts,lambda f,m:ctx.progress(f*0.78,m),ctx.check_cancel)
     options=RenderOptions(paper=p.paper,orientation=p.orientation,margin=float(p.margin),
                           line_width=float(p.line_width),tolerance=float(p.tolerance),
                           min_length=float(p.min_length),silhouette=bool(p.silhouette),hidden=bool(p.show_hidden),
                           up=p.up_axis,front=p.front,rotate=tuple(p.rotate),fit_camera=False,
-                          sample_step=0.7 if ctx.draft else 0.35)
+                          sample_step=0.7 if ctx.draft else 0.35,smoothing=float(p.smoothing),
+                          silhouette_style=p.silhouette_style)
     drawing=render_network(mesh,net,camera_from(p),frame_for(p.paper,p.orientation,float(p.margin)),options,
                            lambda f,m:ctx.progress(0.78+0.20*f,m),ctx.check_cancel)
     outputs=[]

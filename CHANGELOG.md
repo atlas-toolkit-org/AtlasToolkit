@@ -1,5 +1,28 @@
 # Changelog
 
+## 2.4.5 (unreleased)
+
+**FlowRep Sketch 0.2.0: drawings closer to the paper's**
+- **Only real sharp features become feature curves.** A remeshed model's coarse quads made every tight but
+  smooth fold (nostrils, lids, lips, ears) look sharp, and each became a short feature curve drawn as a stray
+  fleck. Now a crease must also be sharp on the original surface. Small clusters of creases that touch nothing
+  are left out (*Shortest sharp feature*, advanced). On *Sculpted head_flow*, 228 feature curves became 33.
+- **No flowline ends in mid-air.** The paper's last step is back: a dangling end reaches the nearest curve
+  when it is at most three edges away, or is shortened to its last junction, whenever the shape is still
+  described within Descriptiveness.
+- **Declutter parallel curves** (new, on): of two flowlines running side by side (within two edges), the one
+  whose removal costs least goes, within the paper's 20 % allowance. Curves that cross the removed line stay
+  whole: curves meeting head-on keep going as one, and a staggered one reaches across to the next line. On the
+  sculpted head at 20°, 64 of 292 flowlines go; it used to be off, and only looked at directly adjacent lines.
+- **Smooth curves and silhouettes.** Curves are smoothed between junctions (*Curve smoothing*, 0.5), so
+  they no longer kink at every quad corner. The silhouette is a smooth contour that follows the surface
+  between its vertices; it used to be a chain of mesh edges that broke into hundreds of dashes on sculpted
+  models. *Silhouette style › Mesh edges* (advanced) keeps the old look.
+- **Long strokes.** Short hidden gaps from grazing rays are drawn, and strokes that continue each other across
+  a junction are joined. One view of the sculpted head (6000 quads, 20°) went from 1611 strokes (691 under
+  2 mm) to 233 (52), with 228 flowlines and 33 feature curves instead of 190 and 228. At 30°, the paper's
+  setting for organic models (now suggested in the Descriptiveness help), it draws 194 strokes.
+
 ## 2.4.4 (unreleased)
 
 **FlowRep Sketch 0.1.3**

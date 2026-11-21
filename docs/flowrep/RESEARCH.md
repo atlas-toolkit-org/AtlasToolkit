@@ -111,8 +111,23 @@ the threshold. A priority queue refreshes neighboring candidates after each acce
 
 Local optimization tries the two strongest available parallel neighbors in the same strand,
 checking the full context-dependent objective before accepting a replacement. Default search
-uses two passes, with early exit when nothing improves. The optional final decluttering step
-allows the paper's 20% error relaxation; it is disabled by default and reported explicitly.
+uses two passes, with early exit when nothing improves.
+
+The final decluttering step follows §7.2. It looks at every pair of selected flowlines that share
+no vertex and run side by side, with the shorter one's median distance (and 60% of its vertices)
+within two average edge lengths of the other. Of each pair it removes the flowline whose removal
+raises the error least, when every affected region stays within the paper's 20% relaxation
+(dmax × 1.2). The library leaves it off (`relaxed_declutter`); FlowRep Sketch turns it on by default
+(*Declutter parallel curves*). It used to consider only flowlines one quad apart in the same strand,
+which missed most bundles.
+
+The network then gets the paper's last shortening pass (§7.2: "no open-ended curves"). A flowline
+end that stops in nothing is valence 1, or valence 2 at a corner of 90° or less; an obtuse valence-2
+joint reads as one continuing curve and is left alone. Such an end first tries to reach the network
+along its own flowline, at most three more edges. Otherwise it is shortened back to its last junction
+(cascading to curves that this frees). Each change is checked like a removal and kept only when every
+affected region stays within the bound. `dangling_ends_before`/`_after` and `ends_extended`/`_shortened`
+are reported.
 
 Regularization uses tangent-plane Gauss–Seidel smoothing, angle equalization at crossings and
 T junctions, and projection to the original surface. Compatible near-planar and near-linear
@@ -143,10 +158,26 @@ visibility testing to prevent planar-snapping self-occlusion artifacts. Visibili
 paper units, including intermediate points even when segment endpoints have matching visibility,
 and transitions are bisected.
 
-Silhouettes are geometric front/back triangle boundaries, not traced raster contours.
-Near-plane and paper-frustum clipping happens before sampling. Projected strokes retain network
-junctions as fixed endpoints. Exact coincident ink is removed before short-stroke filtering and
-Atlas-style nearest-endpoint ordering.
+Network curves follow the quad proxy's edges, so they kink at every proxy vertex, while the paper's
+drawings show smooth regularized curves. Before projection, each curve between junctions is resampled
+at half an average edge and Taubin-smoothed (λ = 0.5, μ = -0.53, 30 × *smoothing* passes; trims get
+half). This takes out kinks about two edges long and leaves bends of ten edges or more practically
+untouched. Junctions stay fixed, and every sample is laid back on the reference surface.
+
+Silhouettes are interpolated contours by default (Hertzmann and Zorin 2000). They are the zero set of
+n·(eye − p) over the reference's vertex normals, smoothed by 2 + 6 × *smoothing* neighbour averages,
+with one segment per triangle the zero set crosses. The segments are chained through shared edges
+into long curves, and open boundaries are added. Contour pieces shorter than 2 mm on paper (loops
+around sculpt noise) are left out. Contour points are lifted half an average reference edge along the
+normal before the visibility test, because a ray to a contour grazes the surface. The older front/back
+triangle boundaries remain as *Silhouette style: Mesh edges*. On a 524k-triangle sculpted head they
+gave 652 pieces in one view; the contours give 30.
+
+Near-plane and paper-frustum clipping happens before sampling. Hidden stretches shorter than 0.4 mm
+between visible runs of one curve are drawn (grazing rays flicker). In each layer, strokes whose ends
+meet within 0.05 mm and continue each other (turning by 40° or less) are joined, best-aligned pairs
+first: a flowline through a junction becomes one stroke, a corner stays two. Exact coincident ink is
+then removed before short-stroke filtering and Atlas-style nearest-endpoint ordering.
 
 SVGs contain native paths only. Fitted cubic segments are checked using a convex-hull bound on
 the complete cubic against each original piecewise-linear interval. This supplies a continuous,
@@ -160,8 +191,12 @@ than the reserved fitting tolerance.
   Its networks can differ substantially from the authors' examples even when the measured
   descriptiveness constraint is satisfied.
 - Sharp trims use conservative polygon dihedral angles and open boundaries, rather than
-  reproducing Yoshizawa's full ridge/valley detector. Small coarse meshes can make smooth
-  bends appear sharp; increase resolution or adjust the sharp-feature angle in that case.
+  reproducing Yoshizawa's full ridge/valley detector. On a remeshed input, a crease must also be
+  sharp on the reference surface: the area-weighted normals a fifth of an edge to each side must
+  differ by at least 75% of the sharp-feature angle. Otherwise the coarse proxy turns tight but
+  smooth folds (nostrils, lids, ears) into trims. Clusters of creases shorter than *Shortest sharp
+  feature* (4 edges) that close no loop and touch no boundary are dropped. On the sculpted head,
+  587 proxy creases became 85, and trim curves fell from 228 to 33.
 - Reliable open-path selection uses weighted tree diameters; spiral handling and local search
   are bounded practical implementations. These choices are visible in the reported networks.
 - The geometric normal metric depends on sampled directions and does not guarantee perceptual
@@ -173,8 +208,11 @@ than the reserved fitting tolerance.
   for several examples. Reproduction is deterministic for fixed prepared geometry.
 - Visibility sampling defaults to 0.35 mm on paper. Features thinner than the sampling scale may
   require a smaller step. The scalar reference ray caster remains available when Embree is absent.
-- Rendering may emit more pen lifts than an artist's drawing because it preserves real junctions,
-  clipping boundaries and occlusion transitions.
+- Rendering still lifts the pen at real occlusion transitions, clipping boundaries and corners. Strokes
+  that continue each other across junctions are joined.
+- The paper uses dmax = 20° for design shapes and 30° for organic ones (dog head, phone). On sculpted
+  organic models, 20° keeps many parallel flowlines, because without sharp features nothing else
+  bounds the regions; 25-30° is closer to the paper's look there.
 - Sparse Python optimization is slower than the authors' C++ implementation on complex meshes.
   Camera-only redraws reuse the cached extraction and avoid that cost.
 
