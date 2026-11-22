@@ -1,4 +1,4 @@
-// Atlas Surface Texture: cancellable xatlas transport, protocol 2.
+// Atlas Surface Texture: cancellable xatlas transport, protocol 3 (protocol 2 plus the chart options from Atlas).
 // xatlas's limits are absolute: faces under a fixed area are ignored, and texelsPerUnit sets the atlas in model units, so a
 // large model asks for an atlas of hundreds of millions of texels. Every model is therefore unwrapped at one working size
 // and resolution, and its UVs come back in the source model's units.
@@ -23,11 +23,21 @@ bool progress(xatlas::ProgressCategory category, int percent, void*) {
 }
 int main(int argc, char** argv) {
     try {
-        if(argc==2 && std::string(argv[1])=="--version") { std::cout << "atlas-texture-core 0.2.0 protocol 2\n"; return 0; }
+        if(argc==2 && std::string(argv[1])=="--version") { std::cout << "atlas-texture-core 0.3.0 protocol 3\n"; return 0; }
         if(argc!=3) throw std::runtime_error("Expected input and output array files");
         std::ifstream in(argv[1],std::ios::binary);
-        if(read<uint32_t>(in)!=2) throw std::runtime_error("Unsupported protocol");
+        if(read<uint32_t>(in)!=3) throw std::runtime_error("Unsupported protocol");
         auto nv=read<uint32_t>(in), nf=read<uint32_t>(in);
+        // Atlas chooses the chart growth: larger charts mean fewer seams across the motifs.
+        xatlas::ChartOptions charts;
+        charts.maxCost=read<float>(in);
+        charts.normalDeviationWeight=read<float>(in);
+        charts.normalSeamWeight=read<float>(in);
+        charts.roundnessWeight=read<float>(in);
+        charts.straightnessWeight=read<float>(in);
+        charts.maxIterations=std::max<uint32_t>(1,std::min<uint32_t>(8,read<uint32_t>(in)));
+        for(float w:{charts.maxCost,charts.normalDeviationWeight,charts.normalSeamWeight,charts.roundnessWeight,charts.straightnessWeight})
+            if(!std::isfinite(w) || w<0.0f) throw std::runtime_error("Invalid chart options");
         if(!nv || !nf || nv>2000000 || nf>2000000) throw std::runtime_error("Unwrap exceeds two million input vertices/faces");
         std::vector<double> source(size_t(nv)*3);
         double low[3]={HUGE_VAL,HUGE_VAL,HUGE_VAL}, high[3]={-HUGE_VAL,-HUGE_VAL,-HUGE_VAL};
@@ -50,14 +60,13 @@ int main(int argc, char** argv) {
         decl.indexCount=nf*3; decl.indexData=indices.data(); decl.indexFormat=xatlas::IndexFormat::UInt32;
         auto error=xatlas::AddMesh(atlas,decl);
         if(error!=xatlas::AddMeshError::Success) { xatlas::Destroy(atlas); throw std::runtime_error("xatlas rejected the mesh"); }
-        xatlas::ChartOptions charts;
         xatlas::PackOptions pack;
         pack.texelsPerUnit=kTexelsPerUnit; pack.rotateCharts=false; pack.rotateChartsToAxis=false; pack.padding=2;
         xatlas::Generate(atlas,charts,pack);
         if(!atlas->meshCount || atlas->texelsPerUnit<=0) { xatlas::Destroy(atlas); throw std::runtime_error("xatlas generated no charts"); }
         const auto& mesh=atlas->meshes[0];
         std::ofstream out(argv[2],std::ios::binary);
-        write<uint32_t>(out,2); write<uint32_t>(out,mesh.vertexCount); write<uint32_t>(out,mesh.indexCount/3);
+        write<uint32_t>(out,3); write<uint32_t>(out,mesh.vertexCount); write<uint32_t>(out,mesh.indexCount/3);
         for(uint32_t i=0;i<mesh.vertexCount;++i) write<uint32_t>(out,mesh.vertexArray[i].xref);
         for(uint32_t i=0;i<mesh.vertexCount;++i) for(int j=0;j<2;++j) write<double>(out,mesh.vertexArray[i].uv[j]/(double(atlas->texelsPerUnit)*scale));
         for(uint32_t i=0;i<mesh.indexCount;++i) write<uint32_t>(out,mesh.indexArray[i]);

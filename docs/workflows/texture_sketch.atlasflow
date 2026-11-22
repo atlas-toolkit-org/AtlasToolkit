@@ -26,7 +26,7 @@
         0.0
       ],
       "tool": "mesh-texture",
-      "tool_version": "0.1.0",
+      "tool_version": "0.2.0",
       "values": {
         "source": "library",
         "texture": "leaf_veins",
@@ -37,7 +37,7 @@
         "offset_u": 0.0,
         "offset_v": 0.0,
         "relief_mode": "raised",
-        "relief": 0.4,
+        "relief": 1.0,
         "invert_height": false,
         "suppression": 0.65,
         "contrast": 2.5,
@@ -60,8 +60,8 @@
         "preserve_borders": true,
         "collision_protection": true,
         "quality": "standard",
-        "tolerance": 0.04,
-        "max_faces": 400000,
+        "detail_tolerance": 10.0,
+        "max_faces": 1000000,
         "up_axis": "auto",
         "front": "auto",
         "rotate": [

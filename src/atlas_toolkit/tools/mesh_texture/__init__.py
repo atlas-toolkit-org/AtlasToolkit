@@ -7,14 +7,15 @@ MATERIALS = [('scales','Reptile scales'),('rock','Fractured rock'),('sand','Sand
              ('leather','Leather grain'),('cracks','Cracked earth'),('cobbles','Cobblestones'),('wood','Wood grain')]
 
 TOOL = Tool(
-    id='mesh-texture', name='Surface Texture', version='0.1.1', category='mesh', icon='surface-texture',
+    id='mesh-texture', name='Surface Texture', version='0.2.0', category='mesh', icon='surface-texture',
     action='Texture', summary='Wrap a model in raised or engraved texture, over its whole skin or a feathered band.',
     tagline='Scales, veins, bark and masonry: broad relief made to read in a pen drawing.',
     description='Twelve bundled CC0 heightmaps become actual mesh relief, ready for Contour Lines, Sketch Hatching '
         'or Plotter Vision. Automatic xatlas charts follow curved surfaces; motifs may change direction at seams. '
         'Cylindrical wrapping suits upright bands; triplanar mapping suits irregular rock and soil. Element size '
         'and relief are percentages of model height. Original units and placement survive. Open surfaces remain '
-        'open. Collision protection reduces relief where necessary and reports achieved displacement. '
+        'open. Refinement spends a face budget on the worst places first and never fails for want of faces. '
+        'Collision protection reduces relief only locally, where it would cross, and reports achieved displacement. '
         'A3 / 0.3 mm drawing presets suppress fine grain. No Blender, internet or UV preparation is required.',
     inputs=Inputs('mesh', exclude=(r'(?i)_textured\.(stl|obj|ply)$',)),
     output=Output('{stem}_textured.stl','mesh',formats=('.stl','.obj','.ply')),
@@ -39,8 +40,8 @@ TOOL = Tool(
             Float('offset_v','V offset',0.,unit='tiles',min=-100,max=100,step=.1,advanced=True)),
         Section('Relief',
             Choice('relief_mode','Relief mode','raised',[('raised','Raised'),('engraved','Engraved'),('balanced','Balanced')],segmented=True),
-            Float('relief','Height / depth',.4,unit='% h',min=0,max=5,step=.05,decimals=3,
-                  help='Raised: 0..height. Engraved: -height..0. Balanced: -height/2..height/2. Collision protection may reduce this.'),
+            Float('relief','Height / depth',1.,unit='% h',min=0,max=5,step=.05,decimals=3,
+                  help='Raised: 0..height. Engraved: -height..0. Balanced: -height/2..height/2. About 1% h reads clearly in an A3 drawing; collision protection may reduce it locally.'),
             Bool('invert_height','Invert heightmap',False)),
         Section('Appearance',
             Float('suppression','Suppress fine grain',.65,min=0,max=1,step=.05,slider=True,
@@ -54,21 +55,27 @@ TOOL = Tool(
             Choice('cylinder_axis','Cylinder axis','up',[('up','Up'),('front','Front'),('side','Side')],visible_if={'mapping':'cylindrical'}),
             Float('seam_rotation','Cylinder seam rotation',0.,unit='°',min=-180,max=180,step=5,visible_if={'mapping':'cylindrical'},
                   help='Zero puts the seam behind the model. The pattern repeats continuously at the seam.'),
-            Float('seam_feather','Seam feather',20.,unit='% element',min=0,max=100,step=5,
+            Float('seam_feather','Seam blend',20.,unit='% element',min=0,max=100,step=5,
                   visible_if=lambda v:v.get('mapping') in ('surface','cylindrical'),advanced=True,
-                  help='Surface charts fade into the skin. Cylinders blend the two ends of a cropped repeat, with a minimum 10% blend to keep the seam continuous. Geometry remains welded.')),
+                  help='Surface charts cross-fade into their neighbours over this distance, so the relief carries on across a seam. Cylinders blend the two ends of a cropped repeat, with a minimum 10% blend to keep the seam continuous. Geometry remains welded.')),
         Section('Protection',
             Bool('preserve_borders','Preserve open borders',True),
             Bool('collision_protection','Collision protection',True,
                  help='Check new intersections and invalid triangles; reduce displacement until safe. Existing intersecting inputs must be repaired first.')),
         Section('Quality',
-            Choice('quality','Sampling','standard',[('standard','Standard'),('high','High')],segmented=True),
-            Float('tolerance','Displacement tolerance',.04,unit='% h',min=.001,max=.5,step=.005,decimals=3,
-                  help='Maximum sampled midpoint/centre interpolation error before additional conforming refinement.'),
-            Int('max_faces','Maximum output faces',400000,min=1000,max=2000000,step=10000),collapsed=True),
+            Choice('quality','Sampling','standard',[('standard','Standard'),('high','High')],segmented=True,
+                   help='Standard samples an element six times across and refines down to 1/24 of it; High ten times and 1/40.'),
+            Float('detail_tolerance','Detail tolerance',10.,unit='% relief',min=1.,max=50.,step=1.,decimals=1,
+                  former=('tolerance',),former_convert=lambda old:float(old)/.4*100,
+                  help='Refine where the sampled height differs from the mesh by more than this share of the relief. A share, so taller relief needs no more faces.'),
+            Int('max_faces','Maximum output faces',1000000,min=1000,max=3000000,step=50000,
+                help='A budget, not a requirement: refinement takes the worst places first and stops here, saying how much of the surface met the tolerance.'),
+            collapsed=True),
         Section('Model',*frame_params(stage_sets=False)),
     ],
-    preset_skip=('up_axis','front','rotate'),
+    # The face budget belongs to the machine, not to a look.
+    preset_skip=('up_axis','front','rotate','max_faces'),
+    migrate='.engine:migrate',
     preset_inputs=('source','heightmap','influence','band_from','band_to','feather','invert_influence','sphere_centre','sphere_radius'),
-    sample='.engine:make_sample',test_values={'mapping':'cylindrical','element_size':30.,'tolerance':.15,'max_faces':80000},
+    sample='.engine:make_sample',test_values={'mapping':'cylindrical','element_size':30.,'detail_tolerance':25.,'max_faces':80000},
 )

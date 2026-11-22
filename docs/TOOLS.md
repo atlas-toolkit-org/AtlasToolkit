@@ -83,12 +83,14 @@ reports the achieved angle. Signed STL/OBJ/PLY and shared-frame stage sets, orig
 no Blender. Draw with Contour Lines or Sketch Hatching. See [Bend controls and drawing recipes](BEND.md),
 [Bend Contours](workflows/bend_contours.atlasflow) and [Bend Sketch](workflows/bend_sketch.atlasflow).
 
-**Surface Texture 0.1.1** wraps a model in real raised, engraved or balanced relief. Twelve bundled CC0
+**Surface Texture 0.2.0** wraps a model in real raised, engraved or balanced relief. Twelve bundled CC0
 heightmaps cover scales, rock, sand, soil, leaf veins, fallen leaves, bricks, bark, leather, cracked earth,
 cobbles and wood grain; custom grayscale PNG/TIFF includes 16-bit heights. Automatic surface-following
-charts, cylindrical wrapping or triplanar mapping; element size, relief, grain suppression, crispness,
-whole model / feathered bands / spheres, border protection and collision limiting. Fourteen presets target
-A3 / 0.3 mm pen drawings. Signed STL/OBJ/PLY, final-geometry previews, UI/CLI/Workflows, offline; no Blender.
+charts (cross-faded seams), cylindrical wrapping with projected caps, or triplanar mapping; element size, relief,
+grain suppression, crispness, whole model / feathered bands / spheres, border protection and local collision
+limiting. Refinement spends a face budget worst-first and never fails for want of faces; large scans and cropped
+busts work. Fourteen presets target A3 / 0.3 mm pen drawings. Signed STL/OBJ/PLY, final-geometry previews,
+UI/CLI/Workflows, offline; no Blender.
 See [controls and drawing recipes](SURFACE_TEXTURE.md), [method and research](SURFACE_TEXTURE_RESEARCH.md),
 [texture contours](workflows/texture_contours.atlasflow),
 [texture sketch](workflows/texture_sketch.atlasflow) and
@@ -181,7 +183,7 @@ See [Surface Stripes](SURFACE_STRIPES.md) for controls, build instructions and l
 | **[Stair Sculpt](STAIR_SCULPT.md)** 0.1.2 | Mesh → mesh | new | Linear, turning or helical stairs, built in a carved or painted cavity (one stair or an ensemble with landings and arches), made from the model's own material as treads, or cut into its body. Fifteen presets. Signed `<name>_stairs.stl`. |
 | **Surface Eject** 0.3.3 | Mesh → mesh | new | Actual surface-volume extraction with five samplers and whole/band/painted regions. Connect 0–100% of fragments; cylinders, bars or organic trees with up to 100 fixed/random extra branches, origin zones, generations, thickness and extent controls. Nineteen presets; combined assemblies or separate body/fragments/connectors in signed STL/OBJ/PLY. |
 | **Bend** 0.1.0 | Mesh → mesh | new | Arc-length spine bending with transported sections, arcs/S-bends/waves, active range and anchors, spatial sweep and roll, local fold protection, conforming refinement and stage sequences. Signed `<name>_bend.stl` / OBJ / PLY. |
-| **Surface Texture** 0.1.1 | Mesh → mesh | new | Twelve offline CC0 heightmaps or custom PNG/TIFF to real surface relief; surface-following, cylindrical and triplanar mapping, feathered regions, collision protection and plotter presets. Signed `<name>_textured.stl` / OBJ / PLY. |
+| **Surface Texture** 0.2.0 | Mesh → mesh | new | Twelve offline CC0 heightmaps or custom PNG/TIFF to real surface relief; surface-following, cylindrical and triplanar mapping, feathered regions, a face budget spent worst-first, local collision protection and plotter presets. Signed `<name>_textured.stl` / OBJ / PLY. |
 | **Voxelize Fill** 0.1.0 | Mesh → mesh | new | Full volumetric occupancy as cubes, adaptive blocks or directional bars; joined boundaries, cutaways, exploded strata, depth bands and seeded erosion. Nine presets. Signed `<name>_voxel-fill.obj` (also PLY or triangulated STL). |
 | **Raster DEM to Mesh** 0.3.1 | Image → mesh | R 3d_DEM prototype | Geographic numeric DEM to faithful, smooth, faceted or terraced terrain. CRS, elevation units and masks; adaptive detail, plate sizing and validated printable solids or open drawing surfaces. `<name>_dem_solid.stl` / `<name>_dem_surface.stl` |
 | **Image to Mesh** 0.1.1 | Image → mesh | DEM heightfield foundation | Non-geographic photos and grayscale images to calibrated relief. Grayscale/channel selection, tonal preparation, alpha masks, neutral placement and seven presets; printable solids or open surfaces for pen drawings. `<name>_image_solid.stl` / `<name>_image_surface.stl` |
