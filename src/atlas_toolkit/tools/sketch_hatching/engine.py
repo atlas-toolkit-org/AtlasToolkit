@@ -10,7 +10,7 @@ import numpy as np
 from atlas_toolkit.core import Result, Stat
 from atlas_toolkit.geom import shading
 from atlas_toolkit.geom import sketch as sk
-from atlas_toolkit.geom.drawing import Drawing, Pen, fmt_duration, fmt_length
+from atlas_toolkit.geom.drawing import Drawing, Pen, fmt_duration, fmt_length, plot_tiles
 from atlas_toolkit.geom.image import view as raster_view
 from atlas_toolkit.geom.svgout import Layer, write_svg
 
@@ -72,7 +72,7 @@ def run(ctx, src: Path, dst: Path | None, p) -> Result:
         notes.append("the model is outside the paper's drawing area: aim the camera in the Aim tab (F fits it)")
     else:
         light = view.proj.light(p.light_az, p.light_el) if p.light_frame == "camera" else \
-            shading.model_light(p.light_az, p.light_el, view.frame.rotate)
+            view.model_dir(shading.model_light(p.light_az, p.light_el, view.frame.rotate))
         focus = resolve_focus(view, p, notes)
         a = dict(sh.AUGUSTUS["analysis"], crease_angle=float(p.crease_angle), ao_rays=(8 if draft else 24)
                  if p.ao > 0 else 0, focus_line_smooth=6, focus_field_smooth=30)
@@ -89,7 +89,7 @@ def run(ctx, src: Path, dst: Path | None, p) -> Result:
         tp = dict(sh.AUGUSTUS["trace"], px_per_mm=float(p.px_per_mm) * (0.5 if draft else 1.0),
                   shadow_samples=(1 if draft else 4) if p.shadows else 0, softness_deg=float(p.softness),
                   valleys=bool(p.valleys), ridges=False,
-                  focus_light=shading.model_light(p.focus_light_az, p.focus_light_el, view.frame.rotate) if focus else None)
+                  focus_light=view.model_dir(shading.model_light(p.focus_light_az, p.focus_light_el, view.frame.rotate)) if focus else None)
         tr = shading.trace(an, view.caster, view.proj, view.box, light, ctx.check_cancel,
                            lambda f, m: ctx.progress(0.3 + 0.3 * f, m), **tp)
         timings["trace"] = time.perf_counter() - t1
@@ -148,11 +148,8 @@ def run(ctx, src: Path, dst: Path | None, p) -> Result:
     ctx.progress(1.0)
     return Result(outputs=outputs,
                   stats=[Stat("strokes", "Strokes", st.strokes),
-                         Stat("ink", "Ink", fmt_length(st.ink), fmt="{}"),
-                         Stat("time", "Plot time", fmt_duration(st.seconds()), fmt="{}"),
-                         Stat("coverage", "Max coverage", coverage, fmt="{:.2f}",
-                              tone="warning" if coverage > 0.7 else ""),
-                         Stat("seconds", "Computed in", secs, "s", fmt="{:.1f}")],
+                         *plot_tiles(st, secs, extra=[Stat("coverage", "Max coverage", coverage, fmt="{:.2f}",
+                                                           tone="warning" if coverage > 0.7 else "")])],
                   report="\n".join(lines),
                   preview={"views": [{"title": "Drawing", "kind": "svg", "drawing": drawing}] + extra_views,
                            "prefer": "Drawing"},

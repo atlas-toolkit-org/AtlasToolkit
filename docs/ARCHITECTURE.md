@@ -85,6 +85,9 @@ src/atlas_toolkit/
   - seeded randomness;
   - settings stored in SVG `<metadata>` and in the history;
   - every output signed for Atlas.
+- **Each input keeps its own view.** Parameters marked `per_input` (a camera, a frame, a plane, a painted area) are
+  held per file by the tool page; every result carries the signature of the values it was made with, so a preview
+  stays valid until its own file's values change, and earlier previews come back with their settings.
 - **Originals are never changed.** Outputs are named by template, and the app asks before overwriting.
 - **Geometry is shared.** All SVG tools read SVGs through the Overlap Cleaner's parser: transforms, units, curves
   and pens are treated the same way everywhere. Mesh tools share loading, cleaning, saving and previews.
@@ -176,7 +179,7 @@ The drawing tools share one path from a mesh to the paper:
    union of its stages' bounds.
 2. **Camera** (`geom/camera`): plotter.vision's orbit camera through the paper's drawing area. The Aim tab is
    Plotter Vision's live view (`tools/plotter_vision/aim.py`), fed the same frame, so its numbers are the engine's.
-   Every Mesh → SVG tool aims there, Plotter Vision (light trace, Exact lines on E) and the Hatch Maker (the same
+   Every Mesh → SVG tool aims there, Plotter Vision (light trace, Exact lines on X) and the Hatch Maker (the same
    camera, orthographic only, `camera_params(ortho_only=True)`) included; it is the only tab that sets the view. F
    and Always fit use `geom/camera.fit_view`, a tight fit of the picture. It shows a light copy of the model
    (`model.load_light`: within 20 000 faces, reduced once per file) and keeps up with the hand

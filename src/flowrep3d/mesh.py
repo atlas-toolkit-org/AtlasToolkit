@@ -193,6 +193,159 @@ def _clean_orient(vertices, faces):
     return V, tuple(cleaned), {"split_touching_vertices":split_vertices,"added_fan_vertices":len(extra)}
 
 
+def _fill_loop(V, idx):
+    """Atlas's hole patcher (earcut, or graded rings for big holes); a centroid fan when used standalone."""
+    try:
+        from atlas_toolkit.geom.repair import fill_loop
+    except ImportError:
+        fill_loop = None
+    if fill_loop is not None:
+        tris, extra = fill_loop(V, idx)
+        if tris is not None:
+            return [list(map(int, t)) for t in tris], np.asarray(extra, float).reshape(-1, 3)
+    centre = len(V)
+    return ([[int(idx[i]), int(idx[(i+1) % len(idx)]), centre] for i in range(len(idx))],
+            V[idx].mean(0)[None, :])
+
+
+def _heal_polygons(vertices, faces, reference_vertices=None, reference_triangles=None):
+    """Repair the local artefacts Instant Meshes leaves in its quads before the strict checks run.
+
+    Its extraction can weld two corners of a quad, leave near-duplicate vertices, fold a pair of quads onto each
+    other or make a fin where four quads share an edge, and it leaves small holes in closed surfaces. Faces
+    around such defects are removed, and every hole that is not a real opening of the reference surface is
+    patched and laid back onto that surface. Returns (vertices, faces, report)."""
+    from scipy.spatial import cKDTree
+    V = np.asarray(vertices, np.float64).reshape(-1, 3)
+    diag = float(np.linalg.norm(np.ptp(V, axis=0))) if len(V) else 0.0
+    report = {"welded_vertices": 0, "dropped_polygons": 0, "removed_faces": 0, "holes_filled": 0, "holes_kept": 0}
+    if not len(V) or diag <= 0:
+        return V, [np.asarray(f, np.int64) for f in faces], report
+    # 1. near-duplicate vertices
+    pairs = cKDTree(V).query_pairs(diag * 1e-6, output_type="ndarray")
+    if len(pairs):
+        graph = coo_matrix((np.ones(len(pairs)), (pairs[:, 0], pairs[:, 1])), shape=(len(V), len(V)))
+        count, labels = connected_components(graph, directed=False)
+        first = np.full(count, -1, np.int64)
+        for v in range(len(V)):
+            if first[labels[v]] < 0:
+                first[labels[v]] = v
+        remap = first[labels]
+        report["welded_vertices"] = int(len(V) - count)
+    else:
+        remap = np.arange(len(V))
+    # 2. corners repeated or collapsed
+    polys = []
+    for f in faces:
+        f = [int(remap[int(v)]) for v in f]
+        f = [v for i, v in enumerate(f) if v != f[i-1]] if len(f) > 1 else f
+        if len(f) < 3 or len(set(f)) != len(f):
+            report["dropped_polygons"] += 1
+            continue
+        polys.append(f)
+    # 3. folds: every copy of a face with the same corners goes, both windings
+    keys = defaultdict(list)
+    for i, f in enumerate(polys):
+        keys[tuple(sorted(f))].append(i)
+    folded = {i for group in keys.values() if len(group) > 1 for i in group}
+    report["dropped_polygons"] += len(folded)
+    polys = [f for i, f in enumerate(polys) if i not in folded]
+    # tiny faces would be dropped by the strict loader and leave holes; drop them here so the holes get patched
+    keep = []
+    for f in polys:
+        p = V[f]
+        area = np.linalg.norm(np.sum(np.cross(p - p[0], np.roll(p, -1, axis=0) - p[0]), axis=0))
+        if area > diag * diag * 1e-14:
+            keep.append(f)
+        else:
+            report["dropped_polygons"] += 1
+    polys = keep
+    # 4. fins and branching vertices: remove the faces around them until none are left
+    for _ in range(6):
+        edges = defaultdict(int)
+        links = defaultdict(lambda: defaultdict(set))
+        for f in polys:
+            for j, v in enumerate(f):
+                a, b = f[j-1], f[(j+1) % len(f)]
+                edges[(min(v, b), max(v, b))] += 1
+                links[v][a].add(b); links[v][b].add(a)
+        bad = {v for (a, b), n in edges.items() if n > 2 for v in (a, b)}
+        bad |= {v for v, link in links.items() if any(len(n) > 2 for n in link.values())}
+        if not bad:
+            break
+        before = len(polys)
+        polys = [f for f in polys if not bad.intersection(f)]
+        report["removed_faces"] += before - len(polys)
+    # 5. holes: patch every open loop that is not a real opening of the reference surface
+    half = defaultdict(int)
+    for f in polys:
+        for a, b in zip(f, f[1:] + f[:1]):
+            half[(min(a, b), max(a, b))] += 1
+    open_he = [(a, b) for f in polys for a, b in zip(f, f[1:] + f[:1]) if half[(min(a, b), max(a, b))] == 1]
+    if open_he:
+        real = None
+        lengths = [np.linalg.norm(V[a] - V[b]) for a, b in open_he]
+        h = float(np.mean(lengths)) if lengths else 0.0
+        if reference_vertices is not None and reference_triangles is not None and len(reference_triangles):
+            T = np.asarray(reference_triangles, np.int64)
+            E = np.sort(np.concatenate([T[:, [0, 1]], T[:, [1, 2]], T[:, [2, 0]]]), axis=1)
+            unique_edges, counts = np.unique(E, axis=0, return_counts=True)
+            rim = np.unique(unique_edges[counts == 1])
+            if len(rim):
+                real = cKDTree(np.asarray(reference_vertices, float)[rim])
+        loops = _open_loops(open_he)
+        new_vertices = []
+        for loop in loops:
+            if loop[-1] is None or len(loop) < 3:
+                report["holes_kept"] += 1
+                continue
+            idx = np.asarray(loop, np.int64)
+            if real is not None and float(real.query(V[idx])[0].min()) <= max(h, diag * 1e-6):
+                report["holes_kept"] += 1            # an opening of the original surface stays a boundary
+                continue
+            base = len(V) + sum(len(x) for x in new_vertices)
+            tris, extra = _fill_loop(np.concatenate([V, *new_vertices]) if new_vertices else V, idx)
+            if len(extra):
+                # the patcher numbers new vertices from the end of the array it was given
+                new_vertices.append(extra)
+            polys.extend(tris)
+            report["holes_filled"] += 1
+        if new_vertices:
+            added = np.concatenate(new_vertices)
+            if reference_vertices is not None and reference_triangles is not None and len(reference_triangles):
+                import trimesh
+                surface = trimesh.Trimesh(np.asarray(reference_vertices, float), np.asarray(reference_triangles),
+                                          process=False)
+                added, _, _ = trimesh.proximity.closest_point(surface, added)
+            V = np.concatenate([V, added])
+    return V, [np.asarray(f, np.int64) for f in polys], report
+
+
+def _open_loops(half_edges):
+    """Open half-edges (a, b) as loops in patch order (b to a), each ending in None when it does not close."""
+    try:
+        from atlas_toolkit.geom.repair import boundary_loops
+    except ImportError:
+        boundary_loops = None
+    if boundary_loops is not None:
+        return boundary_loops(half_edges)
+    out = defaultdict(list)
+    for a, b in half_edges:
+        out[b].append(a)
+    loops = []
+    for start in list(out):
+        while out.get(start):
+            loop = [start]; current = out[start].pop()
+            while current != start:
+                loop.append(current)
+                following = out.get(current)
+                if not following or len(loop) > len(half_edges) + 1:
+                    loop.append(None); break
+                current = following.pop()
+            loops.append(loop)
+    return loops
+
+
 def from_arrays(vertices, faces, source="", metadata=None):
     V, polygons, repairs = _clean_orient(vertices, faces)
     T, owner = triangulate(V, polygons)
@@ -307,6 +460,27 @@ def build_topology(mesh):
                     np.asarray(hv), np.asarray(hn), twins, np.asarray(he), np.asarray(hf), int(nc))
 
 
+REMESH_REVISION = "normalized-purequad-v4-healed"   # changes every remesh cache key (extract.py uses it too)
+REMESH_RETRIES = (1.0, 1.04, 0.96)
+
+
+def _remesh(nim, mesh, options, target):
+    """One Instant Meshes run at about `target` quads, healed and loaded; FlowRepError when it stays unusable."""
+    # The binding always regular-subdivides its extracted polygons into pure
+    # quads. Its nominal count therefore needs a factor-of-four correction.
+    origin = (mesh.vertices.min(0) + mesh.vertices.max(0)) / 2
+    scale = 100.0 / float(np.ptp(mesh.vertices, axis=0).max())
+    with _native_stdout():
+        v, f = nim.remesh(np.ascontiguousarray((mesh.vertices - origin) * scale, dtype=np.float32),
+                          np.ascontiguousarray(mesh.triangles, dtype=np.uint32),
+                          max(25, target // 4), rosy=4, posy=4, creaseAngle=options.crease_angle,
+                          align_to_boundaries=True, extrinsic=True, smooth_iter=2, deterministic=True)
+    v = np.asarray(v, dtype=np.float64) / scale + origin
+    # NIM may encode triangles as quads with a repeated last corner; the healing drops it.
+    V, faces, repairs = _heal_polygons(v, np.asarray(f, np.int64), mesh.reference_vertices, mesh.reference_triangles)
+    return from_arrays(V, faces, mesh.source), repairs
+
+
 def prepare_mesh(mesh, options: FlowRepOptions, progress=None, cancel=None):
     checkpoint(cancel)
     quad_fraction = sum(len(f) == 4 for f in mesh.faces) / len(mesh.faces)
@@ -318,41 +492,45 @@ def prepare_mesh(mesh, options: FlowRepOptions, progress=None, cancel=None):
     digest = hashlib.sha256()
     digest.update(mesh.vertices.tobytes())
     digest.update(mesh.triangles.tobytes())
-    digest.update(f"nim-0.0.3:{options.target_faces}:{options.crease_angle}:normalized-purequad-v3".encode())
+    digest.update(f"nim-0.0.3:{options.target_faces}:{options.crease_angle}:{REMESH_REVISION}".encode())
     key = digest.hexdigest()
     cache = Path(options.cache_dir) / f"remesh-{key}.npz" if options.cache_dir else None
     if cache and cache.exists():
         with np.load(cache, allow_pickle=False) as data:
-            result = from_arrays(data["vertices"], data["faces"], mesh.source)
+            sizes = data["face_sizes"]
+            faces = np.split(data["face_indices"], np.cumsum(sizes)[:-1])
+            result = from_arrays(data["vertices"], faces, mesh.source)
+            repairs = json.loads(str(data["repairs"]))
         cached = True
     else:
         if progress:
             progress(0.04, f"remeshing to approximately {options.target_faces} quads")
-        checkpoint(cancel)
-        # The binding always regular-subdivides its extracted polygons into pure
-        # quads. Its nominal count therefore needs a factor-of-four correction.
-        origin=(mesh.vertices.min(0)+mesh.vertices.max(0))/2
-        scale=100.0/float(np.ptp(mesh.vertices,axis=0).max())
-        with _native_stdout():
-            v, f = nim.remesh(np.ascontiguousarray((mesh.vertices-origin)*scale, dtype=np.float32),
-                              np.ascontiguousarray(mesh.triangles, dtype=np.uint32),
-                              max(25,options.target_faces//4), rosy=4, posy=4, creaseAngle=options.crease_angle,
-                              align_to_boundaries=True, extrinsic=True, smooth_iter=2, deterministic=True)
-        checkpoint(cancel)
-        v=np.asarray(v,dtype=np.float64)/scale+origin
-        # NIM may encode triangles as quads with a repeated last corner.
-        result = from_arrays(v, f, mesh.source)
+        result = repairs = None; failure = None
+        # Instant Meshes' defects depend on the resolution: when one cannot be healed, a slightly different
+        # target usually extracts cleanly.
+        for attempt, factor in enumerate(REMESH_RETRIES, 1):
+            checkpoint(cancel)
+            target = max(100, int(round(options.target_faces * factor)))
+            try:
+                result, repairs = _remesh(nim, mesh, options, target)
+            except FlowRepError as exc:
+                failure = exc
+                continue
+            repairs.update(remesh_attempts=attempt, remesh_target=target)
+            break
+        if result is None:
+            raise FlowRepError(f"Instant Meshes produced a surface FlowRep cannot use at this resolution ({failure}); "
+                               "try another Remesh resolution, or run Repair Mesh on the model first")
         cached = False
         if cache:
-            cache.parent.mkdir(parents=True, exist_ok=True)
-            if len({len(f) for f in result.faces}) == 1:
-                from .io import atomic_npz
-                atomic_npz(cache, vertices=result.vertices, faces=np.asarray(result.faces))
+            from .io import atomic_npz
+            atomic_npz(cache, vertices=result.vertices, face_sizes=np.asarray([len(f) for f in result.faces], np.int64),
+                       face_indices=np.concatenate(result.faces).astype(np.int64), repairs=np.array(json.dumps(repairs)))
     result.reference_vertices = mesh.reference_vertices
     result.reference_triangles = mesh.reference_triangles
     result.metadata.update(mesh.metadata)
     result.metadata.update(preparation="instant-meshes", preparation_key=key, preparation_cached=cached,
-                           target_faces=options.target_faces,
+                           target_faces=options.target_faces, remesh_repairs=repairs,
                            quad_fraction=sum(len(f) == 4 for f in result.faces) / len(result.faces))
     import trimesh
     ref = trimesh.Trimesh(result.reference_vertices, result.reference_triangles, process=False)

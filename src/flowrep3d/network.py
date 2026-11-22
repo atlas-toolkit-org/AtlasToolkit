@@ -22,6 +22,9 @@ def predict_normal(n1, n2, distance_from_first, distance_from_second):
     return unit((b[...,None]*n1+a[...,None]*n2)/np.maximum((a+b)[...,None],1e-30))
 
 
+ISOLATED_UNPREDICTED = 3   # interior vertices: a region with no more than these, none predicted, is judged by its boundary
+
+
 def percentile90(values):
     """NumPy's default linear quantile without its large small-array dispatch cost."""
     ordered=np.sort(values)
@@ -114,6 +117,37 @@ class CoverageEvaluator:
         vertices=np.unique(np.r_[T.he_vertices[boundary],T.he_vertices[T.he_next[boundary]]])
         return vertices,cycles
 
+    def network_degree(self, blocked):
+        if getattr(self,"_degree_blocked",None) is not blocked:
+            self._degree=np.bincount(self.topo.edges[blocked].ravel(),minlength=len(self.mesh.vertices))
+            self._degree_blocked=blocked
+        return self._degree
+
+    def _thin(self, faces, vertices, boundary, blocked, cycles):
+        """A region with no interior vertex (a strip one quad wide, or a single quad) has nothing to predict inside,
+        but its cycle must still describe it: each stretch of its boundary between two junctions is predicted from
+        the normals at its ends, as interior vertices are along a crossing flowline (§5.1). A fully dense network
+        (every side one edge) scores 0. A strip whose ring runs round a whole tube to a single meridian does not:
+        without this, stacks of parallel rings with one meridian were a trivially "descriptive" optimum."""
+        degree=self.network_degree(blocked)
+        corner=degree[boundary]>=3
+        if corner.all():
+            return Region(faces,vertices,0.0,cycles,0,0)
+        from .flowlines import graph_chains
+        edges=np.unique(np.concatenate([self.topo.face_edges[int(f)] for f in faces]))
+        edges=edges[blocked[edges]]
+        chains,_=graph_chains(self.topo.edges,edges,set(map(int,boundary[corner])))
+        angles=[]
+        for c in chains:
+            if len(c)<3: continue
+            P=self.positions[c]
+            arc=np.r_[0.0,np.cumsum(np.linalg.norm(np.diff(P,axis=0),axis=1))]
+            inner=np.arange(1,len(c)-1)
+            prediction=predict_normal(self.N[c[0]],self.N[c[-1]],arc[inner],arc[-1]-arc[inner])
+            angles.extend(np.degrees(np.arccos(np.clip((prediction*self.N[c[inner]]).sum(1),-1,1))).tolist())
+        error=percentile90(np.asarray(angles)) if angles else 0.0
+        return Region(faces,vertices,error,cycles,0,0,error)
+
     def measure(self, faces, blocked, crossing=None):
         checkpoint(self.cancel)
         vertices=np.unique(np.concatenate([self.face_vertices[int(f)] for f in faces]))
@@ -136,7 +170,7 @@ class CoverageEvaluator:
         if cycles!=1:
             return Region(faces,vertices,90.0,cycles,len(interior),0,90.0)
         if not len(interior):
-            return Region(faces,vertices,0.0,cycles,0,0)
+            return self._thin(faces,vertices,boundary,blocked,cycles)
         candidate=sorted({fi for v in interior for fi in self.vertex_flows[int(v)]})
         error=np.zeros(len(inside)); seen=np.zeros(len(inside),bool)
         cross_error=np.zeros(len(inside)); cross_seen=np.zeros(len(inside),bool)
@@ -170,7 +204,14 @@ class CoverageEvaluator:
                     np.maximum.at(cross_error,vv,angles); cross_seen[vv]=True
         sample=interior[seen[interior]]
         # The paper omits isolated unpredicted vertices. A wholly unpredicted patch
-        # is explicitly uncovered instead of receiving a fictitious zero error.
+        # is explicitly uncovered instead of receiving a fictitious zero error,
+        # unless all it has inside is a few isolated vertices (flowlines end at a
+        # remesh singularity instead of crossing it): then its boundary is judged,
+        # as for a thin region. Otherwise every flowline next to a singularity was
+        # impossible to remove, and remeshes with many of them stayed dense grids.
+        if not len(sample) and len(interior)<=ISOLATED_UNPREDICTED:
+            thin=self._thin(faces,vertices,boundary,blocked,cycles)
+            return Region(faces,vertices,thin.error,cycles,len(interior),0,thin.error)
         dc=percentile90(error[sample]) if len(sample) else 90.0
         cs=interior[cross_seen[interior]]
         dominance=percentile90(cross_error[cs]) if len(cs) else 0.0
@@ -213,10 +254,19 @@ class NetworkState:
         a,b=(self.ranges if ranges is None else ranges)[fi]
         return self.flows[fi].vertices[a:b+1]
 
-    def propose(self, remove=(), add=(), shorten=True):
+    def propose(self, remove=(), add=(), shorten=True, only=None, set_ranges=(), keep_continuations=False):
+        """A changed network: `remove`/`add` whole flowlines, `set_ranges` [(flow, a, b)] to extend or cut one, then
+        shorten open ends that stop at valence 1 or 2 back to their last junction (§7.1, §7.2). `only` limits the
+        shortening to those flowlines (and what their shortening frees); with keep_continuations a valence-2 end
+        where two flowlines continue each other at an obtuse angle is not an end."""
         selected=self.selected.copy(); ranges=self.ranges.copy(); counts=self.counts.copy()
-        E=self.ev.topo.edges
+        E=self.ev.topo.edges; P=self.ev.mesh.vertices
         degree=np.bincount(E[counts>0].ravel(),minlength=len(self.ev.mesh.vertices)).astype(int)
+        def continues(v,inner):
+            if degree[v]!=2: return False
+            other=[int(E[e,0]) if int(E[e,1])==v else int(E[e,1]) for e in self.ev.topo.vertex_edges[v] if counts[e]>0]
+            other=[w for w in other if w!=inner]
+            return bool(other) and float(unit(P[inner]-P[v])@unit(P[other[0]]-P[v]))<0
         changed=set()
         queue=deque(); queued=set()
         def enqueue_vertices(ids):
@@ -247,8 +297,14 @@ class NetworkState:
         for fi in add:
             if not selected[fi]:
                 update(int(fi),0,len(self.flows[fi].edges))
+        for fi,a,b in set_ranges:
+            update(int(fi),int(a),int(b))
         if shorten:
-            if not remove and not add:
+            if only is not None:
+                for fi in only:
+                    if int(fi) not in queued:
+                        queue.append(int(fi)); queued.add(int(fi))
+            elif not remove and not add and not set_ranges:
                 queue.extend(map(int,np.flatnonzero(selected)))
             while queue:
                 fi=queue.popleft(); queued.discard(fi)
@@ -256,12 +312,17 @@ class NetworkState:
                     continue
                 a,b=ranges[fi]; ids=self.flows[fi].vertices
                 olda,oldb=a,b
-                if not self.trim_vertices[ids[a]] and degree[ids[a]]<3:
+                if b-a>=1 and keep_continuations:
+                    first_free=continues(int(ids[a]),int(ids[a+1]))
+                    last_free=continues(int(ids[b]),int(ids[b-1]))
+                else:
+                    first_free=last_free=False
+                if not first_free and not self.trim_vertices[ids[a]] and degree[ids[a]]<3:
                     candidates=np.flatnonzero(self.trim_vertices[ids[a:b+1]]|(degree[ids[a:b+1]]>=3))
                     if not len(candidates):
                         update(fi,0,0); continue
                     a+=int(candidates[0])
-                if b>a and not self.trim_vertices[ids[b]] and degree[ids[b]]<3:
+                if b>a and not last_free and not self.trim_vertices[ids[b]] and degree[ids[b]]<3:
                     candidates=np.flatnonzero(self.trim_vertices[ids[a:b+1]]|(degree[ids[a:b+1]]>=3))
                     if not len(candidates):
                         update(fi,0,0); continue
@@ -346,6 +407,152 @@ def _geometric_cost(state, group, compatible):
                     continue
                 endpoints.append(30.0 if state.trim_vertices[v] else 60.0)
     return float(np.average(costs,weights=np.maximum(lengths,1e-30)))+sum(endpoints) if costs else 0.0
+
+
+def open_ends(state):
+    """[(flow, end, vertex)]: ends of selected open flowlines that stop in nothing. That is valence 1, or valence 2
+    at a corner (the two curves meet at 90° or less); not a trim vertex, not two flowlines continuing each other."""
+    E=state.ev.topo.edges; P=state.ev.mesh.vertices; on=state.counts>0
+    degree=np.bincount(E[on].ravel(),minlength=len(P))
+    out=[]
+    for fi in map(int,np.flatnonzero(state.selected)):
+        if state.flows[fi].closed: continue
+        ids=state.active_vertices(fi)
+        if len(ids)<2: continue
+        for end,(v,inner) in enumerate(((int(ids[0]),int(ids[1])),(int(ids[-1]),int(ids[-2])))):
+            if state.trim_vertices[v] or degree[v]>=3: continue
+            if degree[v]==2:
+                other=[int(E[e,0]) if int(E[e,1])==v else int(E[e,1]) for e in state.ev.topo.vertex_edges[v] if on[e]]
+                other=[w for w in other if w!=inner]
+                if other and float(unit(P[inner]-P[v])@unit(P[other[0]]-P[v]))<0:
+                    continue                 # an obtuse joint: the two flowlines read as one curve
+            out.append((fi,end,v))
+    return out
+
+
+def _tidy_ends(state, bound, cancel=None, reach=3, passes=3):
+    """The paper's last step (§7.2): no open-ended curves where the descriptiveness bound allows. A dangling end
+    first tries to reach the network along its own flowline (at most `reach` more edges); otherwise it is
+    shortened back to its last junction. Every change is checked like a removal and kept only if every affected
+    region stays within the bound."""
+    extended=shortened=0
+    E=state.ev.topo.edges
+    def accept(proposal):
+        if not len(proposal.changed_edges):
+            return False
+        affected,regions,_=state.assess(proposal)
+        if any(r.error>bound+1e-8 for r in regions):
+            return False
+        state.commit(proposal,affected,regions)
+        return True
+    for _ in range(passes):
+        changed=False
+        for fi,end,v in open_ends(state):
+            checkpoint(cancel)
+            if not state.selected[fi]: continue
+            a,b=map(int,state.ranges[fi]); ids=state.flows[fi].vertices
+            if (int(ids[a]) if end==0 else int(ids[b]))!=v:
+                continue                         # changed by an earlier step in this pass
+            on=np.bincount(E[state.counts>0].ravel(),minlength=len(state.ev.mesh.vertices))>0
+            target=None
+            for k in range(1,reach+1):
+                j=a-k if end==0 else b+k
+                if j<0 or j>=len(ids): break
+                if on[int(ids[j])] or state.trim_vertices[int(ids[j])]:
+                    target=j; break
+            if target is not None:
+                new=(fi,target,b) if end==0 else (fi,a,target)
+                if accept(state.propose(set_ranges=[new],shorten=False)):
+                    extended+=1; changed=True; continue
+            if accept(state.propose(only=[fi],keep_continuations=True)):
+                shortened+=1; changed=True
+        if not changed:
+            break
+    return extended,shortened
+
+
+def parallel_pairs(state, reach=2.0):
+    """Pairs of selected flowlines that run side by side (§7.2, visual clutter): they share no vertex, and most of
+    the shorter one lies within `reach` average edge lengths of the other. Closest pairs first."""
+    from scipy.spatial import cKDTree
+    V=state.ev.mesh.vertices; limit=reach*float(state.ev.topo.lengths.mean())
+    sel=[int(f) for f in np.flatnonzero(state.selected)]
+    pts={f:V[state.active_vertices(f)] for f in sel}
+    lo={f:p.min(0)-limit for f,p in pts.items()}; hi={f:p.max(0)+limit for f,p in pts.items()}
+    trees={}
+    out=[]
+    for i,a in enumerate(sel):
+        for b in sel[i+1:]:
+            if np.any(lo[a]>hi[b]) or np.any(lo[b]>hi[a]):
+                continue
+            ida,idb=state.active_vertices(a),state.active_vertices(b)
+            if np.intersect1d(ida,idb).size:
+                continue                                   # crossing or touching curves are not clutter
+            short,long_=(a,b) if len(ida)<=len(idb) else (b,a)
+            if long_ not in trees:
+                trees[long_]=cKDTree(pts[long_])
+            d=trees[long_].query(pts[short])[0]
+            if float(np.median(d))<=limit and float(np.mean(d<=limit))>=0.6:
+                out.append((float(np.median(d)),a,b))
+    return [(a,b) for _,a,b in sorted(out)]
+
+
+def _bridged_removal(state, f, reach=3):
+    """Remove flowline f without breaking the curves that cross it. Curves that met head-on at f keep going as one
+    (a continuing valence-2 joint is not an end); a curve left dangling first reaches the next curve along its own
+    flowline (at most `reach` edges); only the rest are shortened back to their last junction."""
+    E=state.ev.topo.edges; P=state.ev.mesh.vertices
+    a,b=map(int,state.ranges[f]); gone=state.flows[f].edges[a:b]
+    counts=state.counts.copy(); counts[gone]-=1
+    on=counts>0
+    degree=np.bincount(E[on].ravel(),minlength=len(P))
+    on_vertex=degree>0
+    mine=set(map(int,state.active_vertices(f)))
+    extend=[]
+    for g in sorted({int(g) for v in mine for g in state.ev.vertex_flows[v] if g!=f and state.selected[g]}):
+        if state.flows[g].closed: continue
+        ga,gb=map(int,state.ranges[g]); ids=state.flows[g].vertices
+        new_a,new_b=ga,gb
+        for end in (0,1):
+            v=int(ids[ga] if end==0 else ids[gb])
+            if v not in mine or state.trim_vertices[v] or degree[v]>=3: continue
+            if degree[v]==2:
+                inner=int(ids[ga+1] if end==0 else ids[gb-1])
+                other=[int(E[e,0]) if int(E[e,1])==v else int(E[e,1]) for e in state.ev.topo.vertex_edges[v] if on[e]]
+                other=[w for w in other if w!=inner]
+                if other and float(unit(P[inner]-P[v])@unit(P[other[0]]-P[v]))<0:
+                    continue
+            for k in range(1,reach+1):
+                j=ga-k if end==0 else gb+k
+                if j<0 or j>=len(ids): break
+                u=int(ids[j])
+                if on_vertex[u] or state.trim_vertices[u]:   # the network without f
+                    if end==0: new_a=j
+                    else: new_b=j
+                    break
+        if (new_a,new_b)!=(ga,gb):
+            extend.append((g,new_a,new_b))
+    return state.propose(remove=(f,),set_ranges=extend,keep_continuations=True)
+
+
+def _declutter(state, bound, cancel=None):
+    """The paper's final declutter: of two adjacent parallel flowlines, remove the one whose removal raises the
+    descriptiveness error least, when every affected region stays within the relaxed bound (dmax + 20 %)."""
+    removed=0
+    for a,b in parallel_pairs(state):
+        checkpoint(cancel)
+        if not (state.selected[a] and state.selected[b]):
+            continue
+        best=None
+        for f in (a,b):
+            proposal=_bridged_removal(state,f)
+            affected,regions,_=state.assess(proposal)
+            worst=max((r.error for r in regions),default=0.0)
+            if worst<=bound+1e-8 and (best is None or worst<best[0]):
+                best=(worst,proposal,affected,regions)
+        if best is not None:
+            state.commit(*best[1:]); removed+=1
+    return removed
 
 
 def simplify_network(mesh, flows, trim, options, progress=None, cancel=None):
@@ -459,21 +666,16 @@ def simplify_network(mesh, flows, trim, options, progress=None, cancel=None):
             break
     relaxed=0
     if options.relaxed_declutter:
-        for fi in list(map(int,np.flatnonzero(state.selected))):
-            # Only parallel neighbors within two average edges are candidates for the paper's relaxation.
-            for fj in neighbors[fi]:
-                if not state.selected[fj]:
-                    continue
-                from scipy.spatial import cKDTree
-                distance=cKDTree(mesh.vertices[state.active_vertices(fi)]).query(mesh.vertices[state.active_vertices(fj)])[0]
-                if float(np.median(distance))>2*ev.topo.lengths.mean():
-                    continue
-                proposal=state.propose(remove=(fi,))
-                affected,regions,_=state.assess(proposal)
-                bound=options.dmax*1.2
-                if all(r.error<=bound+1e-8 for r in regions):
-                    state.commit(proposal,affected,regions); relaxed+=1; break
+        progress_to(progress,0.84,"decluttering parallel curves",cancel)
+        relaxed=_declutter(state,options.dmax*1.2,cancel)
+    progress_to(progress,0.86,"closing gaps and shortening open curve ends",cancel)
+    bound=options.dmax*1.2 if options.relaxed_declutter else options.dmax
+    ends_before=len(open_ends(state))
+    extended,shortened=_tidy_ends(state,bound,cancel)
+    ends_after=len(open_ends(state))
     diagnostics={"initial_max_error_deg":initial_error,"dense_flowlines":dense_count,"dense_max_error_deg":dense_error,
+                 "dangling_ends_before":ends_before,"dangling_ends_after":ends_after,
+                 "ends_extended":extended,"ends_shortened":shortened,
                  "refinement_rounds":refinement,"selected_flowlines":int(state.selected.sum()),
                  "region_count":len(state.regions),"max_error_deg":state.max_error,
                  "coverage_complete":state.max_error<=options.dmax+1e-8,

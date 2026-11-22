@@ -10,8 +10,8 @@ from atlas_toolkit.core import Result, Stat
 from atlas_toolkit.geom import frame3d
 from atlas_toolkit.geom import mesh as gm
 from atlas_toolkit.geom import raycast as rc
-from atlas_toolkit.geom.camera import camera_from, frame_for
-from atlas_toolkit.geom.drawing import Drawing, Pen, fmt_duration, fmt_length
+from atlas_toolkit.geom.camera import camera_from, frame_for, turn_in_view
+from atlas_toolkit.geom.drawing import Drawing, Pen, fmt_duration, fmt_length, plot_tiles
 from atlas_toolkit.geom.svgout import Layer, write_svg
 
 from . import TOOL
@@ -26,14 +26,15 @@ def run(ctx, src: Path, dst: Path | None, p) -> Result:
     ctx.progress(0.02, "reading the model")
     mesh = gm.load_mesh(src)
     frame = frame3d.frame_for(src, p, V=mesh.vertices)
-    V = frame.apply(mesh.vertices)
+    cam = camera_from(p)
+    roll = float(p.get("roll", 0.0) or 0.0)
+    V = turn_in_view(frame.apply(mesh.vertices), cam, roll)     # Roll turns the model; the slices stay level
     F = np.asarray(mesh.faces, dtype=np.int64)
     faces_in = len(F)
     draft = ctx.draft
     if draft:
         V, F = gm.simplify_faces(V, F, int(p.draft_faces), ctx.log)
     pf = frame_for(p.paper, p.orientation, p.margin, (p.get("paper_width", 200.), p.get("paper_height", 200.)))
-    cam = camera_from(p)
     mpu = cam.mm_per_unit(pf)
     spacing = float(p.spacing_mm) * (1.6 if draft else 1.0)
     step = float(p.step_mm) * (2.0 if draft else 1.0)
@@ -83,7 +84,8 @@ def run(ctx, src: Path, dst: Path | None, p) -> Result:
              f"  model      {n(faces_in)} faces" + (f", {n(len(F))} in the preview" if len(F) != faces_in else ""),
              f"  frame      {frame.note}",
              f"  camera     θ {cam.theta:g}°, ψ {cam.psi:g}°, distance {cam.radius:g}, look at ({look}), "
-             f"{cam.fov:g}° {'orthographic' if cam.ortho else 'perspective'}",
+             f"{cam.fov:g}° {'orthographic' if cam.ortho else 'perspective'}"
+             + (f", model rolled {roll:g}°" if roll else ""),
              f"  slices     {len(heights)} planes every {spacing:g} mm on paper ({spacing / mpu:.3g} units), "
              f"{n(len(contours))} contours" + ("  (draft: wider)" if draft else ""),
              f"  scale      {mpu:.3g} mm per unit at the look-at point; the model is "
@@ -99,9 +101,7 @@ def run(ctx, src: Path, dst: Path | None, p) -> Result:
         lines.append(f"  saved as   {dst}")
     stats = [Stat("strokes", "Strokes", st.strokes),
              Stat("slices", "Slices", len(heights)),
-             Stat("ink", "Ink", fmt_length(st.ink), fmt="{}"),
-             Stat("time", "Plot time", fmt_duration(st.seconds()), fmt="{}"),
-             Stat("seconds", "Computed in", secs, "s", fmt="{:.1f}")]
+             *plot_tiles(st, secs, (before, after))]
     ctx.progress(1.0)
     return Result(outputs=outputs, stats=stats, report="\n".join(lines),
                   preview={"views": [{"title": "Drawing", "kind": "svg", "drawing": drawing}], "prefer": "Drawing"},

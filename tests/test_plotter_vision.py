@@ -310,7 +310,7 @@ class LiveViewTests(unittest.TestCase):
         self.assertLessEqual(v.model.faces, AIM_FACES)
         self.assertEqual(v._p(v.values).flat_angle, 35.0)
         before = page.values()
-        self.key(v, Qt.Key_E)
+        self.key(v, Qt.Key_X)
         self.assertTrue(v.exact and v.btn_exact.isChecked())
         self.wait(lambda: v.state == "done" and v.model is not None)
         self.assertGreater(v.model.faces, AIM_FACES)
@@ -330,8 +330,10 @@ class LiveViewTests(unittest.TestCase):
         self.wait(lambda: page.runnable() and page.idle())
         v = page.viewer
         self.assertIsNotNone(v)
+        key = str(src.resolve())                       # the page may hold earlier tests' files: aim this one (each
+        page.queue.setCurrentItem(page.rows[key].item)  # file keeps its own camera)
         self.assertEqual(page.stage.current_title(), "Aim")
-        self.wait(lambda: v.state == "done")
+        self.wait(lambda: v.path == key and v.state == "done")
         self.assertTrue(v.pieces)
         # drag 40 px right: ψ turns by 40 x 0.29° as on plotter.vision, and the camera lands in the settings
         psi0 = page.values()["psi"]

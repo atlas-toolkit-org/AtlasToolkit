@@ -10,11 +10,18 @@ ToolPage: the one page every tool gets, built from its spec.
 Flow: files are inspected as they are added (size, layers, a first preview). Live tools (cheap dry runs) analyse
 every input again whenever the settings change, and the primary button writes only inputs with something to
 change. Other tools offer Preview (a draft dry run of the selected input) and Run (all inputs).
+
+Each input keeps its own values of the tool's per-input parameters (Param.per_input: the Aim camera, Up / Front /
+Extra turn, a plane, a painted area): the form shows the selected file's, and aiming one file never moves another.
+A new file starts from the selected one's (a stage set keeps one view), or from what it had when last aimed here.
+Every result remembers the values it was made with (a signature), so a preview stays until that file's own values
+change, previews of other files go on running, and going back to earlier settings brings their preview back.
 """
 from __future__ import annotations
 
 import re
 import time
+from collections import OrderedDict
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -43,6 +50,8 @@ from .widgets.preview import PreviewStage
 
 INSPECTOR_W = 340          # default width; drag the divider to change it (remembered for every tool)
 INSPECTOR_MIN, INSPECTOR_MAX = 300, 640
+DRAFTS_KEPT = 4            # previews each input keeps, by settings: going back to earlier settings shows theirs again
+VIEWS_KEPT = 200           # files whose own view (per-input values) is remembered between sessions
 
 
 @dataclass
@@ -58,7 +67,14 @@ class Row:
     fix_hint: str = ""
     saved: list = field(default_factory=list)
     jobs: set = field(default_factory=set)
-    gen: int = -1
+    sig: str | None = None        # the signature of the values `result` (or the last analysis) was made with
+    view: dict = field(default_factory=dict)        # this input's own values of the per-input keys
+    view_set: bool = False        # changed for this file (remembered between sessions), not just inherited
+    drafts: OrderedDict = field(default_factory=OrderedDict)   # signature -> preview Result, newest last
+    draft_job: int | None = None  # its running preview, made with the values whose signature is draft_sig
+    draft_sig: str = ""
+    draft_prefer_result: bool = True
+    run_values: dict = field(default_factory=dict)  # the values its last Run was submitted with
 
 
 class ToolPage(QWidget):
@@ -71,11 +87,10 @@ class ToolPage(QWidget):
         self.theme = ctx.theme
         self.store = ctx.tool_settings(tool)
         self.rows: dict[str, Row] = {}
-        self.gen = 0
+        self.input_keys = frozenset(tool.input_keys)   # per-input parameters: each file keeps its own values
+        self._view_key: str | None = None    # the input whose per-input values the form holds
         self.batch: dict | None = None      # the running Run batch
         self.borrowed: dict | None = None   # aiming a workflow step: {key, added, prev, title, on_return}
-        self.draft_job: int | None = None
-        self.draft_prefer_result = True
         self.note = ""
         self.cache = cache_dir() / tool.id
         self.debounce = QTimer(self, singleShot=True, interval=ctx.pref("preview_delay_ms"),
@@ -225,9 +240,10 @@ class ToolPage(QWidget):
         tiles.setSpacing(8)
         self.tiles = [StatTile("—") for _ in range(5)]
         for t in self.tiles:
-            tiles.addWidget(t)
+            tiles.addWidget(t, 1)                # even widths; a tile with a 'was …' gets twice (_show_tiles)
             t.hide()
         sl.addLayout(tiles)
+        self.tile_row = tiles
         split.addWidget(stage)
         split.setSizes([440, 740])
         split.setStretchFactor(1, 1)
@@ -359,6 +375,11 @@ class ToolPage(QWidget):
 
         self.form = ParamForm(self.tool, self.theme)
         self.form.changed.connect(self._settings_changed)
+        for k in self.input_keys:                    # say so where the value is set
+            w = self.form.rows[k][0]
+            tip = w.toolTip()
+            w.setToolTip((tip + "\n\n" if tip else "") + "Each file in the list keeps its own value: set it with that "
+                         "file selected.")
         self.presets = PresetBar(self.tool, self.ctx.presets, self.form, self.theme, self.ctx.toast,
                                  manage=self.ctx.manage_presets)
         self.presets.applied.connect(self._settings_changed)
@@ -545,37 +566,182 @@ class ToolPage(QWidget):
         self._sync_preset()
 
     def values(self) -> dict:
+        """The form's values: the shared settings and the selected input's own (per-input) ones."""
         return self.form.values()
 
+    def values_for(self, key: str) -> dict:
+        """The values `key` runs with: the shared settings and that input's own per-input values."""
+        self._capture_view()
+        v = self.form.values()
+        row = self.rows.get(key)
+        if row is not None and row.key != self._view_key:
+            v.update(row.view)
+        return v
+
+    def _sig(self, values: dict) -> str:
+        """A result's signature: the values it was made with (equal signatures draw the same)."""
+        return repr(sorted(_jsonable(values).items()))
+
+    def _row_sig(self, row: Row) -> str:
+        return self._sig(self.values_for(row.key))
+
+    # ------------------------------------------------------------------ each input's own values
+    def _own(self, values: dict) -> dict:
+        return {k: values[k] for k in self.input_keys if k in values}
+
+    def _shared(self, values: dict) -> dict:
+        return {k: v for k, v in values.items() if k not in self.input_keys}
+
+    def _capture_view(self) -> None:
+        """The form's per-input values belong to the input it shows (`_view_key`): keep them with that row."""
+        row = self.rows.get(self._view_key) if self._view_key else None
+        if row is None or not self.input_keys:
+            return
+        own = self._own(self.form.values())
+        if own != row.view:
+            row.view = own
+            row.view_set = True
+
+    def _load_view(self, row: Row | None) -> None:
+        """Show `row`'s own per-input values in the form (quietly: nothing changed, another file is shown)."""
+        if self._view_key is not None and (row is None or row.key != self._view_key):
+            flush = getattr(self.viewer, "flush", None)
+            if flush is not None:                # a camera still settling lands on the file it was aimed at
+                flush()
+            self._capture_view()
+        self._view_key = row.key if row is not None else None
+        if row is not None and self.input_keys and row.view and row.view != self._own(self.form.values()):
+            self.form.set_values(row.view)
+            self._check_runtimes(update=False)
+            self._sync_preset()
+
+    def _initial_view(self, key: str) -> tuple[dict, bool]:
+        """A new input's own values: what it had when last aimed here, else the selected file's (or the saved ones)."""
+        if not self.input_keys:
+            return {}, False
+        kept = (self.store.get("input_views") or {}).get(key)
+        if kept:
+            try:
+                return self._own(self.tool.values({**self.form.values(), **kept})), True
+            except ValueError:
+                pass
+        return self._own(self.form.values()), False
+
+    def set_values(self, values: dict, keys: list | None = None) -> None:
+        """Put `values` in the settings: the shared ones for every input, the per-input ones for the inputs `keys`
+        (the selected one when None)."""
+        self._capture_view()
+        own = self._own(values)
+        targets = [self._view_key] if keys is None else list(keys)
+        for k in targets:
+            row = self.rows.get(k) if k else None
+            if row is not None and own:
+                row.view = {**row.view, **own}
+                row.view_set = True
+        shown = self._view_key is None or self._view_key in targets
+        self.form.set_values(values if shown else self._shared(values))
+        self._settings_changed()
+
+    def apply_view_to(self, keys: list, source: str | None = None) -> None:
+        """Give the inputs `keys` the own values (its Aim, frame, plane or painted area) of the input `source` (the
+        selected one by default)."""
+        self._capture_view()
+        src = self.rows.get(source or self._view_key or "")
+        if src is None:
+            return
+        n = 0
+        for k in keys:
+            row = self.rows.get(k)
+            if row is not None and row is not src:
+                row.view, row.view_set = dict(src.view), True
+                n += 1
+                if row.key == self._view_key:
+                    self.form.set_values(row.view)
+        self._apply_settings()
+        if n:
+            self.ctx.status(f"{self.tool.name}: {n} file{'s' if n != 1 else ''} now use the {self._view_words()} of "
+                            f"{Path(src.key).name}.")
+
+    def _view_words(self) -> str:
+        """What the per-input values are called in the file list's menu."""
+        keys = self.input_keys
+        if "theta" in keys:
+            return "Aim"
+        if "position" in keys and "rotation" in keys:
+            return "plane"
+        if "selection" in keys:
+            return "painted area"
+        return "Up and Front"
+
     def _settings_changed(self) -> None:
-        self.cancel_preview()
+        self._capture_view()
+        self._drop_stale_drafts()
         self._check_runtimes()
         self._sync_preset()
         self.note = ""
         self.debounce.start()
 
     def _apply_settings(self) -> None:
-        self.cancel_preview()
+        self.debounce.stop()
+        self._capture_view()
+        self._drop_stale_drafts()
         self._check_runtimes(update=False)
         self._save_settings()
-        self.gen += 1
         if self.viewer is not None:
             self.viewer.values_changed(self.values())
-        if self.tool.live:
-            for key in self.rows:
-                self.analyse(key)
-        else:
-            for row in self.rows.values():
-                if row.result is not None and row.result_mode != "run":
-                    row.result = None
-                    self._fill_row(row)
+        for row in self.rows.values():
+            if self.tool.live:
+                if row.sig != self._row_sig(row):
+                    self.analyse(row.key)        # only the inputs whose values changed
+            else:
+                self._refresh_result(row)
+        if not self.tool.live:
             self.show_selected()
         self._update_controls()
+
+    def _refresh_result(self, row: Row) -> None:
+        """A preview shows only while its file has the values it was made with; a kept preview made with the values
+        now in force comes back. A run's result stays (it is on disk)."""
+        if row.result is not None and row.result_mode == "run":
+            return
+        sig = self._row_sig(row)
+        if row.result is not None and row.sig == sig:
+            return
+        kept = row.drafts.get(sig)
+        if kept is not None:
+            row.drafts.move_to_end(sig)
+            row.result, row.result_mode, row.sig, row.error = kept, "draft", sig, ""
+        elif row.result is None:
+            self._fill_row(row)              # "Outdated" or "Ready"
+            return
+        else:
+            row.result, row.result_mode = None, ""
+        self._fill_row(row)
+
+    def _drop_stale_drafts(self) -> None:
+        """Cancel the previews made with values their file no longer has (other files' previews run on)."""
+        for row in self.rows.values():
+            if row.draft_job is not None and row.draft_sig != self._row_sig(row):
+                self.cancel_preview(row)
+
+    def _remember_views(self) -> None:
+        """Files given their own view here keep it for next time (the most recent VIEWS_KEPT)."""
+        if not self.input_keys:
+            return
+        self._capture_view()
+        views = dict(self.store.get("input_views") or {})
+        params = {p.key: p for p in self.tool.param_list if p.key in self.input_keys}
+        for row in self.rows.values():
+            if row.view_set and row.view:
+                views.pop(row.key, None)
+                views[row.key] = {k: (v if v == AUTO else params[k].to_json(v)) for k, v in row.view.items()}
+        self.store.set("input_views", dict(list(views.items())[-VIEWS_KEPT:]))
 
     def _save_settings(self) -> None:
         if self.borrowed is not None:            # a workflow step's settings are not this page's own
             return
         self.store.set_values(self.values())
+        self._remember_views()
         self.store.out_mode = "folder" if self.out_folder.isChecked() else "next"
         self.store.out_dir = self.out_dir
         if self.fmt_combo is not None:
@@ -612,12 +778,16 @@ class ToolPage(QWidget):
             self.end_borrow(keep=False, notify=False)
         key = str(Path(path).resolve())
         added = key not in self.rows
-        self.borrowed = {"key": key, "added": added, "prev": self.values(), "title": title, "on_return": on_return}
+        self._capture_view()
+        self.borrowed = {"key": key, "added": added, "prev": self.values(), "title": title,
+                         "on_return": on_return,
+                         "prev_view": None if added else (dict(self.rows[key].view), self.rows[key].view_set)}
         if added:
             self._add_row(key)
+        self.queue.setCurrentItem(self.rows[key].item)     # the step's input is shown: its values go to it alone
+        self._load_view(self.rows[key])
         self.form.set_values(self.tool.values(values))
         self._settings_changed()
-        self.queue.setCurrentItem(self.rows[key].item)
         self.banner_text.setText(f"Setting up the workflow step <b>{title}</b> on its input. Change the view and "
                                  f"settings here, then go back: the step takes them. Run is off meanwhile.")
         self.banner.show()
@@ -628,12 +798,18 @@ class ToolPage(QWidget):
         b, self.borrowed = self.borrowed, None
         if b is None:
             return
-        values = self.values()
+        values = self.values_for(b["key"]) if b["key"] in self.rows else self.values()
         self.banner.hide()
         if b["added"] and b["key"] in self.rows:
             self._forget(b["key"])
             self._list_changed()
+        elif b["key"] in self.rows:                  # the file was here before: its own values come back
+            row = self.rows[b["key"]]
+            row.view, row.view_set = b["prev_view"]
+            if self._view_key == row.key:
+                self._view_key = None                # (the form holds the step's: do not keep them)
         self.form.set_values(b["prev"])
+        self._load_view(self._current_row())
         self._settings_changed()
         if notify:
             b["on_return"](values if keep else None)
@@ -698,9 +874,8 @@ class ToolPage(QWidget):
             self.ctx.settings.add_recent(key)
         if found:
             self.store.set("last_dir", str(found[0].parent))
-        if values:
-            self.form.set_values(self.tool.values(values))
-            self._settings_changed()
+        if values:                                   # the files given with these values take their per-input ones
+            self.set_values(self.tool.values(values), keys=[str(f) for f in found])
         elif added:
             self._offer_restore(added)
         if added and not self.queue.selectedItems():
@@ -711,7 +886,8 @@ class ToolPage(QWidget):
 
     def _add_row(self, key: str) -> Row:
         it = self.queue.add_row(key, Path(key).name)
-        self.rows[key] = Row(key, it)
+        row = self.rows[key] = Row(key, it)
+        row.view, row.view_set = self._initial_view(key)
         self.queue.set_status(it, "Reading…", "dim")
         self.inspect(key)
         return self.rows[key]
@@ -726,9 +902,13 @@ class ToolPage(QWidget):
             if md and md[0] == self.tool.id:
                 vals = md[1]
                 self.ctx.toast(f"{Path(key).name} was made with {self.tool.name}. Restore the settings it used?",
-                               "", "Restore", lambda v=vals: (self.form.set_values(self.tool.values(v)),
-                                                             self._settings_changed()), ms=8000)
+                               "", "Restore", lambda v=vals, k=key: self._restore_from(k, v), ms=8000)
                 return
+
+    def _restore_from(self, key: str, values: dict) -> None:
+        """Restore the settings an output was made with: its view goes to that file alone."""
+        if key in self.rows:
+            self.set_values(self.tool.values(values), keys=[key])
 
     def remove_selected(self) -> None:
         for key in self.queue.selected_keys():
@@ -756,13 +936,14 @@ class ToolPage(QWidget):
         return "process" if (self.tool.runs_in == "process" and mode in ("run", "draft")) else "thread"
 
     def _submit(self, row: Row, mode: str, values: dict | None = None, dst: str | None = None) -> int:
-        job = Job(self.tool.id, mode, row.key, dst, dict(values or {}),
+        values = dict(values or {})
+        job = Job(self.tool.id, mode, row.key, dst, values,
                   group=f"{self.tool.id}:{mode}:{row.key}" if mode in ("analyse", "inspect") else "",
                   cache_dir=str(self.cache))
-        gen, holder = self.gen, {}
+        sig, holder = self._sig(values), {}
         jid = self.ctx.bridge.submit(
             job, self._lane(mode),
-            lambda kind, payload, r=row, m=mode, g=gen: self._on_event(r, m, g, holder["jid"], kind, payload))
+            lambda kind, payload, r=row, m=mode, s=sig: self._on_event(r, m, s, holder["jid"], kind, payload))
         holder["jid"] = jid
         row.jobs.add(jid)
         return jid
@@ -775,20 +956,28 @@ class ToolPage(QWidget):
         if row.info is None and row.info_error:
             return
         self.queue.set_status(row.item, "Analysing…", "dim")
-        self._submit(row, "analyse", self.values())
+        self._submit(row, "analyse", self.values_for(key))
 
-    def cancel_preview(self) -> None:
-        """Invalidate immediately: a finishing worker must not restore geometry from old settings."""
-        jid, self.draft_job = self.draft_job, None
-        if jid is not None:
-            self.ctx.bridge.cancel(jid)
-            for row in self.rows.values():
-                if jid in row.jobs:
-                    self._fill_row(row)
+    @property
+    def draft_job(self) -> int | None:
+        """The selected input's running preview (each input has its own)."""
+        row = self._current_row()
+        return row.draft_job if row is not None else None
+
+    def previewing(self) -> bool:
+        return any(r.draft_job is not None for r in self.rows.values())
+
+    def cancel_preview(self, row: Row | None = None) -> None:
+        """Stop an input's preview (the selected one's by default); other inputs' previews run on."""
+        row = row if row is not None else self._current_row()
+        if row is None or row.draft_job is None:
+            return
+        jid, row.draft_job = row.draft_job, None
+        self.ctx.bridge.cancel(jid)
+        self._fill_row(row)
 
     def preview_selected(self, *, keep_view: bool = False) -> None:
         if self.debounce.isActive():
-            self.debounce.stop()
             self._apply_settings()
         row = self._current_row()
         if row is None or row.info is None:
@@ -796,10 +985,12 @@ class ToolPage(QWidget):
         if self._placement_error(row.key,mode='draft'):
             self.ctx.status(self._placement_error(row.key,mode='draft'))
             return
-        self.cancel_preview()
-        self.draft_prefer_result = not keep_view
+        self.cancel_preview(row)
+        values = self.values_for(row.key)
+        row.draft_prefer_result = not keep_view
         self.queue.set_status(row.item, "Previewing…", "busy")
-        self.draft_job = self._submit(row, "draft", self.values())
+        row.draft_sig = self._sig(values)
+        row.draft_job = self._submit(row, "draft", values)
         self._update_controls()
 
     def run_all(self) -> None:
@@ -814,9 +1005,9 @@ class ToolPage(QWidget):
             self.pick_out_folder()
             if not self.out_dir:
                 return
-        values = self.values()
+        values = {k: self.values_for(k) for k in keys}  # each input with its own view
         policy = self.ctx.pref("on_existing")         # Setup › Outputs › "When an output file exists"
-        plan, exists = prefs.plan({k: self.output_for(k, values) for k in keys}, policy)
+        plan, exists = prefs.plan({k: self.output_for(k, values[k]) for k in keys}, policy)
         if exists and policy == "ask":
             names = "\n".join(p.name for p in exists[:8]) + ("\n…" if len(exists) > 8 else "")
             if QMessageBox.question(self, self.tool.name, f"{len(exists)} output file(s) already exist:\n\n{names}"
@@ -828,7 +1019,8 @@ class ToolPage(QWidget):
         for k in keys:
             row = self.rows[k]
             self.queue.set_status(row.item, "Queued", "dim")
-            self._submit(row, "run", values, str(plan[k]))
+            row.run_values = values[k]
+            self._submit(row, "run", values[k], str(plan[k]))
         self._update_controls()
 
     def cancel(self) -> None:
@@ -847,14 +1039,14 @@ class ToolPage(QWidget):
             if row.info is None:
                 continue
             if self.tool.live:
-                if isinstance(row.result, Result) and row.result.changed and row.gen == self.gen:
+                if isinstance(row.result, Result) and row.result.changed and row.sig == self._row_sig(row):
                     out.append(k)
             else:
                 out.append(k)
         return out
 
     def output_for(self, key: str, values: dict | None = None) -> Path:
-        values = values if values is not None else self.values()
+        values = values if values is not None else self.values_for(key)
         row = self.rows.get(key)
         if row is not None and row.info is not None and any(v == AUTO for v in values.values()):
             values = resolve_auto(self.tool.param_list, values, row.info)
@@ -869,15 +1061,17 @@ class ToolPage(QWidget):
         return not any(r.jobs for r in self.rows.values())
 
     # ================================================================== events
-    def _on_event(self, row: Row, mode: str, gen: int, jid: int, kind: str, payload) -> None:
-        if row.key not in self.rows:
+    def _on_event(self, row: Row, mode: str, sig: str, jid: int, kind: str, payload) -> None:
+        if self.rows.get(row.key) is not row:
             return
-        if mode == "draft" and (jid != self.draft_job or gen != self.gen):
+        if mode == "draft" and jid != row.draft_job:      # replaced or cancelled: a finished one is still kept
             if kind in ("done", "error", "cancelled"):
                 row.jobs.discard(jid)
-                if jid == self.draft_job:
-                    self.draft_job = None
-                    self._fill_row(row)
+                if kind == "done":
+                    self._keep_draft(row, sig, payload[0])
+                    self._refresh_result(row)
+                    if self._current_row() is row:
+                        self.show_selected()
                 self._update_controls()
             return
         if kind == "progress" and mode in ("run", "draft"):
@@ -899,12 +1093,18 @@ class ToolPage(QWidget):
         if mode == "inspect":
             self._on_inspected(row, kind, payload)
         elif mode == "analyse":
-            if gen == self.gen:
+            if sig == self._row_sig(row):                 # an analysis of values the file no longer has is dropped
                 self._on_result(row, mode, kind, payload)
-                row.gen = gen
+                row.sig = sig
         elif mode == "draft":
-            self.draft_job = None
-            self._on_result(row, mode, kind, payload, prefer_result=self.draft_prefer_result)
+            row.draft_job = None
+            if kind == "done":
+                self._keep_draft(row, sig, payload[0])
+            if sig == self._row_sig(row):
+                row.sig = sig
+                self._on_result(row, mode, kind, payload, prefer_result=row.draft_prefer_result)
+            else:                                          # the file's values moved on meanwhile
+                self._refresh_result(row)
         else:
             self._on_run(row, kind, payload)
         self._update_controls()
@@ -945,6 +1145,15 @@ class ToolPage(QWidget):
         if self._current_row() is row:
             self.show_selected(prefer_result=prefer_result)
 
+    def _keep_draft(self, row: Row, sig: str, res) -> None:
+        """Keep a finished preview with the values it was made with (the newest DRAFTS_KEPT per input)."""
+        if not isinstance(res, Result):
+            return
+        row.drafts.pop(sig, None)
+        row.drafts[sig] = res
+        while len(row.drafts) > DRAFTS_KEPT:
+            row.drafts.popitem(last=False)
+
     def _on_run(self, row: Row, kind: str, payload) -> None:
         b = self.batch
         rec = None
@@ -958,7 +1167,7 @@ class ToolPage(QWidget):
                 b["outputs"] += list(res.outputs)
             secs = (res.data or {}).get("seconds", 0.0) if isinstance(res.data, dict) else 0.0
             rec = RunRecord(self.tool.id, self.tool.version, "done", row.key, list(res.outputs),
-                            _jsonable(self.values()), secs, toolkit_version=__version__,
+                            _jsonable(row.run_values or self.values_for(row.key)), secs, toolkit_version=__version__,
                             stats={s.key: s.value for s in res.stats if isinstance(s.value, (int, float, str))})
             self._fill_row(row)
         elif kind == "error":
@@ -970,7 +1179,8 @@ class ToolPage(QWidget):
             self.logview.appendPlainText(f"{time.strftime('%H:%M:%S')}  error   {Path(row.key).name}: {payload[0]}"
                                          + (f"\n{payload[1]}" if len(payload) > 1 and payload[1] else ""))
             diagnostic=payload[2] if len(payload)>2 and isinstance(payload[2],dict) else {}
-            rec = RunRecord(self.tool.id, self.tool.version, "error", row.key, [], _jsonable(diagnostic.get('values',self.values())),
+            used = diagnostic.get("values", row.run_values or self.values_for(row.key))
+            rec = RunRecord(self.tool.id, self.tool.version, "error", row.key, [], _jsonable(used),
                             seconds=diagnostic.get('seconds',0.),message=payload[0], toolkit_version=__version__)
         else:
             self.queue.set_status(row.item, "Cancelled", "warning")
@@ -1006,7 +1216,13 @@ class ToolPage(QWidget):
         res = row.result
         if res is None:
             self.queue.clear_cells(row.item)
-            if row.info is not None:
+            if row.draft_job is not None:
+                self.queue.set_status(row.item, "Previewing…", "busy")
+            elif row.info is not None and row.drafts and not self.tool.live:
+                self.queue.set_status(row.item, "Outdated", "muted",
+                                      "Its preview was made with other settings. Preview again, or go back to "
+                                      "those settings to see it.")
+            elif row.info is not None:
                 self.queue.set_status(row.item, "Ready", "accent")
             return
         self.queue.set_cells(row.item, res)
@@ -1031,6 +1247,10 @@ class ToolPage(QWidget):
 
     def show_selected(self, prefer_result: bool = False) -> None:
         row = self._current_row()
+        if row is None or row.key != self._view_key:
+            self._load_view(row)                     # the form shows this input's own view
+            if row is not None and not self.tool.live:
+                self._refresh_result(row)
         if self.viewer is not None and (row is None or row.info_error or row.info is None):
             self.viewer.set_input(None, None)
         if row is None:
@@ -1130,6 +1350,7 @@ class ToolPage(QWidget):
                 s = stats[i]
                 t.layout().itemAt(0).widget().setText(s.label.upper())
                 t.set(s.text(), s.text(s.before) if s.before is not None else "", s.tone)
+                self.tile_row.setStretch(i, 2 if s.before is not None else 1)
                 t.show()
             else:
                 t.hide()
@@ -1160,6 +1381,19 @@ class ToolPage(QWidget):
             sm.setEnabled(bool(row.saved))
             for t in targets:
                 sm.addAction(icon(t.icon, th, 16), t.name, lambda tid=t.id: self.send_to.emit(tid, list(row.saved)))
+        if self.input_keys and len(self.rows) > 1:
+            m.addSeparator()
+            # each file keeps its own view; these hand the one under the mouse to the others
+            others = [k for k in self.queue.selected_keys() if k != key]
+            what = self._view_words()
+            labels = [p.label for p in self.tool.param_list if p.key in self.input_keys]
+            tip = "Each file keeps its own " + ", ".join(labels) + ". This gives the others this file's."
+            if others:
+                m.addAction(icon("copy", th, 16), f"Use its {what} for the selected files",
+                            lambda: self.apply_view_to(others, key)).setToolTip(tip)
+            m.addAction(icon("copy", th, 16), f"Use its {what} for every file",
+                        lambda: self.apply_view_to(list(self.rows), key)).setToolTip(tip)
+            m.setToolTipsVisible(True)
         m.addSeparator()
         rm = m.addAction("Remove from list", self.remove_selected)
         rm.setEnabled(not self.busy())
@@ -1187,14 +1421,14 @@ class ToolPage(QWidget):
             self.btn_run.setText(f"{verb} all  ({ready})" if ready else f"{verb} all")
         else:
             self.btn_run.setText(f"{verb}  ·  {ready} file{'s' if ready != 1 else ''}" if ready else verb)
-        analysing = self.tool.live and any(r.gen != self.gen and r.info is not None for r in self.rows.values())
+        analysing = self.tool.live and any(r.info is not None and r.sig != self._row_sig(r) for r in self.rows.values())
         placement_error=self._placement_error(self._current_row().key) if self._current_row() else ''
         preview_error=self._placement_error(self._current_row().key,mode='draft') if self._current_row() else ''
         self.btn_run.setEnabled(ready > 0 and not busy and not placement_error and not (self.tool.live and analysing)
                                 and self.borrowed is None and not self.lacking)
         self.btn_run.setToolTip("Off while a workflow step is being set up here: use Back to workflow."
                                 if self.borrowed is not None else placement_error)
-        self.btn_cancel.setVisible(busy or self.draft_job is not None)
+        self.btn_cancel.setVisible(busy or self.previewing())
         self.btn_preview.setEnabled(not busy and self._current_row() is not None and self.draft_job is None
                                     and not self.lacking and not preview_error)
         self.btn_preview.setToolTip(preview_error)

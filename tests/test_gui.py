@@ -195,6 +195,87 @@ class GuiFlowTests(unittest.TestCase):
         self.assertEqual(page.stage.current_title(), "Drawing")
         self.assertFalse(list(self.folder("hatch").glob("*_hatch.svg")))   # a preview writes nothing
 
+    def test_each_file_keeps_its_own_aim_and_preview(self):
+        """Aiming one file never moves another; a preview stays until its own file's values change, and comes back
+        with them; Run writes each file with its own view; a file aimed here gets its view back next time."""
+        from atlas_toolkit.core import samples
+        a, b = samples.mesh(self.folder("own-aim-a")), samples.mesh(self.folder("own-aim-b"))
+        page = self.win.open_tool("stl-hatch-maker", [str(a), str(b)])
+        self.addCleanup(page.clear)
+        ka, kb = str(a.resolve()), str(b.resolve())
+        ra, rb = page.rows[ka], page.rows[kb]
+        self.wait(lambda: len(page.runnable()) == 2 and page.idle())
+        self.assertIn("psi", page.input_keys)
+        self.assertNotIn("spacing_dark", page.input_keys)
+        start = page.values()["psi"]
+
+        page.queue.setCurrentItem(ra.item)
+        page.form.set_values({"psi": 33.0, "spacing_dark": 2.0, "spacing_light": 6.0})
+        page._settings_changed()                       # as the Aim tab does when it commits a camera
+        page.preview_selected()
+        self.wait(lambda: page.idle() and not page.previewing())
+        self.assertEqual(ra.result_mode, "draft")
+
+        page.queue.setCurrentItem(rb.item)             # b: its own Aim, the shared settings
+        self.assertEqual(page.values()["psi"], start)
+        self.assertEqual(page.values()["spacing_dark"], 2.0)
+        page.form.set_values({"psi": 120.0})
+        page._apply_settings()
+        self.assertEqual(page.values_for(ka)["psi"], 33.0)
+        self.assertIsNotNone(ra.result, "aiming b must not outdate a's preview")
+        page.preview_selected()
+        self.wait(lambda: page.idle() and not page.previewing())
+        self.assertEqual(rb.result_mode, "draft")
+        page.queue.setCurrentItem(ra.item)
+        self.assertEqual(page.values()["psi"], 33.0)
+        self.assertIn("Drawing", [v["title"] for v in page.stage.views])
+
+        page.form.set_values({"spacing_dark": 3.0})    # a shared change outdates both previews…
+        page._apply_settings()
+        self.assertIsNone(ra.result)
+        self.assertIsNone(rb.result)
+        self.assertEqual(ra.item.text(1), "Outdated")
+        page.form.set_values({"spacing_dark": 2.0})    # …and going back brings both back, without running again
+        page._apply_settings()
+        self.assertEqual((ra.result_mode, rb.result_mode), ("draft", "draft"))
+        self.assertTrue(page.idle())
+
+        page.apply_view_to([kb], ka)                   # the file list's "Use its Aim for…"
+        self.assertEqual(page.values_for(kb)["psi"], 33.0)
+        page.queue.setCurrentItem(rb.item)
+        page.form.set_values({"psi": 77.0})
+        page._apply_settings()
+        page.run_all()
+        self.wait(lambda: not page.busy() and page.idle())
+        self.assertEqual((ra.run_values["psi"], rb.run_values["psi"]), (33.0, 77.0))
+        self.assertTrue(ra.saved and rb.saved)
+
+        page.clear()                                   # next time: b gets its own view back, not the selected one's
+        page.add_paths([str(a)])
+        page.queue.setCurrentItem(page.rows[ka].item)
+        page.add_paths([str(b)])
+        self.assertEqual(page.values_for(kb)["psi"], 77.0)
+        self.assertEqual(page.values()["psi"], 33.0)
+
+    def test_aim_lands_on_the_file_it_was_aimed_at(self):
+        """A camera still settling when another file is selected goes to the file it was aimed at."""
+        from atlas_toolkit.core import samples
+        a, b = samples.mesh(self.folder("aim-flush-a")), samples.mesh(self.folder("aim-flush-b"))
+        page = self.win.open_tool("stl-hatch-maker", [str(a), str(b)])
+        self.addCleanup(page.clear)
+        ka, kb = str(a.resolve()), str(b.resolve())
+        self.wait(lambda: len(page.runnable()) == 2 and page.idle())
+        page.queue.setCurrentItem(page.rows[ka].item)
+        view = page.viewer
+        self.wait(lambda: view.model is not None and view.path == ka)
+        before = page.values_for(kb)["psi"]
+        view._set_view(90.0, 12.0)                     # a key press: the camera goes to the settings shortly
+        self.assertTrue(view.commit.isActive())
+        page.queue.setCurrentItem(page.rows[kb].item)
+        self.assertAlmostEqual(page.values_for(ka)["psi"], 12.0, places=1)
+        self.assertEqual(page.values_for(kb)["psi"], before)
+        self.assertEqual(page.values()["psi"], before)
+
     def test_image_mesh_preparation_placement_cancel_and_export(self):
         import numpy as np
         from PySide6.QtWidgets import QPushButton
@@ -358,17 +439,22 @@ class GuiFlowTests(unittest.TestCase):
         row = page._current_row()
         with patch.object(self.ctx.bridge, 'submit', side_effect=[100001, 100002]), patch.object(self.ctx.bridge, 'cancel') as cancel:
             page.preview_selected()
-            old_generation = page.gen
-            page._settings_changed()
+            old_sig = page._row_sig(row)
+            page._settings_changed()                 # nothing changed: the preview runs on
+            self.assertEqual(page.draft_job, 100001)
+            page.form.set_values({"across": page.values()["across"] + 4})
+            page._settings_changed()                 # its values changed: that preview is stale, so it stops
             self.assertIsNone(page.draft_job)
             page.preview_selected(keep_view=True)
             self.assertFalse(page.debounce.isActive())
-            self.assertEqual(page.gen, old_generation+1)
-            page._on_event(row, 'draft', old_generation, 100001, 'done', (Result(report='stale'),))
+            new_sig = page._row_sig(row)
+            self.assertNotEqual(new_sig, old_sig)
+            page._on_event(row, 'draft', old_sig, 100001, 'done', (Result(report='stale'),))
             self.assertEqual(page.draft_job, 100002)
             self.assertIsNone(row.result)
             self.assertNotIn(100001, row.jobs)
-            page._on_event(row, 'draft', page.gen, 100002, 'done', (Result(report='current'),))
+            self.assertIn(old_sig, row.drafts)       # kept, for when those settings come back
+            page._on_event(row, 'draft', new_sig, 100002, 'done', (Result(report='current'),))
             self.assertIsNone(page.draft_job)
             self.assertEqual(row.result.report, 'current')
             cancel.assert_called_once_with(100001)

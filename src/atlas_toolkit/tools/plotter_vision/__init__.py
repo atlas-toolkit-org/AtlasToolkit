@@ -17,7 +17,7 @@ def depth_on(v):
 TOOL = Tool(
     id="plotter-vision",
     name="Plotter Vision",
-    version="1.5.0",
+    version="1.6.0",
     category="mesh2svg",
     icon="eye",
     action="Draw",

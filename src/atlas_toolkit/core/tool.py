@@ -206,6 +206,11 @@ class Tool:
     def param(self, key: str) -> Param:
         return next(p for p in self.param_list if p.key == key)
 
+    @property
+    def input_keys(self) -> tuple:
+        """Keys whose values belong to each input file (Param.per_input): its view, frame, plane or painted area."""
+        return tuple(p.key for p in self.param_list if p.per_input)
+
     def defaults(self) -> Params:
         return resolve(self.param_list, {})
 

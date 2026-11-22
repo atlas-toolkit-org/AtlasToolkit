@@ -1,11 +1,12 @@
 """Toolkit adapter for the Hatch Maker: model in, signed plotter SVG out, with the drawing as the preview."""
 from __future__ import annotations
 
+import time
 from pathlib import Path
 
 from atlas_toolkit.core import Result, Stat
 from atlas_toolkit.geom import mesh as gm
-from atlas_toolkit.geom.drawing import Drawing, Pen, fmt_duration, fmt_length
+from atlas_toolkit.geom.drawing import Drawing, Pen, fmt_duration, fmt_length, plot_tiles
 from atlas_toolkit.geom.svgout import write_svg
 
 from . import TOOL
@@ -16,6 +17,7 @@ COLORS = {"hatching": "#0B1220", "silhouettes": "#0B1220", "creases": "#2A5FE0",
 
 def run(ctx, src: Path, dst: Path | None, p) -> Result:
     import trimesh
+    t0 = time.perf_counter()
     m = gm.load_mesh(src)
     faces = len(m.faces)
     bounds = (m.vertices.min(0), m.vertices.max(0))      # the full model's: a draft keeps Draw's framing
@@ -35,11 +37,8 @@ def run(ctx, src: Path, dst: Path | None, p) -> Result:
     drawing = Drawing(W, H, (0.0, 0.0, W, H), pens)
     st = drawing.stats()
     stats = [Stat("strokes", "Strokes", st.strokes),
-             Stat("ink", "Ink", fmt_length(st.ink), fmt="{}"),
-             Stat("travel", "Pen-up travel", fmt_length(out["travel_after"]), before=fmt_length(out["travel_before"]),
-                  fmt="{}"),
-             Stat("time", "Plot time", fmt_duration(st.seconds()), fmt="{}"),
-             Stat("layers", "Pens", len(pens))]
+             *plot_tiles(st, time.perf_counter() - t0, (out["travel_before"], out["travel_after"]),
+                         [Stat("layers", "Pens", len(pens))])]
     lines = [src.name,
              f"  view       θ {p.theta:g}°, ψ {p.psi:g}°, distance {p.radius:g}, look at "
              f"({', '.join(f'{x:g}' for x in p.lookat)}), roll {p.roll:g}°, orthographic; light {p.light}",

@@ -145,6 +145,27 @@ class EngineTests(unittest.TestCase):
         ink = lambda r: r.preview["views"][0]["drawing"].stats().ink      # noqa: E731
         self.assertLess(ink(seen), 0.7 * ink(allx))
 
+    def test_roll_turns_the_model_and_keeps_the_slices_level(self):
+        """Roll leans the model on the paper like a clock hand, but the slices stay horizontal: a tall box rolled 90°
+        lies on its side and is still drawn in level lines (turning the picture would have stood them upright)."""
+        src = self.write(trimesh.creation.box(extents=(20, 20, 80)), "tall.stl")
+        base = dict(theta=90.0, psi=180.0, radius=200.0, projection="orthographic", spacing_mm=4.0, min_len=1.0,
+                    min_gap=0.0, join_any=0.0, join_same=0.0, hidden=False)
+
+        def drawn(roll):
+            res = engine.run(context(), src, None, TOOL.values(dict(base, roll=roll)))
+            pls = res.preview["views"][0]["drawing"].pens[0].polylines()
+            P = np.concatenate(pls)
+            return pls, P.max(0) - P.min(0), res
+
+        pls, size, _ = drawn(0.0)
+        self.assertGreater(size[1], 3 * size[0])                         # standing
+        pls, size, res = drawn(90.0)
+        self.assertGreater(size[0], 3 * size[1])                         # lying on its side
+        spans = np.array([np.ptp(pl[:, 1]) for pl in pls])
+        self.assertLess(np.median(spans), 0.05)                          # every slice still level
+        self.assertIn("model rolled 90°", res.report)
+
     def test_orthographic_spacing_on_paper(self):
         cyl = trimesh.creation.cylinder(radius=20.0, height=80.0, sections=64)
         src = self.write(cyl, "cyl.stl")
