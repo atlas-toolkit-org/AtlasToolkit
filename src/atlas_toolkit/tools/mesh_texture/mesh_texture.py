@@ -1,4 +1,11 @@
-"""GUI-free height sampling and conforming surface refinement; welded geometry throughout."""
+"""GUI-free height sampling, budgeted conforming refinement and local relief protection; welded geometry throughout.
+
+Refinement splits edges at shared midpoints (conforming and planar): first to the sampling length, then where the
+sampled height error exceeds Detail tolerance, a share of the relief, worst first and never below a floor tied to the
+element. It never fails on Maximum output faces: the last pass takes the worst faces that fit and says how much of the
+surface met the tolerance. Displacement follows smoothed normals, and protection restrains the relief only where it
+would flip a triangle or push one piece of skin through another, fading into the surroundings.
+"""
 from pathlib import Path
 import hashlib
 import json
@@ -9,6 +16,9 @@ import numpy as np
 from scipy.ndimage import gaussian_filter, map_coordinates
 
 ASSETS=Path(__file__).with_name('assets')
+MEMORY_FACES=3_500_000     # about 768 bytes of working memory a face: arrays, sampling and protection
+BATCH=65536                # points sampled at a time
+NORMAL_RADIUS=.25          # displacement normals are smoothed over this share of an element
 
 
 def catalog():
@@ -100,19 +110,75 @@ def prepare(p,ctx):
     return a,alpha,elements,False
 
 
+
 def edges(f):
-    unique,inverse,counts=np.unique(np.sort(f[:,[[0,1],[1,2],[2,0]]],axis=2).reshape(-1,2),axis=0,return_inverse=True,return_counts=True)
-    return unique,inverse.reshape(-1,3),counts
+    """Unique edges (sorted vertex pairs), each face's three edge ids, and how many faces share each edge."""
+    s=np.sort(np.asarray(f,np.int64)[:,[[0,1],[1,2],[2,0]]],axis=2).reshape(-1,2)
+    if not len(s):
+        return np.zeros((0,2),np.int64),np.zeros((0,3),np.int64),np.zeros(0,np.int64)
+    # One int64 key per edge: much faster than unique rows.
+    key=s[:,0]*(int(s.max())+1)+s[:,1]
+    _,index,inverse,counts=np.unique(key,return_index=True,return_inverse=True,return_counts=True)
+    return s[index],inverse.reshape(-1,3),counts
 
 
-def distance_to_vertices(v,e,indices,limit):
-    from scipy.sparse import coo_matrix
-    from scipy.sparse.csgraph import dijkstra
-    if not len(indices):
-        return np.full(len(v),np.inf)
-    lengths=np.linalg.norm(v[e[:,1]]-v[e[:,0]],axis=1)
-    graph=coo_matrix((np.r_[lengths,lengths],(np.r_[e[:,0],e[:,1]],np.r_[e[:,1],e[:,0]])),shape=(len(v),len(v))).tocsr()
-    return dijkstra(graph,directed=False,indices=indices,min_only=True,limit=limit)
+class Graph:
+    """The welded surface's edges, for distances measured along the skin (feathers, seams, borders)."""
+
+    def __init__(self,v,e):
+        from scipy.sparse import coo_matrix
+        self.n=len(v)
+        lengths=np.linalg.norm(v[e[:,1]]-v[e[:,0]],axis=1)
+        self.csr=coo_matrix((np.r_[lengths,lengths],(np.r_[e[:,0],e[:,1]],np.r_[e[:,1],e[:,0]])),
+                            shape=(self.n,self.n)).tocsr()
+
+    def distance(self,indices,limit,nearest=False):
+        """Distance to the nearest of `indices` (inf beyond `limit`); with nearest=True also which one it is."""
+        from scipy.sparse.csgraph import dijkstra
+        indices=np.unique(np.asarray(indices,np.int64))
+        if not len(indices):
+            far=np.full(self.n,np.inf)
+            return (far,np.full(self.n,-1)) if nearest else far
+        if nearest:
+            dist,_,source=dijkstra(self.csr,directed=False,indices=indices,min_only=True,limit=limit,
+                                   return_predecessors=True)
+            return dist,source
+        return dijkstra(self.csr,directed=False,indices=indices,min_only=True,limit=limit)
+
+
+def smooth_normals(v,f,normals,radius):
+    """Vertex normals averaged over about `radius` along the skin (one implicit diffusion step), so relief does not
+    follow scan noise or fold in tight creases. Neighbours whose normals are more than 90 degrees apart (the two sides
+    of a thin rim) do not mix."""
+    from scipy import sparse
+    from scipy.sparse.linalg import cg
+    normals=np.asarray(normals,float)
+    e,_,_=edges(f)
+    if radius<=0 or not len(e):
+        return normals.copy()
+    lengths=np.maximum(np.linalg.norm(v[e[:,1]]-v[e[:,0]],axis=1),radius*1e-6)
+    w=np.clip(np.einsum('ij,ij->i',normals[e[:,0]],normals[e[:,1]]),0,1)/lengths**2
+    W=sparse.coo_matrix((np.r_[w,w],(np.r_[e[:,0],e[:,1]],np.r_[e[:,1],e[:,0]])),shape=(len(v),len(v))).tocsr()
+    t=radius*radius/1.5
+    d=np.asarray(W.sum(axis=1)).ravel()
+    A=(sparse.diags(1+t*d)-t*W).tocsr()
+    M=sparse.diags(1/(1+t*d))
+    out=np.empty_like(normals)
+    for k in range(3):
+        out[:,k],_=cg(A,normals[:,k],x0=normals[:,k],rtol=1e-5,maxiter=300,M=M)
+    length=np.linalg.norm(out,axis=1)
+    ok=(length>.3)&(np.einsum('ij,ij->i',out,normals)>.3*length)
+    out[ok]/=length[ok,None]
+    out[~ok]=normals[~ok]
+    return out
+
+
+def smoothstep(t):
+    t=np.clip(t,0,1)
+    return t*t*(3-2*t)
+
+
+CAP_FROM,CAP_TO=.55,.85     # |normal · cylinder axis| where cylindrical caps turn into a projection along the axis
 
 
 class Field:
@@ -124,6 +190,10 @@ class Field:
             self.h=float(np.ptp(v,axis=0).max())
         self.element=float(p['element_size'])/100*self.h
         self.tile=self.element*elements
+        # Relief and the refinement tolerance in model units: the tolerance is a share of the relief, so taller
+        # relief does not need more faces.
+        self.height=float(p['relief'])/100*self.h
+        self.tolerance=max(float(p['detail_tolerance'])/100*self.height,1e-9*self.h)
         angle=np.deg2rad(float(p['texture_rotation']))
         self.rotation=np.array([[np.cos(angle),-np.sin(angle)],[np.sin(angle),np.cos(angle)]])
         self.axis={'side':0,'front':1,'up':2}[p['cylinder_axis']]
@@ -156,32 +226,59 @@ class Field:
         alpha=map_coordinates(self.alpha,coords,order=1,mode='grid-wrap',prefilter=False)
         return value,alpha
 
+    def mode(self,h):
+        """Raised 0..1, engraved -1..0, balanced -0.5..0.5."""
+        if self.p['relief_mode']=='engraved':
+            return -h
+        if self.p['relief_mode']=='balanced':
+            return h-.5
+        return h
+
+    def cylinder(self,points):
+        r=self.radial
+        # +pi/2 starts the Up-axis seam behind the canonical model (+Y).
+        angle=np.arctan2(points[:,r[1]],points[:,r[0]])-np.pi/2-np.deg2rad(self.p['seam_rotation'])
+        phase=(angle/(2*np.pi))%1
+        coords=np.column_stack((phase*self.repeats,points[:,self.axis]/self.tile))
+        h,alpha=self.sample(coords,periodic_u=True)
+        width=min(.25,max(.1,self.p['seam_feather']/100)*self.element/max(self.circumference,self.element))
+        distance=np.minimum(phase,1-phase)
+        blend=np.clip(distance/width,0,1)
+        blend=.5*(1-blend*blend*(3-2*blend))
+        mask=blend>0
+        if mask.any():
+            other=coords[mask].copy()
+            other[:,0]+=np.where(phase[mask]<.5,self.repeats,-self.repeats)
+            other_h,other_alpha=self.sample(other,periodic_u=True)
+            t=blend[mask]
+            coverage=(1-t)*alpha[mask]+t*other_alpha
+            h[mask]=((1-t)*h[mask]*alpha[mask]+t*other_h*other_alpha)/np.maximum(coverage,1e-20)
+            alpha[mask]=coverage
+        return h,alpha
+
     def evaluate(self,points,normals,uv=None):
         shape=np.asarray(points).shape[:-1]
-        points=np.asarray(points).reshape(-1,3)
-        normals=np.asarray(normals).reshape(-1,3)
+        points=np.asarray(points,float).reshape(-1,3)
+        normals=np.asarray(normals,float).reshape(-1,3)
         if self.p['mapping']=='surface':
             h,alpha=self.sample(np.asarray(uv).reshape(-1,2)/self.tile)
+            h=self.mode(h)
         elif self.p['mapping']=='cylindrical':
-            r=self.radial
-            # +pi/2 starts the Up-axis seam behind the canonical model (+Y).
-            angle=np.arctan2(points[:,r[1]],points[:,r[0]])-np.pi/2-np.deg2rad(self.p['seam_rotation'])
-            phase=(angle/(2*np.pi))%1
-            coords=np.column_stack((phase*self.repeats,points[:,self.axis]/self.tile))
-            h,alpha=self.sample(coords,periodic_u=True)
-            width=min(.25,max(.1,self.p['seam_feather']/100)*self.element/max(self.circumference,self.element))
-            distance=np.minimum(phase,1-phase)
-            blend=np.clip(distance/width,0,1)
-            blend=.5*(1-blend*blend*(3-2*blend))
-            mask=blend>0
-            if mask.any():
-                other=coords[mask].copy()
-                other[:,0]+=np.where(phase[mask]<.5,self.repeats,-self.repeats)
-                other_h,other_alpha=self.sample(other,periodic_u=True)
-                t=blend[mask]
-                coverage=(1-t)*alpha[mask]+t*other_alpha
-                h[mask]=((1-t)*h[mask]*alpha[mask]+t*other_h*other_alpha)/np.maximum(coverage,1e-20)
-                alpha[mask]=coverage
+            h,alpha=self.cylinder(points)
+            # Angular coordinates have no unique limit on the axis. Taper the
+            # relief at the axis so refinement converges to a continuous field.
+            t=smoothstep(np.linalg.norm(points[:,self.radial],axis=1)/(self.element*.5))
+            h=self.mode(h)*t
+            # Caps (the crown, under the chin) face along the axis, where angles crowd the motifs together: there
+            # the texture is projected along the axis instead, blended by the normal.
+            unit=np.abs(normals[:,self.axis])/np.maximum(np.linalg.norm(normals,axis=1),1e-20)
+            w=smoothstep((unit-CAP_FROM)/(CAP_TO-CAP_FROM))
+            cap=np.flatnonzero(w>0)
+            if len(cap):
+                cap_h,cap_alpha=self.sample(points[cap][:,self.radial]/self.tile)
+                wc=w[cap]
+                h[cap]=(1-wc)*h[cap]+wc*self.mode(cap_h)
+                alpha[cap]=(1-wc)*alpha[cap]+wc*cap_alpha
         else:
             blend=np.abs(normals)**4
             blend/=np.maximum(blend.sum(axis=1,keepdims=True),1e-20)
@@ -189,68 +286,30 @@ class Field:
             for i,axes in enumerate(((1,2),(0,2),(0,1))):
                 value,coverage=self.sample(points[:,axes]/self.tile)
                 h+=blend[:,i]*value; alpha+=blend[:,i]*coverage
-        if self.p['relief_mode']=='engraved':
-            h=-h
-        elif self.p['relief_mode']=='balanced':
-            h-=.5
-        if self.p['mapping']=='cylindrical':
-            # Angular coordinates have no unique limit on the axis. Taper the
-            # relief at caps/poles so refinement can converge to a continuous
-            # field instead of chasing a singularity indefinitely.
-            t=np.clip(np.linalg.norm(points[:,self.radial],axis=1)/(self.element*.5),0,1)
-            h*=t*t*(3-2*t)
+            h=self.mode(h)
         from atlas_toolkit.geom.influence import weights
-        h*=alpha*weights(points,self.p,self.lo,self.hi)*(float(self.p['relief'])/100*self.h)
+        h*=alpha*weights(points,self.p,self.lo,self.hi)*self.height
         return h.reshape(shape)
+
+
+def heights(field,points,normals,uv=None,ctx=None,batch=BATCH):
+    """field.evaluate in batches, checking for cancellation."""
+    points=np.asarray(points,float); normals=np.asarray(normals,float)
+    out=np.empty(points.shape[:-1])
+    flat_out=out.reshape(-1)
+    p=points.reshape(-1,3); n=normals.reshape(-1,3)
+    u=None if uv is None else np.asarray(uv,float).reshape(-1,2)
+    for s in range(0,len(p),batch):
+        if ctx is not None:
+            ctx.check_cancel()
+        flat_out[s:s+batch]=field.evaluate(p[s:s+batch],n[s:s+batch],None if u is None else u[s:s+batch])
+    return out
 
 
 TEMPLATES={0:((0,1,2),),1:((0,3,2),(3,1,2)),2:((1,4,0),(4,2,0)),
            3:((3,1,4),(0,3,2),(3,4,2)),4:((2,5,1),(5,0,1)),
            5:((5,0,3),(2,5,1),(5,3,1)),6:((4,2,5),(1,4,0),(4,5,0)),
            7:((0,3,5),(3,1,4),(5,4,2),(3,4,5))}
-
-
-def verify_contact(a,b,detail):
-    """Reject numerical tangent reports whose returned point is outside a triangle.
-
-    Refinement of adjacent original planes can put edge endpoints within a few
-    ulps of the other plane. libigl may report a degenerate intersection segment
-    even when the projected triangles are separated. Verify the actual contact,
-    rather than exempting a whole neighbourhood of potentially real collisions.
-    """
-    import trimesh
-    scale=max(float(np.ptp(np.vstack((a,b)),axis=0).max()),1e-15)
-    epsilon=scale*1e-10
-    na=np.cross(a[1]-a[0],a[2]-a[0]); na/=max(np.linalg.norm(na),1e-30)
-    nb=np.cross(b[1]-b[0],b[2]-b[0]); nb/=max(np.linalg.norm(nb),1e-30)
-    da=(b-a[0])@na; db=(a-b[0])@nb
-    if any(np.all(d>epsilon) or np.all(d<-epsilon) for d in (da,db)):
-        return False
-    if np.linalg.norm(np.cross(na,nb))<1e-8 and np.max(np.abs(da))<=epsilon:
-        from shapely.geometry import Polygon
-        axis=int(np.argmax(np.abs(na)))
-        return Polygon(np.delete(a,axis,axis=1)).intersection(Polygon(np.delete(b,axis,axis=1))).area>scale*scale*1e-14
-    # Recompute edge/plane contacts instead of trusting libigl's degenerate
-    # returned segment, which can contain nonfinite values in tangent cases.
-    for tri,other,distance in ((a,b,db),(b,a,da)):
-        candidates=[]
-        for i in range(3):
-            j=(i+1)%3
-            if abs(distance[i])<=epsilon and abs(distance[j])<=epsilon:
-                candidates.extend((tri[i],tri[j],(tri[i]+tri[j])/2))
-            elif ((distance[i]<=epsilon and distance[j]>=-epsilon) or
-                  (distance[j]<=epsilon and distance[i]>=-epsilon)):
-                denom=distance[i]-distance[j]
-                if abs(denom)>1e-30:
-                    t=distance[i]/denom
-                    if -1e-10<=t<=1+1e-10:
-                        candidates.append(tri[i]+np.clip(t,0,1)*(tri[j]-tri[i]))
-        if candidates:
-            points=np.array(candidates)
-            nearest=trimesh.triangles.closest_point(np.broadcast_to(other,(len(points),3,3)),points)
-            if np.any(np.linalg.norm(nearest-points,axis=1)<=epsilon):
-                return True
-    return False
 
 
 def active_faces(v,f,field):
@@ -270,91 +329,335 @@ def active_faces(v,f,field):
     return np.linalg.norm(nearest-centre,axis=1)<=p['sphere_radius']/100*field.h+feather
 
 
-def refine(v,f,n,uv,chart,field,ctx):
-    budget=int(field.p['max_faces'])
-    maximum=field.element/(6 if field.p['quality']=='standard' else 10)
-    tolerance=float(field.p['tolerance'])/100*field.h
-    for iteration in range(24):
+class Closure:
+    """Longest-edge closure: every face touched by a split also splits its longest edge, so a neighbour of a refined
+    face never becomes an ever thinner sliver. Only faces next to newly split edges are revisited."""
+
+    def __init__(self,f,inv,counts,lengths):
+        self.inv=inv; self.n=len(f)
+        self.longest=inv[np.arange(len(f)),np.argmax(lengths[inv],axis=1)]
+        order=np.argsort(inv.ravel(),kind='stable')
+        owner=np.repeat(np.arange(len(f)),3)[order]
+        start=np.r_[0,np.cumsum(counts)[:-1]]
+        self.first=owner[start]
+        self.second=np.where(counts>1,owner[np.minimum(start+1,len(owner)-1)],-1)
+
+    def __call__(self,split):
+        split=split.copy()
+        faces=np.flatnonzero(split[self.inv].any(axis=1))
+        while len(faces):
+            longest=self.longest[faces]
+            new=np.unique(longest[~split[longest]])
+            if not len(new):
+                break
+            split[new]=True
+            faces=np.r_[self.first[new],self.second[new]]
+            faces=faces[faces>=0]
+        return split
+
+    def count(self,split):
+        """Faces after splitting: a face with k split edges becomes k+1 faces."""
+        return self.n+int(np.count_nonzero(split[self.inv]))
+
+    def fit(self,make,n,budget):
+        """The closed split of make(k) for the largest k in 0..n that fits the budget (make(n) is known not to)."""
+        best=self(make(0))
+        if self.count(best)>budget:
+            return np.zeros_like(best)
+        lo,hi=0,n
+        while hi-lo>1:
+            mid=(lo+hi)//2
+            trial=self(make(mid))
+            if self.count(trial)<=budget:
+                lo,best=mid,trial
+            else:
+                hi=mid
+        return best
+
+
+def _errors(field,v,n,f,uv,vh,ids,e,inv,ctx):
+    """Sampled interpolation error of faces `ids`: edge midpoints and centre against the linear surface. With vertex
+    heights (triplanar, cylindrical) each edge is sampled once and its midpoint height kept for the split vertex."""
+    if vh is not None:
+        eid=np.unique(inv[ids])
+        a,b=e[eid,0],e[eid,1]
+        mn=n[a]+n[b]
+        mn/=np.maximum(np.linalg.norm(mn,axis=1,keepdims=True),1e-20)
+        hm=heights(field,(v[a]+v[b])/2,mn,ctx=ctx)
+        edge_h=np.full(len(e),np.nan); edge_h[eid]=hm
+        edge_err=np.zeros(len(e)); edge_err[eid]=np.abs(hm-(vh[a]+vh[b])/2)
+        corners=f[ids]
+        cn=n[corners].sum(axis=1)
+        cn/=np.maximum(np.linalg.norm(cn,axis=1,keepdims=True),1e-20)
+        centre=np.abs(heights(field,v[corners].mean(axis=1),cn,ctx=ctx)-vh[corners].mean(axis=1))
+        return np.maximum(edge_err[inv[ids]].max(axis=1),centre),edge_h
+    err=np.empty(len(ids))
+    step=BATCH//8
+    for s in range(0,len(ids),step):
+        ctx.check_cancel()
+        sub=ids[s:s+step]
+        points,norm,cuv=v[f[sub]],n[f[sub]],uv[sub]
+        h=field.evaluate(points,norm,cuv)
+        mid=(points+np.roll(points,-1,axis=1))/2
+        mn=(norm+np.roll(norm,-1,axis=1))/2
+        mu=(cuv+np.roll(cuv,-1,axis=1))/2
+        edge=np.abs(field.evaluate(mid,mn,mu)-(h+np.roll(h,-1,axis=1))/2).max(axis=1)
+        centre=np.abs(field.evaluate(points.mean(axis=1),norm.mean(axis=1),cuv.mean(axis=1))-h.mean(axis=1))
+        err[s:s+step]=np.maximum(edge,centre)
+    return err,None
+
+
+def refine(v,f,n,uv,chart,field,ctx,budget=None):
+    """Conforming midpoint refinement within `budget` faces: first to the sampling length (element / 6, High / 10),
+    then where the sampled error exceeds the detail tolerance, worst first and never below element / 24 (High / 40).
+    It never fails on the budget: the last pass takes the worst faces that fit and stops.
+
+    Returns v, f, n, uv, chart, per-vertex heights (None for surface charts, whose heights belong to face corners),
+    each face's source face, and a summary (budget_reached, coarsened, passes, unmet share of the area, residual)."""
+    p=field.p
+    budget=int(p['max_faces'] if budget is None else budget)
+    maximum=field.element/(6 if p['quality']=='standard' else 10)
+    floor=field.element/(24 if p['quality']=='standard' else 40)
+    tolerance=field.tolerance
+    parent=np.arange(len(f))
+    fresh=np.ones(len(f),bool); error=np.zeros(len(f)); active=np.zeros(len(f),bool)
+    vh=heights(field,v,n,ctx=ctx) if uv is None else None
+    info=dict(budget_reached=False,coarsened=False,passes=0,unmet=0.,residual=0.)
+    stop=False; want=np.zeros(len(f),bool)
+    for iteration in range(64):
         ctx.progress(.22+min(iteration,16)*.02,f'Refining texture detail: {len(f):,} faces')
         e,inv,counts=edges(f)
-        active=active_faces(v,f,field)
+        lengths=np.linalg.norm(v[e[:,1]]-v[e[:,0]],axis=1)
+        edge_h=None
+        if fresh.any():
+            ids=np.flatnonzero(fresh)
+            active[ids]=active_faces(v,f[ids],field)
+            error[ids]=0.
+            ids=ids[active[ids]]
+            if len(ids):
+                error[ids],edge_h=_errors(field,v,n,f,uv,vh,ids,e,inv,ctx)
+            fresh[:]=False
+        want=active&(error>tolerance)&(lengths[inv].max(axis=1)>floor*(1+1e-9))
+        if stop:
+            break
         required=np.zeros(len(e),bool)
         required[inv[active].ravel()]=True
-        edge_lengths=np.linalg.norm(v[e[:,1]]-v[e[:,0]],axis=1)
-        split=required&(edge_lengths>maximum*(1+1e-9))
-        # Midpoint and centroid error samples avoid spending faces on flat tiles.
-        # Batches cap temporary height/coordinate arrays even on dense input scans.
-        worst=0.; worst_points=None
-        for start in range(0,len(f),8192):
-            ctx.check_cancel()
-            stop=min(len(f),start+8192)
-            ids=np.arange(start,stop)[active[start:stop]]
-            if not len(ids):
-                continue
-            points,norm=v[f[ids]],n[f[ids]]
-            corner_uv=uv[ids] if uv is not None else None
-            h=field.evaluate(points,norm,corner_uv)
-            mid=(points+np.roll(points,-1,axis=1))/2
-            mn=(norm+np.roll(norm,-1,axis=1))/2
-            mu=(corner_uv+np.roll(corner_uv,-1,axis=1))/2 if uv is not None else None
-            error=np.abs(field.evaluate(mid,mn,mu)-(h+np.roll(h,-1,axis=1))/2)
-            ce=np.abs(field.evaluate(points.mean(axis=1),norm.mean(axis=1),corner_uv.mean(axis=1) if uv is not None else None)-h.mean(axis=1))
-            if float(max(error.max(),ce.max()))>worst:
-                worst=float(max(error.max(),ce.max()))
-                worst_points=points[np.argmax(np.maximum(error.max(axis=1),ce))].copy()
-            marked=(error.max(axis=1)>tolerance)|(ce>tolerance)
-            # Red-refine an error triangle, rather than repeatedly cutting one
-            # edge and creating ever thinner green-transition slivers.
-            split[inv[ids[marked]].ravel()]=True
+        must=required&(lengths>maximum*(1+1e-9))
+        if not must.any() and not want.any():
+            break
+        closure=Closure(f,inv,counts,lengths)
+        split=closure(must)
+        if closure.count(split)>budget:
+            # Even the sampling length does not fit: split the longest edges that do, and stop.
+            info.update(coarsened=True,budget_reached=True); stop=True
+            cand=np.flatnonzero(must); cand=cand[np.argsort(-lengths[cand],kind='stable')]
+            def make(k,cand=cand,size=len(e)):
+                mask=np.zeros(size,bool); mask[cand[:k]]=True
+                return mask
+            split=closure.fit(make,len(cand),budget)
+        else:
+            order=np.flatnonzero(want); order=order[np.argsort(-error[order],kind='stable')]
+            # Red-refine an error triangle, rather than repeatedly cutting one edge and creating ever thinner
+            # green-transition slivers; but never an edge already below the floor: a long thin sliver (the fan that
+            # closes a cut neck) is then cut along its length only, instead of into ever smaller crumbs.
+            long_enough=lengths>floor*(1+1e-9)
+            full=split.copy(); full[inv[order].ravel()]=True; full&=long_enough|split
+            full=closure(full)
+            if closure.count(full)<=budget:
+                split=full
+            else:
+                info['budget_reached']=True; stop=True
+                def make(k,base=split,order=order,long_enough=long_enough):
+                    mask=base.copy(); mask[inv[order[:k]].ravel()]=True
+                    return mask&(long_enough|base)
+                split=closure.fit(make,len(order),budget)
         if not split.any():
-            return v,f,n,uv,chart
-        # Longest-edge closure prevents successive green neighbours from
-        # acquiring arbitrarily thin slivers along a coarse edge. Every face
-        # touched by a split must also split its longest edge.
-        longest=inv[np.arange(len(f)),np.argmax(edge_lengths[inv],axis=1)]
-        while True:
-            ctx.check_cancel()
-            missing=split[inv].any(axis=1)&~split[longest]
-            if not missing.any():
-                break
-            split[longest[missing]]=True
-        requested=int(len(f)+np.count_nonzero(split[inv]))
-        # Conservative accounting for current arrays plus per-face refinement,
-        # sampling, topology and collision temporaries, capped at 1.5 GiB.
-        if requested>budget or requested*768>1536*1024**2:
-            raise ValueError(f'Texture refinement needs at least {requested:,} faces; limit {budget:,}. Increase Element size / Displacement tolerance, choose Standard sampling, or raise Maximum output faces.')
+            break
+        info['passes']=iteration+1
+        # Split: shared edge midpoints keep the surface conforming.
         midpoint=np.full(len(e),-1,np.int64)
-        midpoint[split]=np.arange(split.sum())+len(v)
-        new_v=v[e[split]].mean(axis=1)
-        new_n=n[e[split]].mean(axis=1)
+        midpoint[split]=np.arange(int(split.sum()))+len(v)
+        pair=e[split]
+        new_v=v[pair].mean(axis=1)
+        new_n=n[pair].sum(axis=1)
         new_n/=np.maximum(np.linalg.norm(new_n,axis=1,keepdims=True),1e-20)
+        if vh is not None:
+            new_h=edge_h[split].copy() if edge_h is not None else np.full(len(new_v),np.nan)
+            missing=np.isnan(new_h)
+            if missing.any():
+                new_h[missing]=heights(field,new_v[missing],new_n[missing],ctx=ctx)
+            vh=np.r_[vh,new_h]
         mids=midpoint[inv]
         pattern=(mids>=0).astype(np.uint8)@np.array([1,2,4],np.uint8)
-        all_vertices=np.column_stack((f,mids))
+        corners=np.column_stack((f,mids))
         all_uv=np.concatenate((uv,(uv+np.roll(uv,-1,axis=1))/2),axis=1) if uv is not None else None
-        out_f=[]; out_uv=[]; out_chart=[]
+        out=dict(f=[],parent=[],fresh=[],error=[],active=[],uv=[],chart=[])
         for code,templates in TEMPLATES.items():
             mask=pattern==code
+            count=int(mask.sum())
+            if not count:
+                continue
             for template in templates:
-                out_f.append(all_vertices[mask][:,template])
+                out['f'].append(corners[mask][:,template]); out['parent'].append(parent[mask])
+                kept=code==0
+                out['fresh'].append(np.full(count,not kept))
+                out['error'].append(error[mask] if kept else np.zeros(count))
+                out['active'].append(active[mask] if kept else np.zeros(count,bool))
                 if uv is not None:
-                    out_uv.append(all_uv[mask][:,template,:]); out_chart.append(chart[mask])
-        v=np.vstack((v,new_v)); n=np.vstack((n,new_n)); f=np.vstack(out_f)
-        uv=np.vstack(out_uv) if uv is not None else None
-        chart=np.concatenate(out_chart) if chart is not None else None
-    ctx.log(f'Refinement residual {worst}; tolerance {tolerance}; triangle {worst_points}')
-    raise ValueError('Texture refinement did not converge; increase displacement tolerance or element size.')
+                    out['uv'].append(all_uv[mask][:,template,:]); out['chart'].append(chart[mask])
+        v=np.vstack((v,new_v)); n=np.vstack((n,new_n)); f=np.vstack(out['f'])
+        parent=np.concatenate(out['parent']); fresh=np.concatenate(out['fresh'])
+        error=np.concatenate(out['error']); active=np.concatenate(out['active'])
+        if uv is not None:
+            uv=np.vstack(out['uv']); chart=np.concatenate(out['chart'])
+    else:
+        ctx.warn('Texture refinement stopped after 64 passes; the relief is sampled as far as it got.')
+        want=np.zeros(len(f),bool)
+    area=np.linalg.norm(np.cross(v[f[:,1]]-v[f[:,0]],v[f[:,2]]-v[f[:,0]]),axis=1)
+    total=float(area[active].sum())
+    info['unmet']=float(area[want].sum()/total) if total>0 else 0.
+    info['residual']=float(error[active].max()/max(field.height,1e-30)) if active.any() else 0.
+    return v,f,n,uv,chart,vh,parent,info
+
+
+def corner_heights(field,v,n,f,uv,ctx):
+    """Per-vertex heights from face-corner samples (surface charts), area-weighted."""
+    values=np.zeros(len(v)); area=np.zeros(len(v))
+    for start in range(0,len(f),16384):
+        ctx.check_cancel()
+        stop=min(len(f),start+16384)
+        idx=f[start:stop]
+        h=field.evaluate(v[idx],n[idx],uv[start:stop])
+        face_area=np.linalg.norm(np.cross(v[idx[:,1]]-v[idx[:,0]],v[idx[:,2]]-v[idx[:,0]]),axis=1)
+        np.add.at(values,idx.ravel(),(h*face_area[:,None]).ravel())
+        np.add.at(area,idx.ravel(),np.repeat(face_area,3))
+    return values/np.maximum(area,1e-30)
+
+
+def blend_seams(v,f,n,chart,values,e,inv,counts,graph,field,charts,ctx):
+    """Cross-fade the two charts across each seam instead of fading the relief out: within Seam blend of a seam, a
+    vertex also samples the neighbouring chart (its UV from that chart's own map) and the two meet half and half."""
+    big=np.iinfo(np.int64).max
+    low=np.full(len(e),big,np.int64); high=np.full(len(e),-1,np.int64)
+    np.minimum.at(low,inv.ravel(),np.repeat(chart,3)); np.maximum.at(high,inv.ravel(),np.repeat(chart,3))
+    seam=(counts==2)&(low!=high)
+    if not seam.any():
+        return values
+    width=float(field.p['seam_feather'])/100*field.element
+    dist,source=graph.distance(np.unique(e[seam]),width,nearest=True)
+    band=np.flatnonzero(np.isfinite(dist)&(source>=0))
+    own=np.empty(len(v),np.int64); own[f.ravel()]=np.repeat(chart,3)
+    vlo=np.full(len(v),big,np.int64); vhi=np.full(len(v),-1,np.int64)
+    np.minimum.at(vlo,f.ravel(),np.repeat(chart,3)); np.maximum.at(vhi,f.ravel(),np.repeat(chart,3))
+    s=source[band]
+    other=np.where(vhi[s]!=own[band],vhi[s],vlo[s])
+    keep=other!=own[band]
+    band,other=band[keep],other[keep]
+    if not len(band):
+        return values
+    ctx.progress(.64,'Blending chart seams')
+    uv=charts.locate(v[band],other,n[band])
+    h=heights(field,v[band],n[band],uv,ctx=ctx)
+    w=.5*(1-smoothstep(dist[band]/max(width,1e-30)))
+    values=values.copy()
+    values[band]=(1-w)*values[band]+w*h
+    return values
+
+
+def clearance(v,f,n,values,graph,width,ctx):
+    """A scale per vertex that keeps its displacement under 45% of the free distance along it (two facing sheets
+    each take less than half the gap), feathered along the skin so restrained spots fade instead of pitting."""
+    from atlas_toolkit.geom.raycast import Caster
+    caster=Caster(v,f)
+    eps=max(float(np.ptp(v,axis=0).max())*2e-7,1e-10)
+    ratio=np.ones(len(v))
+    for start in range(0,len(v),BATCH*4):
+        ctx.check_cancel()
+        ids=np.arange(start,min(len(v),start+BATCH*4))
+        ids=ids[np.abs(values[ids])>eps]
+        if not len(ids):
+            continue
+        dirs=n[ids]*np.sign(values[ids])[:,None]
+        origin=v[ids]+eps*dirs
+        travelled=np.zeros(len(ids)); free=np.full(len(ids),np.inf); todo=np.arange(len(ids))
+        for _ in range(4):
+            dist,face,_,_=caster.intersect(origin[todo],dirs[todo])
+            hit=np.isfinite(dist)
+            # A face at this very vertex is not an obstacle: look past it.
+            own=hit&(f[np.maximum(face,0)]==ids[todo,None]).any(axis=1)
+            done=hit&~own
+            free[todo[done]]=travelled[todo[done]]+dist[done]
+            nxt=todo[own]
+            if not len(nxt):
+                break
+            step=dist[own]+eps
+            travelled[nxt]+=step; origin[nxt]+=dirs[nxt]*step[:,None]
+            todo=nxt
+        allowed=np.maximum(0,(free+eps)*.45)
+        ratio[ids]=np.minimum(1,allowed/np.abs(values[ids]))
+    restrained=np.flatnonzero(ratio<1-1e-9)
+    if not len(restrained):
+        return ratio
+    dist,source=graph.distance(restrained,width,nearest=True)
+    near=np.flatnonzero(np.isfinite(dist)&(source>=0))
+    fade=np.ones(len(v))
+    r=ratio[source[near]]
+    fade[near]=r+(1-r)*smoothstep(dist[near]/width)
+    return np.minimum(ratio,fade)
+
+
+def protect(v,f,n,values,field,graph,ctx,collisions,dirty=None):
+    """Displaced vertices with no flipped or collapsed triangle and, with `collisions`, no new crossing between
+    triangles. Relief is restrained only where it would fail, fading into the surroundings over about a quarter of an
+    element; nothing is scaled down globally. Zero relief is the valid source, so the restraint always converges.
+    `dirty` faces surround the source's own crossings: pairs of them are left as they were.
+    Returns the vertices and the scale applied to each vertex's displacement."""
+    from atlas_toolkit.geom.contact import crossings
+    from atlas_toolkit.tools.mesh_dilate.mesh_dilate import invalid_faces
+    width=max(field.element*.25,1e-9*field.h)
+    scale=np.ones(len(v))
+    moving=np.abs(values)>0
+    if not moving.any():
+        return v.copy(),scale
+    if collisions:
+        ctx.progress(.7,'Measuring clearance along the relief')
+        scale=clearance(v,f,n,values,graph,width,ctx)
+    # Vertices moved since the last crossing test: only pairs with one of their faces can have started to cross.
+    pending=moving.copy()
+    for round_ in range(64):
+        ctx.progress(.72+min(round_,12)*.01,'Checking relief contacts and topology')
+        trial=v+n*(values*scale)[:,None]
+        # Flipped and collapsed triangles cost almost nothing to find, and settling them first removes most of the
+        # crossings too: the full crossing test then runs on a state with few contacts left.
+        problem=f[invalid_faces(v,trial,f)].ravel()
+        if not len(problem) and collisions and pending.any():
+            hits=crossings(trial,f,active=pending[f].any(axis=1),check=ctx.check_cancel)
+            pending[:]=False
+            if dirty is not None and len(hits):
+                hits=hits[~(dirty[hits[:,0]]&dirty[hits[:,1]])]
+            problem=f[hits.ravel()].ravel()
+        problem=np.unique(problem)
+        if not len(problem):
+            return trial,scale
+        strength=.6 if round_<4 else .85 if round_<10 else 1.
+        radius=width*2.**max(0,round_-16)
+        fall=1-smoothstep(graph.distance(problem,radius)/radius)
+        new=scale*(1-strength*fall)
+        pending|=new<scale
+        scale=new
+    ctx.warn('Relief protection did not settle; the relief was removed where it still crossed.')
+    return v.copy(),np.zeros(len(v))
 
 
 def build(v,f,p,ctx):
     import trimesh
     from . import backend
-    started=time.perf_counter()
+    started=time.perf_counter(); times={}
     v=np.asarray(v,float).copy(); f=np.asarray(f,np.int64).copy()
     if p['relief']==0:
-        return trimesh.Trimesh(v,f,process=False),dict(faces=len(f),relief=0.,limited=0.,uv_cached=False,height_cached=False,seconds=0.)
-    if len(f)>int(p['max_faces']):
-        raise ValueError('The source already exceeds Maximum output faces. Increase the limit or use Remesh/Decimate first.')
+        return trimesh.Trimesh(v,f,process=False),dict(faces=len(f),relief=0.,limited=0.,uv_cached=False,
+            height_cached=False,seconds=0.,budget_reached=False,unmet=0.)
+    budget=min(int(p['max_faces']),MEMORY_FACES)
     base=trimesh.Trimesh(v,f,process=False)
     if (not np.isfinite(v).all() or not base.nondegenerate_faces().all() or not base.is_winding_consistent):
         raise ValueError('Surface Texture needs a finite, nondegenerate, consistently oriented surface. Repair the model first.')
@@ -364,69 +667,73 @@ def build(v,f,p,ctx):
     if base.is_watertight:
         trimesh.repair.fix_normals(base,multibody=True)
         f=np.asarray(base.faces,np.int64).copy()
-    n=np.array(base.vertex_normals)
     heightmap,alpha,elements,height_cached=prepare(p,ctx)
-    field=Field(p,v,n,heightmap,alpha,elements)
-    uv=chart=None; uv_cached=False
+    field=Field(p,v,None,heightmap,alpha,elements)
+    # A cut closed by a fan of long slivers (trimesh's slice_plane caps, as on the catalogue's cropped busts) would
+    # be refined into hundreds of thousands of crumbs where the slivers meet. Re-triangulate such flat patches first;
+    # the shape does not change.
+    from atlas_toolkit.geom.repair import refill_flat_slivers
+    v,f,refilled=refill_flat_slivers(v,f,longer_than=field.element/(6 if p['quality']=='standard' else 10))
+    if refilled:
+        ctx.log(f'Re-triangulated {refilled} flat patch{"es" if refilled>1 else ""} of long slivers (a capped cut) '
+                'before refining; the shape is unchanged.')
+        base=trimesh.Trimesh(v,f,process=False)
+    collisions=bool(p['collision_protection'])
+    dirty_source=None
+    if collisions:
+        # Midpoint refinement is planar, so the source's own crossings are all there are before displacement. A few
+        # (a scan's stray fold) are left as they are, without relief around them; a badly broken surface is refused.
+        ctx.progress(.03,'Checking the source surface')
+        from atlas_toolkit.geom.contact import crossings
+        existing=crossings(v,f,check=ctx.check_cancel)
+        if len(existing):
+            involved=np.unique(existing)
+            if len(involved)>max(64,.01*len(f)):
+                raise ValueError(f'The input surface has {len(existing):,} pairs of intersecting triangles. Repair it '
+                                 '(Repair Mesh) before using collision-protected relief.')
+            touched=np.zeros(len(v),bool); touched[f[involved].ravel()]=True
+            dirty_source=touched[f].any(axis=1)
+            ctx.warn(f'The source has {len(existing):,} pair{"s" if len(existing)>1 else ""} of intersecting '
+                     'triangles; the relief leaves them out. Repair Mesh can remove them.')
+    n=smooth_normals(v,f,np.array(base.vertex_normals),field.element*NORMAL_RADIUS)
+    uv=chart=charts=None; uv_cached=False
     if p['mapping']=='surface':
-        uv,chart,uv_cached=backend.unwrap(v,f,ctx)
-    v,f,n,uv,chart=refine(v,f,n,uv,chart,field,ctx)
+        charts=backend.charts(v,f,ctx)
+        uv,chart,uv_cached=charts.uv,charts.chart,charts.cached
+    times['prepare']=time.perf_counter()-started
+    source_faces=len(f)
+    mark=time.perf_counter()
+    v,f,n,uv,chart,vh,parent,info=refine(v,f,n,uv,chart,field,ctx,budget)
+    times['refine']=time.perf_counter()-mark
+    if source_faces>=budget:
+        ctx.warn(f'The source has {source_faces:,} faces, at or above Maximum output faces ({budget:,}): the relief '
+                 'is sampled on its own vertices without refinement. Raise the limit for finer relief.')
+    elif info['budget_reached']:
+        met=100*(1-info['unmet'])
+        ctx.warn(f"Face budget reached at {len(f):,} faces: detail tolerance met on {min(met,99.9):.1f}% of the "
+                 'textured surface. Raise Maximum output faces, Element size or Detail tolerance for more.')
+    mark=time.perf_counter()
     ctx.progress(.61,'Sampling welded surface relief')
-    values=np.zeros(len(v)); area=np.zeros(len(v))
-    for start in range(0,len(f),16384):
-        ctx.check_cancel()
-        stop=min(len(f),start+16384)
-        idx=f[start:stop]
-        h=field.evaluate(v[idx],n[idx],uv[start:stop] if uv is not None else None)
-        face_area=np.linalg.norm(np.cross(v[idx[:,1]]-v[idx[:,0]],v[idx[:,2]]-v[idx[:,0]]),axis=1)
-        np.add.at(values,idx.ravel(),(h*face_area[:,None]).ravel())
-        np.add.at(area,idx.ravel(),np.repeat(face_area,3))
-    values/=np.maximum(area,1e-30)
+    values=vh.copy() if vh is not None else corner_heights(field,v,n,f,uv,ctx)
     e,inv,counts=edges(f)
+    graph=Graph(v,e)
     if uv is not None and p['seam_feather']>0:
-        # Find actual chart joins, not duplicated geometric vertices.
-        low=np.full(len(e),np.iinfo(np.int32).max,np.int64); high=np.full(len(e),-1,np.int64)
-        np.minimum.at(low,inv.ravel(),np.repeat(chart,3)); np.maximum.at(high,inv.ravel(),np.repeat(chart,3))
-        seams=np.unique(e[(counts==2)&(low!=high)])
-        width=p['seam_feather']/100*field.element
-        dist=distance_to_vertices(v,e,seams,width)
-        t=np.clip(dist/width,0,1); values*=t*t*(3-2*t)
+        values=blend_seams(v,f,n,chart,values,e,inv,counts,graph,field,charts,ctx)
     if p['preserve_borders']:
         border=np.unique(e[counts==1])
         if len(border):
             width=field.element*.25
-            dist=distance_to_vertices(v,e,border,width)
-            t=np.clip(dist/width,0,1); values*=t*t*(3-2*t)
-    proposed=v+n*values[:,None]
-    wanted=np.linalg.norm(proposed-v,axis=1)
-    ctx.progress(.68,'Checking relief contacts and topology')
-    from atlas_toolkit.tools.mesh_dilate.mesh_dilate import ContactGuard, intersections, valid_faces
-    if p['collision_protection'] and np.any(values):
-        guard=ContactGuard(v,f,ctx.check_cancel,verify=verify_contact)
-        if guard.existing:
-            raise ValueError('The input surface has intersecting triangles. Repair it before using collision-protected relief.')
-        # Limit swept normal segments as well as testing the final triangles.
-        # Two facing sheets can otherwise pass completely through each other
-        # and end with no intersecting endpoint triangles. Reserve over half
-        # each gap for the opposing sheet's own motion.
-        from atlas_toolkit.geom.raycast import Caster
-        caster=Caster(v,f)
-        epsilon=max(float(np.ptp(v,axis=0).max())*2e-7,1e-10)
-        bounded=values.copy()
-        for start in range(0,len(v),16384):
-            ctx.check_cancel()
-            ids=np.arange(start,min(len(v),start+16384))
-            ids=ids[wanted[ids]>epsilon]
-            directions=n[ids]*np.sign(values[ids,None])
-            distance,*_=caster.intersect(v[ids]+epsilon*directions,directions)
-            clearance=np.maximum(0,(distance+epsilon)*.45)
-            bounded[ids]=np.sign(values[ids])*np.minimum(np.abs(values[ids]),clearance)
-        output,_=guard.limit(v,v+n*bounded[:,None])
-    else:
-        output=proposed
-    if not valid_faces(v,output,f):
-        raise ValueError('Relief creates flipped or collapsed triangles. Enable Collision protection or lower relief height.')
+            values*=smoothstep(graph.distance(border,width)/width)
+    dirty=dirty_source[parent] if dirty_source is not None else None
+    if dirty is not None:
+        width=field.element*.25
+        values*=smoothstep(graph.distance(np.unique(f[dirty]),width)/width)
+    times['sample']=time.perf_counter()-mark
+    mark=time.perf_counter()
+    output,scale=protect(v,f,n,values,field,graph,ctx,collisions,dirty)
+    times['protect']=time.perf_counter()-mark
     achieved=np.linalg.norm(output-v,axis=1)
+    wanted=np.abs(values)
     limited=float(100*(1-achieved.sum()/wanted.sum())) if wanted.sum()>1e-20 else 0.
     result=trimesh.Trimesh(output,f,process=False)
     if base.is_watertight and not result.is_watertight:
@@ -434,4 +741,7 @@ def build(v,f,p,ctx):
     return result,dict(faces=len(f),relief=float(achieved.max())/field.h*100,limited=max(0.,limited),
         uv_cached=uv_cached,height_cached=height_cached,seconds=time.perf_counter()-started,
         charts=int(len(np.unique(chart))) if chart is not None else 0,element_size=p['element_size'],
-        requested_relief=p['relief'],cylinder_repeats=field.repeats if p['mapping']=='cylindrical' else None)
+        requested_relief=p['relief'],cylinder_repeats=field.repeats if p['mapping']=='cylindrical' else None,
+        budget_reached=bool(info['budget_reached']),coarsened=bool(info['coarsened']),unmet=info['unmet'],
+        passes=info['passes'],restrained_vertices=int(np.count_nonzero(scale<.999)),
+        times={k:round(t,3) for k,t in times.items()})

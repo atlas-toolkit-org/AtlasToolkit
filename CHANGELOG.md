@@ -1,5 +1,44 @@
 # Changelog
 
+## 2.4.7 (unreleased)
+
+**Surface Texture 0.2.0: every run finishes, the relief survives, and it shows in the drawing**
+- **No more "Texture refinement needs at least … faces".** Maximum output faces is now a budget, not a wall:
+  refinement spends it on the places that miss the heightmap most and, when the next pass would not fit, refines the
+  worst faces that do and stops, saying how much of the surface met the tolerance. A source already at the budget is
+  textured on its own vertices. The default budget is 1,000,000 faces (up to 3,000,000; it was 400,000, capped near
+  2.1 million by a hidden memory check), and presets no longer set it: it belongs to your computer.
+- **Taller relief no longer needs more faces.** Displacement tolerance (% of the model's height) is now **Detail
+  tolerance**, a share of the relief itself (10%), so raising the relief to make the texture visible no longer
+  multiplied the faces (relief 1% h needed 2.7 times the faces of 0.4%, 2% needed 6 times). Old settings, workflows
+  and presets convert. Refinement stops at 1/24 of an element (High: 1/40), so a crisp heightmap edge or a dense
+  scan no longer ends in "did not converge".
+- **Collision protection keeps the relief.** It used to look at 128 contacts at a time and, when there were more,
+  scale the whole relief down: at 1.5% h it kept 12% of it (0.19% h, less than the 0.4% default), at 3% h 3%. Now it
+  finds every crossing at once and restrains the relief only around it, fading out over a quarter of an element:
+  at 1.5% h, 4% of the displacement is restrained and the full height is reached elsewhere. Relief follows normals
+  smoothed over a quarter of an element, so it does not follow scan noise. With protection off, triangles are still
+  kept valid instead of the run failing with "Relief creates flipped or collapsed triangles".
+- **Much faster.** Crossings are found with a vectorised grid (shared with Plotter Vision's crossing lines, which
+  are unchanged) instead of one triangle at a time, and refinement re-samples only what changed: the 15,000-face
+  David bust takes 6–14 s with every wrapping instead of 32–91 s, and 8–13 s at 1.5% h instead of 168–311 s.
+- **Large scans and cropped busts work.** The 260,000-face catalogue David head failed with every wrapping; it now
+  takes 18–42 s, saving included. A model with a few self-intersections (the head has one pair) is textured around them, with a
+  warning, instead of refused. A cut closed by a fan of long slivers (the catalogue's cropped busts) is
+  re-triangulated first, shape unchanged: refined as it was, it took half the face budget.
+- **Follow surface: fewer seams, and no relief holes at them.** Charts are made on a simplified, smoothed copy of the
+  model (tens of charts instead of hundreds, in a second instead of a minute on a large scan), and at each seam the
+  two charts' patterns cross-fade over **Seam blend** instead of fading to the bare skin, which left 29–51% of a head
+  with little relief. The texture helper is 0.3.0 (protocol 3); charts cached by 0.1 are made again.
+- **Cylindrical: caps.** Where the skin faces along the axis (a crown, under a chin), the texture is projected along
+  the axis instead of crowding into a pinwheel: it looks better there and needs fewer faces (the default bust no
+  longer fails at 407,600 faces).
+- **Relief 1% h by default** (was 0.4%), which reads clearly in Contour Lines, Sketch Hatching and Plotter Vision at
+  A3; the bundled texture workflows use it too.
+- For developers: `geom/contact.py` (vectorised triangle crossings), `geom.repair.refill_flat_slivers`, and
+  `scripts/dev/validate_surface_texture.py`, which now runs every wrapping at several reliefs on the ellipsoid, the
+  15k bust and the catalogue head, draws each with three drawing tools and scores how much of the texture shows.
+
 ## 2.4.6 (2026-11-21)
 
 **Several files in a tool: each keeps its own Aim and its own preview**

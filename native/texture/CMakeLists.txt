@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.24)
 cmake_policy(SET CMP0091 NEW)
-project(atlas_texture VERSION 0.2.0 LANGUAGES CXX)
+project(atlas_texture VERSION 0.3.0 LANGUAGES CXX)
 set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 # xatlas (MIT) is vendored, pinned to f700c7790aaa030e794b52ba7791a05c085faf0c.
 add_executable(atlas-texture-core main.cpp third_party/xatlas/xatlas.cpp)

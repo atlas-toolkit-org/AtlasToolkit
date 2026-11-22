@@ -19,6 +19,8 @@ from dataclasses import dataclass, field
 
 import numpy as np
 
+from atlas_toolkit.geom.contact import box_pairs, plane_cut
+
 SIZE = 100.0
 
 
@@ -66,72 +68,26 @@ def topology(F: np.ndarray, FN: np.ndarray, nv: int):
     return E, EF, EA, count > 2
 
 
-def _plane_cut(P: np.ndarray, n: np.ndarray, d: np.ndarray):
-    """Where triangles P (k, 3, 3) cross the planes n·x = d: two points each, and whether they cross at all."""
-    s = np.einsum("kij,kj->ki", P, n) - d[:, None]
-    pos = s > 0
-    npos = pos.sum(1)
-    ok = (npos == 1) | (npos == 2)
-    lone = np.argmax(np.where((npos == 1)[:, None], pos, ~pos), axis=1)
-    k = np.arange(len(P))
-    o1, o2 = (lone + 1) % 3, (lone + 2) % 3
-    sl, s1, s2 = s[k, lone], s[k, o1], s[k, o2]
-    with np.errstate(divide="ignore", invalid="ignore"):
-        t1 = sl / (sl - s1)
-        t2 = sl / (sl - s2)
-    X1 = P[k, lone] + t1[:, None] * (P[k, o1] - P[k, lone])
-    X2 = P[k, lone] + t2[:, None] * (P[k, o2] - P[k, lone])
-    return X1, X2, ok & np.isfinite(t1) & np.isfinite(t2)
-
-
 def intersections(V: np.ndarray, F: np.ndarray, FN: np.ndarray, part: np.ndarray, budget: int = 4_000_000):
     """Segments where faces of different parts (connected components) cross: (k, 2, 3) and their face pairs."""
     m = len(F)
     if m == 0 or part.max() == part.min():
         return np.zeros((0, 2, 3)), np.zeros((0, 2), np.int64)
     P = V[F]
-    lo, hi = P.min(1), P.max(1)
-    ext = (hi - lo).max(1)
-    cell = float(max(np.median(ext) * 2.0, 1e-6))
-    g0 = lo.min(0)
-    c0 = np.floor((lo - g0) / cell).astype(np.int64)
-    c1 = np.floor((hi - g0) / cell).astype(np.int64)
-    dims = c1.max(0) + 1
-    span = c1 - c0 + 1
-    cnt = span.prod(1)
-    face = np.repeat(np.arange(m), cnt)
-    local = np.arange(int(cnt.sum())) - np.repeat(np.cumsum(cnt) - cnt, cnt)
-    sx, sy = span[face, 0], span[face, 1]
-    cx = c0[face, 0] + local % sx
-    cy = c0[face, 1] + (local // sx) % sy
-    cz = c0[face, 2] + local // (sx * sy)
-    cid = (cz * dims[1] + cy) * dims[0] + cx
-    o = np.argsort(cid, kind="stable")
-    face, cid = face[o], cid[o]
-    start = np.flatnonzero(np.r_[True, cid[1:] != cid[:-1]])
-    size = np.diff(np.r_[start, len(cid)])
-    # every pair within a cell: element i with the ones after it in its cell
-    end = np.repeat(start + size, size)
-    after = end - np.arange(len(cid)) - 1
-    if int(after.sum()) > budget:
+    # the grid of geom/contact, as one batch and without its big-face split: the same pairs in the same order
+    chunks = box_pairs(P.min(1), P.max(1), chunk=None, budget=budget, min_cell=1e-6, big_cells=None)
+    if not chunks:
         return np.zeros((0, 2, 3)), np.zeros((0, 2), np.int64)
-    a = np.repeat(np.arange(len(cid)), after)
-    b = a + 1 + (np.arange(len(a)) - np.repeat(np.cumsum(after) - after, after))
-    fa, fb, cell_of = face[a], face[b], cid[a]
+    fa, fb = chunks[0]
     keep = part[fa] != part[fb]
-    fa, fb, cell_of = fa[keep], fb[keep], cell_of[keep]
-    olo = np.maximum(lo[fa], lo[fb])
-    keep = (np.minimum(hi[fa], hi[fb]) >= olo).all(1)
-    oc = np.floor((olo - g0) / cell).astype(np.int64)
-    keep &= ((oc[:, 2] * dims[1] + oc[:, 1]) * dims[0] + oc[:, 0]) == cell_of        # each pair once
     fa, fb = fa[keep], fb[keep]
     if not len(fa):
         return np.zeros((0, 2, 3)), np.zeros((0, 2), np.int64)
     nA, nB = FN[fa], FN[fb]
     dA = np.einsum("ij,ij->i", nA, P[fa, 0])
     dB = np.einsum("ij,ij->i", nB, P[fb, 0])
-    A1, A2, okA = _plane_cut(P[fa], nB, dB)
-    B1, B2, okB = _plane_cut(P[fb], nA, dA)
+    A1, A2, okA = plane_cut(P[fa], nB, dB)
+    B1, B2, okB = plane_cut(P[fb], nA, dA)
     line = np.cross(nA, nB)
     ok = okA & okB & (np.linalg.norm(line, axis=1) > 1e-9)
     a1, a2 = np.einsum("ij,ij->i", A1, line), np.einsum("ij,ij->i", A2, line)

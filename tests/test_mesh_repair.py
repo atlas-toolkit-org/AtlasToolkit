@@ -161,6 +161,39 @@ class TidyTests(unittest.TestCase):
         self.assertEqual(len(F2), len(F))
 
 
+class FlatSliverTests(unittest.TestCase):
+    """refill_flat_slivers: a cut closed by a fan of slivers gets well-shaped triangles, without changing shape."""
+
+    def test_fan_caps_refilled_in_place(self):
+        from atlas_toolkit.geom.contact import crossings
+        m = trimesh.creation.cylinder(radius=1.0, height=2.0, sections=128)
+        V, F, count = R.refill_flat_slivers(m.vertices, m.faces, longer_than=0.2)
+        self.assertEqual(count, 2)
+        out = trimesh.Trimesh(V, F, process=False)
+        self.assertTrue(out.is_watertight and out.is_winding_consistent)
+        self.assertAlmostEqual(out.volume, m.volume, places=9)
+        self.assertAlmostEqual(out.area, m.area, places=9)
+        self.assertEqual(len(crossings(V, F)), 0)
+        caps = np.abs(out.face_normals[:, 2]) > 0.999
+        tri = V[F[caps]]
+        self.assertLess(np.linalg.norm(tri - tri[:, [1, 2, 0]], axis=2).max(), 0.4)   # the fan's slivers were 2 long
+        twice = np.linalg.norm(np.cross(tri[:, 1] - tri[:, 0], tri[:, 2] - tri[:, 0]), axis=1)
+        slim = np.linalg.norm(tri - tri[:, [1, 2, 0]], axis=2).max(1) ** 2 / twice
+        before = m.triangles[np.abs(m.face_normals[:, 2]) > 0.999]
+        was = np.linalg.norm(before - before[:, [1, 2, 0]], axis=2).max(1) ** 2 / np.linalg.norm(
+            np.cross(before[:, 1] - before[:, 0], before[:, 2] - before[:, 0]), axis=1)
+        self.assertLess(np.median(slim), 5)          # 1.15 for an equilateral triangle
+        self.assertLess(np.median(slim), np.median(was) / 5)
+
+    def test_fine_or_curved_surfaces_left_alone(self):
+        sphere = trimesh.creation.icosphere(subdivisions=3)
+        V, F, count = R.refill_flat_slivers(sphere.vertices, sphere.faces)
+        self.assertEqual(count, 0)
+        self.assertEqual(len(F), len(sphere.faces))
+        m = trimesh.creation.cylinder(radius=1.0, height=2.0, sections=128)
+        self.assertEqual(R.refill_flat_slivers(m.vertices, m.faces, longer_than=5.0)[2], 0)   # short enough already
+
+
 class RepairTests(unittest.TestCase):
     def test_large_hole_filled_without_rebuild(self):
         V, F = sphere()
