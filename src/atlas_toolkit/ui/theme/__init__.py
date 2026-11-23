@@ -35,6 +35,7 @@ EXTRA_ICONS = {
     "mirror-plane": '<path d="M12 3v18" stroke-dasharray="2 2"/><path d="M3 6h5v12H3l3-6zM21 6h-5v12h5l-3-6z"/>',
     "mesh-repair": '<path d="M3 19 12 4l9 15zM7.5 11.5h9M12 4v7.5"/><path d="m9.5 14.5 5 3.5m0-3.5-5 3.5"/>',
     "plane-cut": '<path d="m3 14 7-5 11 2-7 5zM10 9V3m4 13v5M5 5l14 14"/><path d="m16 17 3 2-1-3"/>',
+    "shape-crop": '<path d="M3 7V3h4M17 3h4v4M21 17v4h-4M7 21H3v-4"/><circle cx="10" cy="10" r="4.5"/><rect x="10" y="10" width="7" height="7" rx=".5"/>',
     "developable": '<path d="M3 17 7 5l5 4 5-4 4 12-5 3-4-4-4 4-5-3ZM7 5l1 15m4-11v7m5-11-1 15M3 17l9-1 9 1"/>',
     "scissors": '<circle cx="6" cy="7" r="2.5"/><circle cx="6" cy="17" r="2.5"/><path d="M8.2 8.3 20 17M8.2 15.7 20 7"/>',
     "hatch": '<path d="M4 20 20 4M4 14 14 4M10 20 20 10M4 8l4-4M16 20l4-4"/>',

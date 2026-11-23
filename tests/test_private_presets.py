@@ -34,9 +34,12 @@ class PrivatePacks(unittest.TestCase):
 
     def test_every_tool_has_presets(self):
         """A new tool needs its presets before the next pack (Repair Mesh shipped in 2.4.1 without any); the pack
-        tool's `check` holds the exact counts per tier."""
+        tool's `check` holds the exact counts per tier. A tool whose settings belong to each model
+        (`official_presets=False`, Shape Crop) has none."""
         have = {p.tool for pk in _presets._packs() for p in pk.presets}
-        missing = [t.id for t in self.reg.ordered() if t.id not in have]
+        unwanted = [t.id for t in self.reg.ordered() if t.id in have and not t.official_presets]
+        self.assertEqual(unwanted, [], "tools that take no official presets have some in the packs")
+        missing = [t.id for t in self.reg.ordered() if t.id not in have and t.official_presets]
         self.assertEqual(missing, [], "tools with no preset in the packs")
 
     def test_presets_use_current_names(self):

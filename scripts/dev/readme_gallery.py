@@ -126,6 +126,7 @@ RECIPES = [
     Recipe("plane-cut", DAVID, "Closed cut", draw=sketch()),
     Recipe("mesh-mirror", VENUS, "Mirror a copy", draw=edges()),
     Recipe("mesh-repair", DAMAGED, None, draw=contour()),
+    Recipe("mesh-crop", DAVID, None, ("--shape", "sphere", "--size", 92, 92, 92, "--position", 0, 0, -6), draw=sketch()),
     # Deform
     Recipe("mesh-bend", VENUS, "Sculptural arc", draw=hatch()),
     Recipe("mesh-twist", DAVID, "Single twist", draw=hatch()),
@@ -588,18 +589,21 @@ def extras() -> None:
     picture.save(shot)
 
 
-def publish() -> None:
+def publish(only=None) -> None:
+    """Copy the finished images to docs/images/readme: all of them, or only the tools named (--only)."""
     PUBLISHED.mkdir(parents=True, exist_ok=True)
-    pairs = [(QA / r.tool / f"{r.tool}.png", f"{r.tool}.webp") for r in RECIPES]
-    pairs += [(QA / "hero.png", "hero.webp"), (QA / "app.png", "app.webp")]
+    pairs = [(QA / r.tool / f"{r.tool}.png", f"{r.tool}.webp") for r in RECIPES if not only or r.tool in only]
+    if not only:
+        pairs += [(QA / "hero.png", "hero.webp"), (QA / "app.png", "app.webp")]
     missing = [str(p) for p, _ in pairs if not p.is_file()]
     if missing:
         sys.exit("Not rendered yet:\n" + "\n".join(missing))
     for png, name in pairs:
         Image.open(png).convert("RGB").save(PUBLISHED / name, "WEBP", quality=84, method=6)
-    shutil.copy2(QA / "logo.png", PUBLISHED / "logo.png")
+    if not only:
+        shutil.copy2(QA / "logo.png", PUBLISHED / "logo.png")
     total = sum(p.stat().st_size for p in PUBLISHED.iterdir())
-    print(f"{len(pairs) + 1} images, {total / 1e6:.1f} MB in {PUBLISHED}")
+    print(f"{len(pairs) + (0 if only else 1)} images written; {total / 1e6:.1f} MB in {PUBLISHED}")
 
 
 def main() -> None:
@@ -629,7 +633,7 @@ def main() -> None:
         extras()
         return
     if args.publish:
-        publish()
+        publish(set(args.only.split(",")) if args.only else None)
         return
 
     only = set(args.only.split(",")) if args.only else None

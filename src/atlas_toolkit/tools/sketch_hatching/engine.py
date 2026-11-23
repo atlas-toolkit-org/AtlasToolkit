@@ -10,9 +10,9 @@ import numpy as np
 from atlas_toolkit.core import Result, Stat
 from atlas_toolkit.geom import shading
 from atlas_toolkit.geom import sketch as sk
-from atlas_toolkit.geom.drawing import Drawing, Pen, fmt_duration, fmt_length, plot_tiles
+from atlas_toolkit.geom.drawing import Drawing, Pen, fmt_duration, fmt_length, plot_tiles, saved_lines
 from atlas_toolkit.geom.image import view as raster_view
-from atlas_toolkit.geom.svgout import Layer, write_svg
+from atlas_toolkit.geom.svgout import Layer, arrange, pen_mode, write_pens
 
 from . import TOOL
 from . import sketch_hatching as sh
@@ -112,14 +112,15 @@ def run(ctx, src: Path, dst: Path | None, p) -> Result:
             if coverage > 0.7:
                 notes.append(f"ink coverage reaches {coverage:.2f} in a 5 mm square (the pieces kept it under 0.7): "
                              "lower the density or raise the ambient light")
+    mode = pen_mode(p)
+    layers = arrange(layers, mode)          # the pieces order each pen's strokes; a merge keeps that order
     pens = [Pen.from_polylines(L.label, L.label, L.polylines, "#0B1220", L.width) for L in layers]
     drawing = Drawing(W, H, (0.0, 0.0, W, H), pens)
     st = drawing.stats()
     outputs = []
     if dst is not None:
         ctx.progress(0.96, "writing SVG")
-        write_svg(dst, W, H, layers, TOOL, dict(p))
-        outputs.append(str(dst))
+        outputs += [str(f) for f in write_pens(dst, W, H, layers, mode, TOOL, dict(p))]
     secs = time.perf_counter() - t0
 
     def n(x) -> str:
@@ -143,8 +144,7 @@ def run(ctx, src: Path, dst: Path | None, p) -> Result:
               f"  coverage   max {coverage:.2f} of a 5 mm square",
               "  timings    " + ", ".join(f"{k} {v:.1f} s" for k, v in timings.items())]
     lines += [f"  note       {x}" for x in notes]
-    if outputs:
-        lines.append(f"  saved as   {dst}")
+    lines += saved_lines(outputs)
     ctx.progress(1.0)
     return Result(outputs=outputs,
                   stats=[Stat("strokes", "Strokes", st.strokes),

@@ -91,7 +91,7 @@ def main():
             else:
                 values = draw.values(dict(style="none", creases=True, crease_angle=35., paper="A4"))
                 if params.stripes_only:
-                    values = draw.values(dict(values, one_layer=True, hatch_width=.2, outline_width=.2,
+                    values = draw.values(dict(values, pen_output="merged", hatch_width=.2, outline_width=.2,
                                               crease_width=.2, simplify=.05))
             drawing = draw.engine_fn()(ctx, dst, svg, draw.values(values))
             root = ET.parse(svg).getroot()

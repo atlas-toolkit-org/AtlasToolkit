@@ -95,15 +95,29 @@ def inspect_input(tool, src: str) -> InputInfo | None:
     fn = tool.inspect_fn()
     if fn is None and tool.inputs.kind in DEFAULT_INSPECT:
         fn = tool.resolve(DEFAULT_INSPECT[tool.inputs.kind])
+    need = getattr(tool, "strongest_need", getattr(tool, "needs", None))
+    if need and tool.inputs.kind == "mesh":
+        from ..geom.mesh import reuse_loads
+        with reuse_loads():                      # the check below reads the same file: load it once
+            return _inspect_and_check(tool, src, fn, need)
+    return fn(Path(src)) if fn else None
+
+
+def _inspect_and_check(tool, src, fn, need):
     info = fn(Path(src)) if fn else None
-    if info is not None and getattr(tool, "needs", None) and info.kind == "mesh":
+    if info is not None and info.kind == "mesh":
         # say at once whether the input is usable as it is, will be tidied, or needs Repair Mesh first
         from ..geom import repair
         try:
-            check = repair.input_check(Path(src), tool.needs)
+            check = repair.input_check(Path(src), need)
         except Exception:                        # an unreadable mesh is reported by the run itself
             check = None
         if check and check["state"] != "ok":
+            if not tool.needs:                   # a need of some settings only (needs_if): say which
+                options = tool.need_options(need)
+                check["when"] = options
+                check["short"] = f"{check['short']} for {options}"
+                check["text"] = f"{options} needs it: {check['text']}"
             info.values["input_check"] = check
             info.summary = f"{info.summary} · {check['short']}"
     return info

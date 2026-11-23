@@ -4,7 +4,8 @@ Photo Hatching: a photo drawn as pen-plotter hatching, guided by depth from a DP
 
 Outputs <name>_photohatch.svg, signed <desc>dpt-hatching</desc> so Atlas links them to this tool.
 """
-from atlas_toolkit.core import Bool, Choice, FileRef, Float, Inputs, Int, Output, Section, Seed, Tool, paper_params
+from atlas_toolkit.core import (Bool, Choice, FileRef, Float, Inputs, Int, Output, Section, Seed, Tool, paper_params,
+                                pen_output_param)
 from atlas_toolkit.geom.depth import MODELS
 
 
@@ -15,7 +16,7 @@ def style_is(*names):
 TOOL = Tool(
     id="dpt-hatching",
     name="Photo Hatching",
-    version="1.1.0",
+    version="1.2.0",
     optional=(("depth", "Depth from a neural network (MiDaS / DPT, Depth Anything) on the GPU; without it, "
                         "a depth-map file or a rough depth from tone"),),
     category="image",
@@ -154,8 +155,12 @@ TOOL = Tool(
             Float("hatch_width", "Hatching pen", 0.3, unit="mm", min=0.05, max=3, step=0.05, decimals=2),
             Float("contour_width", "Contour pen", 0.3, unit="mm", min=0.05, max=3, step=0.05, decimals=2),
             Float("outline_width", "Outline pen", 0.5, unit="mm", min=0.05, max=3, step=0.05, decimals=2),
-            Bool("layer_per_direction", "One layer per direction", False,
-                 help="Each tone layer (direction) on its own layer, e.g. to plot them in different inks."),
+            Bool("layer_per_direction", "A pen per direction", False,
+                 visible_if=lambda v: v.get("style") in ("flow", "patches") and int(v.get("layers", 1)) > 1
+                 and v.get("pen_output") != "merged",
+                 help="Each tone layer (direction) as a pen of its own, e.g. to plot them in different inks; "
+                      "otherwise every direction shares the hatching pen."),
+            pen_output_param(),
             Bool("optimise", "Order strokes to cut travel", True),
         ),
         Section(

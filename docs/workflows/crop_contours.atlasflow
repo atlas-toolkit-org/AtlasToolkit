@@ -1,0 +1,136 @@
+{
+  "format": "atlas-toolkit.workflow",
+  "version": 1,
+  "name": "Crop Contours",
+  "description": "",
+  "toolkit": "2.5.0",
+  "nodes": [
+    {
+      "id": "in1",
+      "type": "input",
+      "label": "",
+      "pos": [
+        0.0,
+        0.0
+      ],
+      "kind": "mesh",
+      "mode": "batch",
+      "path": ""
+    },
+    {
+      "id": "n1",
+      "type": "tool",
+      "label": "",
+      "pos": [
+        240.0,
+        0.0
+      ],
+      "tool": "mesh-crop",
+      "tool_version": "0.1.0",
+      "values": {
+        "operation": "intersect",
+        "shape": "sphere",
+        "cut": "closed",
+        "export_mode": "combined",
+        "segments": 0,
+        "reference": "center",
+        "position": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "size_unit": "percent",
+        "size": [
+          85.0,
+          85.0,
+          85.0
+        ]
+      },
+      "format": ""
+    },
+    {
+      "id": "n2",
+      "type": "tool",
+      "label": "",
+      "pos": [
+        480.0,
+        0.0
+      ],
+      "tool": "contour-lines",
+      "tool_version": "1.0",
+      "values": {
+        "theta": 72.4,
+        "psi": 148.0,
+        "radius": 262.0,
+        "lookat": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "fov": 36.2,
+        "projection": "perspective",
+        "spacing_mm": 2.0,
+        "hidden": true,
+        "slice_offset": 0.0,
+        "up_axis": "auto",
+        "front": "auto",
+        "rotate": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "normalise": "set",
+        "reference_mesh": "",
+        "min_len": 4.0,
+        "min_gap": 0.45,
+        "join_any": 0.5,
+        "join_same": 1.5,
+        "gap_bridge": 1.5,
+        "paper": "A3",
+        "orientation": "landscape",
+        "margin": 25.0,
+        "line_width": 0.3,
+        "optimise": true,
+        "step_mm": 0.25,
+        "simplify": 0.08,
+        "draft_faces": 150000
+      },
+      "format": ""
+    },
+    {
+      "id": "out1",
+      "type": "save",
+      "label": "",
+      "pos": [
+        720.0,
+        0.0
+      ],
+      "where": "next",
+      "folder": "",
+      "name": "{name}"
+    }
+  ],
+  "edges": [
+    {
+      "from": "in1",
+      "to": "n1",
+      "port": "in"
+    },
+    {
+      "from": "n1",
+      "to": "n2",
+      "port": "in"
+    },
+    {
+      "from": "n2",
+      "to": "out1",
+      "port": "in"
+    }
+  ],
+  "exposed": []
+}

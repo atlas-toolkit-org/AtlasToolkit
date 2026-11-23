@@ -126,6 +126,20 @@ TOOL = Tool(
   still fails, raise `geom.repair.needs_repair(mesh, TOOL, "<your own repair option>")`: a `ToolError` that says what
   is wrong and what to do, shown without a traceback and with a button to the Repair Mesh tool. Any expected
   problem the user can fix can raise a `core.errors.ToolError(message, hint=, suggest_tool=)`.
+- `needs_if=(("solid", {"operation": ("union", "xor")}),)` declares a need that holds only for some settings (the
+  `requires_if` pattern). The input check runs for the strongest need and words it as conditional; the page marks
+  *Needs repair* and offers Repair Mesh only while a matching setting is chosen, and Repair Mesh's *Ready for* list
+  names the settings. `Tool.needs_for(values)` gives the need for given values; the engine decides what to do
+  otherwise (Shape Crop clips open models when no solid is needed).
+- `official_presets=False` says the official packs carry no presets for the tool, because its settings belong to
+  each model (Shape Crop's placements). Users can still save their own; `tests/test_private_presets.py` checks the
+  packs hold none for it.
+- `per_input_label="shape"` names the per-file values in the file list's menu ("use the shape of …"); without it the
+  page words them from the keys (Aim, plane, painted area, Up and Front).
+- **Placement viewers** subclass the shared editors rather than writing their own canvas: `ui/widgets/gizmo.py`
+  (`GizmoEditor`: modes, handles, strokes, camera, undo, Expand) under `plane_editor.PlaneEditor` (a plane: Plane Cut,
+  Mirror) and `shape_editor.ShapeEditor` (a box, sphere, cylinder or pyramid, clipped live on the GPU: Shape Crop).
+  A subclass returns its handles from `gizmo_handles` and applies drags in `drag_to` and strokes in `finish_stroke`.
 - `sample=".engine:make_sample"` writes a typical input for the tests and self-test.
 - `input_dependencies=".engine:input_dependencies"` optionally returns additional input paths from `(src, values)`.
   Workflow cache keys include these files; use this for masks or metadata sidecars read implicitly by a library.
@@ -146,8 +160,13 @@ Plain functions, no GUI.
   `mm_per_unit`, `path_data`.
   `read_drawing(..., shapes=SHAPES | BASIC_SHAPES)` optionally includes retained basic shapes in previews;
   the default keeps the established path/line/polyline/polygon preview policy.
-- **Tools that draw from scratch:** `geom/svgout.py` writes mm SVGs with one layer per pen, joins segments and
-  orders strokes.
+- **Tools that draw from scratch:** `geom/svgout.py` writes mm SVGs with one layer per pen, joins segments,
+  orders strokes and cuts dashes as geometry (`dashed`; never a `stroke-dasharray`, which plotters draw solid). A
+  tool that can draw with more than one pen adds `pen_output_param()` (**Save pens as**, from `atlas_toolkit.core`)
+  to its Pens section and saves through `svgout.write_pens(dst, W, H, layers, pen_mode(p), TOOL, dict(p))`: a layer,
+  a group or a file per pen, or all on one pen, the same in every tool. Build the preview and report from
+  `svgout.arrange(layers, mode)`, so they show what the file holds, and return every file `write_pens` wrote
+  (`drawing.saved_lines` words them for the report).
 - **Meshes:** `geom/mesh.py` loads, cleans, decimates, saves signed, and has `result()` for the usual mesh Result.
 - **Paper sizes:** `geom/paper.py`.
 

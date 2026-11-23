@@ -187,23 +187,77 @@ class Diagnosis:
 def is_solid(V, F) -> bool:
     """What every solid tool accepts: each edge shared by exactly two faces wound opposite ways (trimesh's
     watertight and winding-consistent tests), a positive volume, and manifold3d's own test."""
+    return solid_body(V, F) is not None
+
+
+def closed_and_consistent(F) -> bool:
+    """Every undirected edge used by exactly two faces, and by them in opposite directions (no directed edge twice).
+    Two plain sorts of the edge keys, so it stays quick on scans of millions of faces."""
+    F = np.asarray(F, dtype=np.int64)
     if len(F) < 4:
         return False
-    he, _face, eid, count = _edges(F)
-    if (count != 2).any():
+    a = F.reshape(-1)
+    b = F[:, [1, 2, 0]].reshape(-1)
+    n = np.int64(int(F.max()) + 1)
+    directed = np.sort(a * n + b)
+    if (directed[1:] == directed[:-1]).any():
         return False
-    order = np.argsort(eid, kind="stable")
-    h = he[order]
-    if (h[0::2, 0] == h[1::2, 0]).any() or signed_volume(V, F) <= 0:
-        return False
+    undirected = np.sort(np.minimum(a, b) * n + np.maximum(a, b))
+    pairs = undirected.reshape(-1, 2) if len(undirected) % 2 == 0 else None
+    return pairs is not None and bool((pairs[:, 0] == pairs[:, 1]).all()) and bool(
+        (pairs[1:, 0] != pairs[:-1, 1]).all())
+
+
+def open_half_edges(F) -> np.ndarray:
+    """The directed edges (a, b) that no other face shares, with one sort of the edge keys (quick on big scans)."""
+    F = np.asarray(F, dtype=np.int64)
+    if not len(F):
+        return np.zeros((0, 2), np.int64)
+    he = np.concatenate([F[:, [0, 1]], F[:, [1, 2]], F[:, [2, 0]]])
+    n = np.int64(int(F.max()) + 1)
+    key = np.minimum(he[:, 0], he[:, 1]) * n + np.maximum(he[:, 0], he[:, 1])
+    order = np.argsort(key)
+    sk = key[order]
+    lone = np.ones(len(sk), bool)
+    same = sk[1:] == sk[:-1]
+    lone[1:] &= ~same
+    lone[:-1] &= ~same
+    return he[order[lone]]
+
+
+def beyond_tidy(V, F) -> Diagnosis | None:
+    """A short diagnosis when the model has an opening larger than the tidy closes (TIDY_HOLE_EDGES): no tidy can
+    make it a solid, so a tool can say so at once instead of tidying a large scan for nothing. None otherwise, and
+    for an opening that only rims a loose crumb (the tidy drops those): it must span 1% of the model or more."""
+    bhe = open_half_edges(F)
+    if len(bhe) <= TIDY_HOLE_EDGES:
+        return None
+    loops = _boundary_loops(np.asarray(F), bhe)
+    V = np.asarray(V)
+    scale = float(np.ptp(V, axis=0).max()) or 1.0
+    big = [lp for lp in loops if len(lp) - (lp[-1] is None) > TIDY_HOLE_EDGES]
+    # a wide opening, not the rim of a loose crumb (which the tidy drops): it spans 1% of the model or more
+    wide = [lp for lp in big if float(np.ptp(V[[i for i in lp if i is not None]], axis=0).max()) > 0.01 * scale]
+    if not wide:
+        return None
+    largest = max(len(lp) - (lp[-1] is None) for lp in loops)
+    return Diagnosis(faces=int(len(F)), vertices=int(len(V)), boundary_edges=int(len(bhe)), holes=len(loops),
+                     largest_hole=int(largest))
+
+
+def solid_body(V, F):
+    """is_solid's checks, returning manifold3d's solid (to use rather than build again) or None."""
+    if len(F) < 4 or not closed_and_consistent(F) or signed_volume(V, F) <= 0:
+        return None
     try:
         import manifold3d as mf
         mesh = mf.Mesh64(vert_properties=np.ascontiguousarray(V, dtype=np.float64),
                          tri_verts=np.ascontiguousarray(F, dtype=np.uint64))
         body = mf.Manifold(mesh)
-        return body.status() == mf.Error.NoError and not body.is_empty() and body.volume() > 0
+        ok = body.status() == mf.Error.NoError and not body.is_empty() and body.volume() > 0
+        return body if ok else None
     except Exception:          # pragma: no cover (manifold3d is bundled)
-        return False
+        return None
 
 
 def diagnose(mesh) -> Diagnosis:
@@ -1233,6 +1287,11 @@ def input_check(path, need: str = "solid", mesh=None) -> dict:
     ok = is_solid(V, F) if need == "solid" else diagnose_arrays(V, F).manifold
     if ok:
         return {"state": "ok", "short": "", "text": ""}
+    quick = beyond_tidy(V, F) if need == "solid" else None
+    if quick is not None:                    # an opening the tidy cannot close: say so without tidying
+        return {"state": "repair", "short": f"not a closed solid: needs {REPAIR_TOOL_NAME}",
+                "text": f"This model is not a closed solid ({quick.summary()}). Run {REPAIR_TOOL_NAME} on it first, "
+                        "then use the repaired file here."}
     V2, F2, notes = tidy_arrays(V, F)
     if diagnose_arrays(V2, F2).ok_for(need):
         return {"state": "tidy", "short": "small defects, tidied when run",

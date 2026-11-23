@@ -23,7 +23,7 @@
   <img src="docs/images/readme/hero.webp" alt="Four drawings made with Atlas Toolkit: a sketched bust, a twisted head in cross-hatching, a head peeling open like a plant, and a hatched photograph of a bridge" width="100%">
 </p>
 
-Atlas Toolkit is a desktop app for pen-plotter art. It gathers 49 tools for transforming and sculpting 3D models, turning models and
+Atlas Toolkit is a desktop app for pen-plotter art. It gathers 50 tools for transforming and sculpting 3D models, turning models and
 images into line drawings, and preparing those drawings for the plotter.
 
 **Aim.** To take a drawing from first idea to a file the plotter can draw well, without leaving one app.
@@ -105,7 +105,7 @@ A typical drawing moves left to right, and any stage can be skipped:
 | [Draw from 3D](#draw-from-3d) | 6 | Turn a model into line art |
 | [Draw from photographs](#draw-from-photographs) | 1 | Turn a photo into hatching |
 | [From image to model](#from-image-to-model) | 2 | Raise images and terrain into 3D |
-| [Transform and sculpt](#transform-and-sculpt) | 33 | Transform, modify or sculpt models, in six families |
+| [Transform and sculpt](#transform-and-sculpt) | 36 | Transform, modify or sculpt models, in six families |
 | [Refine for the plotter](#refine-for-the-plotter) | 5 | Clean and shape finished SVGs |
 
 Each example shows a result beside a drawing of it, made with the drawing tool that suits the effect best. The samples
@@ -146,7 +146,7 @@ tone bands. Cast shadows, ambient occlusion and a portrait focus. Two pens.
 
 **Hatch Maker**<br>
 Shades a model from any view in seven styles, among them engraving, contours, crosshatch and stipple. Outlines and
-creases, one pen per layer, ordered to cut pen travel.
+creases, each pen saved as a layer, a group, a file or merged, ordered to cut pen travel.
 </td>
 </tr>
 <tr>
@@ -210,7 +210,7 @@ scaling, masks and adaptive detail. No GIS software needed.
 
 ### Transform and sculpt
 
-Thirty-four tools transform a model and return real geometry as STL, OBJ or PLY, in the model's own units. Many can also
+Thirty-six tools transform a model and return real geometry as STL, OBJ or PLY, in the model's own units. Many can also
 save a sequence of stages, which the drawing tools frame alike for a series of plates.
 
 #### Prepare and cut
@@ -248,6 +248,16 @@ Reflects a model through a plane you position. Keep the original or only the ref
 Fixes what stops the sculpting tools: holes, decimation debris, non-manifold edges, flipped faces. It keeps the
 surface where it can and rebuilds only if it must.
 </td>
+</tr>
+<tr>
+<td valign="top">
+<img src="docs/images/readme/mesh-crop.webp" alt="David cropped by a sphere, its cut closed by the sphere's surface" width="100%">
+
+**[Shape Crop](docs/SHAPE_CROP.md)**<br>
+Keeps the part of a model inside a box, sphere, cylinder or pyramid you move, turn and size live; or cuts it away,
+adds the shape, or keeps both remainders. Quick on scans of millions of faces.
+</td>
+<td width="50%"></td>
 </tr>
 </table>
 

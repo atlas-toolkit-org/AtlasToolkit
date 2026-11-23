@@ -318,7 +318,8 @@ setting added later starts from its default.
       neighbour than the existing ones are, or it is a near-duplicate.
     - The presets repository's `tools/build_pack.py add` writes the drafts that earn a place into the pack.
     - Its `check` holds the pack to 5 or more presets per tool (3 for the utility tools) and exactly 3 tagged
-      `essentials`.
+      `essentials`. A tool whose settings belong to each model declares `official_presets=False` (Shape Crop) and
+      has none; `tests/test_private_presets.py` checks the packs agree.
 - **Running the app with the packs:** set `ATLAS_TOOLKIT_PRESET_DIRS` to the repository (its `packs/` folder is found
   by itself). Source folders read this way show as *Unsigned*; a built, signed pack shows as *Official*.
 

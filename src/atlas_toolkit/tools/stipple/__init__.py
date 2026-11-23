@@ -5,7 +5,7 @@ shadows, empty in the light (the sphere of Digital divide, projects/blender3d_pr
 Outputs <name>_stipple.svg, signed <desc>stipple</desc> so Atlas links them to this tool.
 """
 from atlas_toolkit.core import (CAMERA_KEYS, CAMERA_NOTE, FRAME_KEYS, Bool, Choice, Float, Inputs, Int, Output, Section, Seed,
-                                Tool, camera_params, frame_params, paper_params)
+                                Tool, camera_params, frame_params, paper_params, pen_output_param)
 
 
 def outlined(v):
@@ -15,7 +15,7 @@ def outlined(v):
 TOOL = Tool(
     id="stipple",
     name="Stipple",
-    version="1.1",
+    version="1.2",
     category="mesh2svg",
     icon="stipple",
     action="Draw",
@@ -115,6 +115,7 @@ TOOL = Tool(
             Float("dot_width", "Dot pen", 0.4, unit="mm", min=0.05, max=3.0, step=0.05, decimals=2),
             Float("outline_width", "Outline pen", 0.3, unit="mm", min=0.05, max=3.0, step=0.05, decimals=2,
                   visible_if=outlined),
+            pen_output_param(visible_if=outlined),
             Bool("optimise", "Order dots to cut travel", True),
         ),
         Section(

@@ -664,6 +664,8 @@ class ToolPage(QWidget):
 
     def _view_words(self) -> str:
         """What the per-input values are called in the file list's menu."""
+        if self.tool.per_input_label:
+            return self.tool.per_input_label
         keys = self.input_keys
         if "theta" in keys:
             return "Aim"
@@ -674,6 +676,8 @@ class ToolPage(QWidget):
         return "Up and Front"
 
     def _settings_changed(self) -> None:
+        if self.tool.needs_if:
+            self._show_fix(self._current_row())
         self._capture_view()
         self._drop_stale_drafts()
         self._check_runtimes()
@@ -1115,7 +1119,7 @@ class ToolPage(QWidget):
             check = (row.info.values.get("input_check") if row.info is not None else None) or {}
             self.queue.set_status(row.item, "Ready" if not self.tool.live else "Analysing…",
                                   "accent" if not self.tool.live else "dim")
-            if check.get("state") == "repair":
+            if check.get("state") == "repair" and self._check_applies(check):
                 self.queue.set_status(row.item, "Needs repair", "warning", check.get("text", ""))
                 self.ctx.log("warning", check.get("text", ""), f"{self.tool.id} · {Path(row.key).name}")
             if self.tool.live:
@@ -1322,9 +1326,14 @@ class ToolPage(QWidget):
         else:
             row.fix_tool = ""
 
+    def _check_applies(self, check: dict) -> bool:
+        """An input check made for some settings only (Tool.needs_if) counts while those settings are chosen."""
+        return not check.get("when") or self.tool.needs_for(self.values()) is not None
+
     def _show_fix(self, row: Row | None) -> None:
         check = (row.info.values.get("input_check") if row is not None and row.info is not None else None) or {}
-        if row is not None and not row.error and check.get("state") == "repair" and REPAIR_TOOL in                 self.ctx.registry.tools and self.tool.id != REPAIR_TOOL:
+        if (row is not None and not row.error and check.get("state") == "repair" and self._check_applies(check)
+                and REPAIR_TOOL in self.ctx.registry.tools and self.tool.id != REPAIR_TOOL):
             row.fix_tool, row.fix_hint = REPAIR_TOOL, check.get("text", "")
         elif row is not None and not row.error:
             row.fix_tool = row.fix_hint = ""

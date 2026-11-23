@@ -367,6 +367,22 @@ def paper_params(default: str = "A3", orientation: str = "portrait", margin: flo
     return out
 
 
+# How a drawing with more than one pen is saved (geom/svgout.write_pens), shared by every tool that draws several pens
+PEN_OUTPUTS = [("layers", "A layer per pen"), ("groups", "A group per pen, one layer"),
+               ("files", "A file per pen"), ("merged", "All on one pen")]
+
+
+def pen_output_param(visible_if: dict | Callable | None = None, **kw) -> Param:
+    """Save pens as: how a tool that draws with several pens (widths, dashes, colours) writes them. Every such tool
+    offers the same four ways, with the same key, so presets, workflows and the CLI read alike across tools."""
+    return Choice("pen_output", "Save pens as", "layers", PEN_OUTPUTS, visible_if=visible_if,
+                  help="A layer per pen: one Inkscape layer per pen, so plotter software pauses to change pens "
+                       "between them. A group per pen, one layer: the pens stay apart as groups you can select, "
+                       "but plot in one pass. A file per pen: each pen in its own SVG on the same sheet "
+                       "(name-1-hatching.svg …), so they line up, plus the whole drawing. All on one pen: every "
+                       "stroke in one layer at the first pen's width, ordered together.", **kw)
+
+
 CAMERA_KEYS = ("theta", "psi", "radius", "lookat", "fov", "projection", "roll")
 # The note on a camera section: the Aim tab sets the drawing's view, these fields only show (and fine-tune) it.
 CAMERA_NOTE = "Set by aiming in the Aim tab; these numbers are its camera."

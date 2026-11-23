@@ -2,6 +2,50 @@
 
 ## 2.5.0 (unreleased)
 
+**Shape Crop: keep the part of a model inside a box, sphere, cylinder or pyramid, quickly, even on large scans**
+- **Shape Crop** 0.1.0 (Mesh · Prepare and cut), a new tool. Place a box, sphere, cylinder or pyramid on a model and
+  keep what is inside it (**Keep inside**, the default), or **Cut away** the region, **Add the shape** to the model
+  (a plinth, a block), or keep **Both remainders** (the model without the shape and the shape without the model, as one
+  file or two). Each size is set on its own, so the shapes also give blocks, ellipsoids and rectangular pyramids.
+- The **Shape** tab crops the model live as you move (arrows), turn (rings) and size (square handles) the shape, or
+  drag a rectangle over the view and the shape fills it through the model's depth. It draws the model's light copy, so
+  it stays instant on any model; Preview computes the exact result. Sizes are % of the model or model units; each file
+  keeps its own placement, and presets leave it alone (the tool has no official presets).
+- Closed models get closed cuts (manifold3d booleans, the shape's surface filling the cut). Open scans are clipped
+  exactly along the shape, with no cracks, and stay open; Add the shape and Both remainders ask for Repair Mesh, but
+  only while one of them is chosen. A scan with a real opening is no longer tidied first for nothing (that took 40 s at
+  1.3 million faces).
+- **Quick on big meshes**, for every mesh tool: reading and cleaning a mesh is about twice as quick (5.2 million faces:
+  18 s → 8–9 s), adding a file to a tool that checks its input reads it once instead of twice (an open 1.3-million-face
+  scan: 32 s → 4.5 s), the solid and watertight checks are two sorts instead of a grouping, and mesh previews come
+  back about three times sooner. Shape Crop on 1.3 million faces takes 2–4.5 s, on 5.2 million 8–15 s, file and
+  preview included (`scripts/dev/validate_mesh_crop.py`, 48 runs); see `docs/SHAPE_CROP.md`.
+- For tool authors, three new contract fields: `Tool.needs_if` (a need for some settings only, like `requires_if`),
+  `Tool.official_presets` (False: the packs carry none) and `Tool.per_input_label` (what the file list calls the
+  per-file values). Plane Cut's and Mirror's plane editor and Shape Crop's shape editor now share one gizmo base,
+  `ui/widgets/gizmo.py`; they behave as before.
+- For developers: `geom/region.py` (placed shapes with exact crossings), `geom.mesh.first_rows` / `merge_vertices` /
+  `unique_faces` / `reuse_loads`, `geom.repair.solid_body` / `closed_and_consistent` / `open_half_edges` /
+  `beyond_tidy`, and `scripts/dev/validate_mesh_crop.py` (every shape and operation up to 5 million faces, timed by
+  stage). `readme_gallery.py --publish --only <id>` publishes just those images.
+
+**Save pens as: every drawing tool with several pens saves them the same way, and you choose how**
+- Six tools draw with more than one pen (widths, dashes, colours): **Hatch Maker** 7.1.0, **Plotter Vision** 1.7.0,
+  **Sketch Hatching** 1.2.0, **Stipple** 1.2, **FlowRep Sketch** 0.3.0 and **Photo Hatching** 1.2.0. Each now has
+  **Save pens as** in its Pens section, shown once the settings give more than one pen: **A layer per pen** (the
+  default, as before), **A group per pen, one layer** (apart for editing, one plotting pass), **A file per pen** (each
+  pen alone on the same sheet beside the whole drawing, `name-1-fine.svg` …, all signed, so they line up) or **All
+  on one pen** (one layer at the first pen's width, ordered together). The preview, the report and the travel figure
+  show the pens as saved; the report lists every file written.
+- Hatch Maker's *Everything on one pen* became *All on one pen*; older settings, presets and workflows carry over.
+  Photo Hatching's *One layer per direction* is now *A pen per direction*.
+- **FlowRep Sketch's hidden curves are dashed strokes** (1.5 mm on, 1.5 mm off), as Plotter Vision's always were.
+  They were a `stroke-dasharray`, which plotters draw as a solid line. Its SVG now comes from the shared writer:
+  pens are labelled `1 features`, `2 silhouette` … and the curves keep their fitted Béziers and network record.
+- For tool authors: `pen_output_param()` in `atlas_toolkit.core`, and `geom.svgout.write_pens`, `arrange`,
+  `pen_mode`, `pen_file` and `dashed` (moved from Plotter Vision); `drawing.saved_lines` words the files for a
+  report. `docs/ADDING_A_TOOL.md` explains them.
+
 **Workflows: a side-by-side layout with a full-height preview, foldable tabs and clear workflow controls**
 - **Side by side**, a new layout beside **Stacked** (the switch is in the head, and the page remembers it). The
   pipeline sits on the left and is drawn top to bottom, with the tabs under it. The preview is on the right, at full

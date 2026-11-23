@@ -122,5 +122,14 @@ def plot_tiles(st: PlotStats, seconds: float, travel: tuple | None = None, extra
             Stat("seconds", "Computed in", seconds, "s", fmt="{:.1f}")]
 
 
+def saved_lines(outputs) -> list[str]:
+    """The report's last lines for the files a drawing tool wrote: the drawing, then any one-pen files
+    (svgout.write_pens in "files" mode)."""
+    outputs = [str(o) for o in outputs or ()]
+    if not outputs:
+        return []
+    return [f"  saved as   {outputs[0]}"] + [f"  pen file   {o}" for o in outputs[1:]]
+
+
 def polyline_length(pts) -> float:
     return sum(math.dist(p, q) for p, q in zip(pts, pts[1:]))

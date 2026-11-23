@@ -12,6 +12,15 @@ preset packs, loaded separately from the app; see [Presets](PRESETS.md).
 
 ## Tools
 
+**Shape Crop 0.1.0** keeps the part of a model inside a box, sphere, cylinder or pyramid that you move, turn and size
+in its Shape tab (handles, a rectangle drawn over the view, or numbers), with the crop shown live whatever the model's
+size. **Cut away** removes the region instead; **Add the shape** unites model and shape (a plinth, a block) and **Both
+remainders** keeps the model without the shape and the shape without the model, as one file or two. Closed models get
+closed cuts (manifold3d booleans); open scans are clipped exactly along the shape and stay open. Sizes are % of the
+model or model units, and each file keeps its own placement; no presets. Built for scans of millions of faces: a
+1.3-million-face crop takes a few seconds, file reading included. Signed `<name>_crop.stl`. See [the guide](SHAPE_CROP.md)
+and the [crop-and-draw workflow](workflows/crop_contours.atlasflow).
+
 **Motion Sculpture 0.5.0** turns a still model into swept laminae or splintered bars, inspired by layered glass
 and wind-carved bronze sculptures. Stream, Pulse, Gust and Vortex fields stretch tapered wakes behind a retained
 leading silhouette. Seven presets, seeded irregularity, layer tilt, base hold, feathered regions and bounded
@@ -192,13 +201,13 @@ See [Surface Stripes](SURFACE_STRIPES.md) for controls, build instructions and l
 | **Overlap Cleaner** 1.2.1 | SVG → SVG | SVG Overlap Cleaner v1, SVG Join Paths v1/v2, svg_dedup | Cuts ink drawn twice, so every line is plotted once. Optional: join stroke ends, whole-duplicates mode, rect/circle/ellipse, stroke width as part of the pen. `<name>--nooverlap.svg` |
 | **Shape Cutter** 2.0 | SVG → SVG | svg_shape_cutter | Keeps the lines inside (or outside) a closed shape: the element or layer named “shape”, a chosen layer or another SVG. Every island and hole counts. `<name>_cutout.svg` |
 | **Shape Outline** 2.0 | SVG → SVG | SVG_Shape_outline_v1 | One closed outline around a drawing: an envelope that hugs the strokes (bridging gaps under N mm), a concave or a convex hull. All parts or the largest, optional holes, a margin in mm. Written alone on the same sheet (ready as the Shape Cutter's “Another SVG”) or as a new layer. `<name>_outline.svg` |
-| **Hatch Maker** 7.0.0 | Mesh → SVG | STL 3D Hatch Maker v2.1, v3, v5 | Draws a model through an orthographic camera aimed in the Aim tab: seven hatching styles, outlines and creases, hidden lines removed, cut at the paper's frame in mm, one pen per layer, ordered to cut pen travel. `<name>_hatch.svg` |
-| **Plotter Vision** 1.6.0 | Mesh → SVG | plotter.vision (web app, reimplemented) | A model as the edges you can see through a perspective camera, aimed live in the Aim tab: drag to orbit, wheel for distance, 1-5 views, F fit; a light trace while you aim, the exact drawing with E. Edges flatter than an angle left out (0.01° = plotter.vision, a few degrees = clean quads, 30°+ = features; the Sketch preset is the Aim tab's look), lines where parts cross, optional decimation, depth pens, outline and hidden-line pens, red/blue stereo. `<name>_vision.svg` |
+| **Hatch Maker** 7.1.0 | Mesh → SVG | STL 3D Hatch Maker v2.1, v3, v5 | Draws a model through an orthographic camera aimed in the Aim tab: seven hatching styles, outlines and creases, hidden lines removed, cut at the paper's frame in mm, a pen each (saved as [Save pens as](#pens-how-a-drawing-with-several-pens-is-saved) asks), ordered to cut pen travel. `<name>_hatch.svg` |
+| **Plotter Vision** 1.7.0 | Mesh → SVG | plotter.vision (web app, reimplemented) | A model as the edges you can see through a perspective camera, aimed live in the Aim tab: drag to orbit, wheel for distance, 1-5 views, F fit; a light trace while you aim, the exact drawing with E. Edges flatter than an angle left out (0.01° = plotter.vision, a few degrees = clean quads, 30°+ = features; the Sketch preset is the Aim tab's look), lines where parts cross, optional decimation, depth pens, outline and hidden-line pens, red/blue stereo. `<name>_vision.svg` |
 | **Contour Lines** 1.2.0 | Mesh → SVG | new | A model as horizontal slices seen through a camera, hidden lines removed by ray casting: the melting and twisting heads' line language, for any model, without Blender. Spacing in mm on paper, converging lines tapered, strokes chained for few pen lifts. Draws a Twist or Melt stage set with one frame (same scale, position and slice heights on every plate). `<name>_contours.svg` |
-| **Sketch Hatching** 1.1.0 | Mesh → SVG | new | A model as an illustrator's pen sketch: lost-and-found outline, suggestive contours, valleys, creases, and hatching that follows the form in tone bands, with cast shadows and ambient occlusion; a focus point and a portrait light for a face. Two pens. `<name>_sketch.svg` |
-| **Stipple** 1.1 | Mesh → SVG | Digital divide's sphere (`projects/blender3d_project/digital_divide_1`) | A model in dots only: blue-noise stippling of its ray-cast light and shade, an empty highlight, edge darkening instead of an outline, a dot budget. `<name>_stipple.svg` |
-| **FlowRep Sketch** 0.2.0 | Mesh → SVG | new (FlowRep, Gori et al. 2017) | A model as a sparse network of curvature-aligned curves that describe its form, seen through a camera with hidden lines removed, plus an optional silhouette. Triangle meshes are remeshed into quads (Instant Meshes); quad-dominant OBJ/PLY keeps its topology. Descriptiveness sets how many curves remain (presets Clean, Detailed, Sparse; 25-30° suits organic models). As in the paper: only real sharp features become feature curves, side-by-side flowlines are decluttered (*Declutter parallel curves*), and no flowline ends in mid-air. Curves are smoothed between junctions (*Curve smoothing*), the silhouette is a smooth contour, and continuing strokes are joined. The 3D network is cached, so aiming again only redraws. `<name>_flowrep.svg` |
-| **Photo Hatching** 1.1.0 | Image → SVG | the DPT notebooks (a–d) in `google_colab` | Engraving-style hatching of a photo, guided by depth from a transformer (MiDaS 3.1 BEiT-L-512, DPT-Large or Depth Anything V2 Large on the GPU): strokes wrap the forms, ink density follows the tone, crossing layers only in the shadows, occlusion outlines. Also the notebooks' patches (mosaic) and depth contours, fixed. `<name>_photohatch.svg` |
+| **Sketch Hatching** 1.2.0 | Mesh → SVG | new | A model as an illustrator's pen sketch: lost-and-found outline, suggestive contours, valleys, creases, and hatching that follows the form in tone bands, with cast shadows and ambient occlusion; a focus point and a portrait light for a face. Two pens. `<name>_sketch.svg` |
+| **Stipple** 1.2 | Mesh → SVG | Digital divide's sphere (`projects/blender3d_project/digital_divide_1`) | A model in dots only: blue-noise stippling of its ray-cast light and shade, an empty highlight, edge darkening instead of an outline, a dot budget. `<name>_stipple.svg` |
+| **FlowRep Sketch** 0.3.0 | Mesh → SVG | new (FlowRep, Gori et al. 2017) | A model as a sparse network of curvature-aligned curves that describe its form, seen through a camera with hidden lines removed, plus an optional silhouette. Triangle meshes are remeshed into quads (Instant Meshes); quad-dominant OBJ/PLY keeps its topology. Descriptiveness sets how many curves remain (presets Clean, Detailed, Sparse; 25-30° suits organic models). As in the paper: only real sharp features become feature curves, side-by-side flowlines are decluttered (*Declutter parallel curves*), and no flowline ends in mid-air. Curves are smoothed between junctions (*Curve smoothing*), the silhouette is a smooth contour, and continuing strokes are joined. The 3D network is cached, so aiming again only redraws. `<name>_flowrep.svg` |
+| **Photo Hatching** 1.2.0 | Image → SVG | the DPT notebooks (a–d) in `google_colab` | Engraving-style hatching of a photo, guided by depth from a transformer (MiDaS 3.1 BEiT-L-512, DPT-Large or Depth Anything V2 Large on the GPU): strokes wrap the forms, ink density follows the tone, crossing layers only in the shadows, occlusion outlines. Also the notebooks' patches (mosaic) and depth contours, fixed. `<name>_photohatch.svg` |
 | **Cubic Replicator** 3.1 | Mesh → mesh | STL Cubic Replicator v2 | Copies of a model on a 3D grid, mirrored and turned at random (seeded). `<name>_replicated_3x3x1.stl` |
 | **Form Replicator** 1.0.2 | Mesh → mesh | new | Compose one model into planar/spatial crosses and stars, clock rings, rosettes, sea urchins, sunflower spirals, helices, toroidal wreaths, trefoil knots and Möbius bands. Aim, stretch, taper and roll copies with seeded variation; touching copies are always fused into solids. `<name>_forms_star2d.stl` |
 | **Grid Slicer** 3.1.1 | Mesh → mesh | cube_grid_slicer-v2 | Cuts a model into n × n × n capped blocks and pushes them apart; optionally shuffles them (blocks trade places, anywhere, in their layer or column) and shifts them at random. `<name>_grid3.stl` |
@@ -330,6 +339,41 @@ Always fit and Pause lines are ways of aiming, not settings: the camera they lea
 still goes into the settings), and both are off whenever the tab opens. Pause lines helps most on heavy models,
 where the black lines take a few seconds after every stop. The Hatch Maker's camera is the same one, always orthographic (the distance sets the size); its Roll
 keeps the hatching level as the model turns.
+
+## Pens: how a drawing with several pens is saved
+
+Six drawing tools can draw with more than one pen: a wider pen for outlines, a dashed or grey one for hidden lines,
+a pen per depth, per hatching direction or per stereo eye.
+
+| Tool | Its pens |
+|---|---|
+| Hatch Maker | hatching, outlines, creases (each with its own width) |
+| Plotter Vision | lines, outline, hidden (dashed), near / middle / far (far optionally dashed), red and blue for stereo |
+| Sketch Hatching | fine (hatching, details) and bold (outline, contours) |
+| Stipple | dots and, with an outline, the outline |
+| FlowRep Sketch | features, flowlines, silhouette and hidden curves (dashed, grey) |
+| Photo Hatching | hatching (or a pen per direction), depth contours, outlines |
+
+Each of them has the same setting in its **Pens** section, **Save pens as**, shown once the settings give more than
+one pen:
+
+- **A layer per pen** (the default): one Inkscape layer per pen, numbered in plotting order (`1 hatching`,
+  `2 silhouettes`, …), each with its own width and colour. Plotter software that works by layer (the AxiDraw
+  extension's layer mode, vpype) can plot them one at a time, with a pen change between.
+- **A group per pen, one layer**: a single layer (`1 drawing`) holding a group per pen, with the same widths and
+  colours. The pens stay apart for selecting and editing, and plot in one pass with one pen.
+- **A file per pen**: the whole drawing, as layers, under the usual name, and beside it each pen alone in a file of
+  its own on the same sheet: `head_sketch-1-fine.svg`, `head_sketch-2-bold.svg`. Every file is signed and carries the
+  settings, so they line up when plotted one after the other. With a single pen only the drawing is written. In a
+  workflow the drawing goes on to the next step and the pen files are kept beside it.
+- **All on one pen**: every stroke in one layer, at the first pen's width, ordered together when *Order strokes to
+  cut travel* is on (so pen-up travel can drop further).
+
+Dashes are drawn strokes, never an SVG dash style: plotters draw a dash style as a solid line, and a dashed pen keeps
+its dashes when it shares one pen with the rest. The preview and the report show the pens as they are saved. Tools
+with a single pen (Contour Lines) have no such setting, and the SVG post-processing tools keep the layers of the file
+they are given. Hatch Maker's former *Everything on one pen* is now *All on one pen*; older settings, presets and
+workflows carry over.
 
 ## Plotter Vision
 

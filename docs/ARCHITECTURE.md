@@ -31,7 +31,7 @@ src/atlas_toolkit/
   geom/      shared geometry, no Qt
     svg.py         SVG reading (re-exported from the Overlap Cleaner's engine), drawings for previews,
                    signing, <metadata> run records, default SVG inspect
-    svgout.py      writing new mm SVGs, joining and ordering polylines
+    svgout.py      writing new mm SVGs (Save pens as: write_pens), joining, ordering and dashing polylines
     drawing.py     Drawing / Pen: polylines per pen in mm, plot statistics (ink, travel, lifts, time)
     mesh.py        trimesh loading and cleaning, preview decimation, signed saving, default mesh inspect
     repair.py      what is wrong with a mesh (diagnose), the safe tidy every solid tool runs (tidy_input), the
@@ -86,8 +86,8 @@ src/atlas_toolkit/
   - seeded randomness;
   - settings stored in SVG `<metadata>` and in the history;
   - every output signed for Atlas.
-- **Each input keeps its own view.** Parameters marked `per_input` (a camera, a frame, a plane, a painted area) are
-  held per file by the tool page; every result carries the signature of the values it was made with, so a preview
+- **Each input keeps its own view.** Parameters marked `per_input` (a camera, a frame, a plane, a shape's placement,
+  a painted area) are held per file by the tool page (`Tool.per_input_label` names them in the file list's menu); every result carries the signature of the values it was made with, so a preview
   stays valid until its own file's values change, and earlier previews come back with their settings.
 - **Originals are never changed.** Outputs are named by template, and the app asks before overwriting.
 - **Geometry is shared.** All SVG tools read SVGs through the Overlap Cleaner's parser: transforms, units, curves
@@ -188,7 +188,8 @@ The drawing tools share one path from a mesh to the paper:
    a time budget per moving frame. `scripts/dev/aim_perf.py` measures it.
 3. **Rays** (`geom/raycast`): embree, every ray of a step in one batch: visibility (Contour Lines), a G-buffer per
    paper pixel, ambient occlusion and soft shadows (`geom/shading`, Sketch Hatching and Stipple).
-4. **Paper** (`geom/sketch`, `geom/svgout`): strokes in mm, one layer per pen, ordered, signed.
+4. **Paper** (`geom/sketch`, `geom/svgout`): strokes in mm, saved as Save pens as asks (a layer, a group or a
+   file per pen, or one pen), ordered, signed.
 
 `geom/shading` works on the model scaled to 2 units tall (the Blender pieces' units) so their tuned lengths and
 curvature thresholds keep their meaning; smoothing pass counts scale with the mesh's edge length.

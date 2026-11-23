@@ -2,6 +2,6 @@
 from .job import Cancelled, JobContext  # noqa: F401
 from .params import (AUTO, CAMERA_KEYS, CAMERA_NOTE, FRAME_KEYS, Bool, Choice, FileRef, Float, Int, Param,  # noqa: F401
                      ParamError, Params, Section, Seed, Text, Vec3, camera_params, frame_params, paper_params,
-                     INFLUENCE_KEYS, influence_params)
+                     INFLUENCE_KEYS, PEN_OUTPUTS, influence_params, pen_output_param)
 from .tool import CATEGORIES, InputInfo, Inputs, Output, Result, Stat, Tool  # noqa: F401
 from .errors import ToolError  # noqa: F401,E402

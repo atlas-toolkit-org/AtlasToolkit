@@ -159,6 +159,11 @@ def validate(tool: Tool) -> list[str]:
     for key, rule in tool.requires_if:
         if not rule or set(rule) - set(keys):
             errs.append(f"requires_if for {key} must reference known parameters")
+    for need, rule in tool.needs_if:
+        if need not in ("solid", "manifold") or not rule or set(rule) - set(keys):
+            errs.append(f"needs_if entries are ('solid' | 'manifold', {{known parameter: value}}), not {need!r}")
+    if tool.needs not in (None, "solid", "manifold"):
+        errs.append(f"needs must be None, 'solid' or 'manifold', not {tool.needs!r}")
     if set(tool.output.format_notes) - (set(tool.output.formats) | {tool.output.ext}):
         errs.append('format_notes must reference offered output formats')
     for item in tool.optional:

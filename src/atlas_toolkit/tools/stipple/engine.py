@@ -9,9 +9,9 @@ import numpy as np
 from atlas_toolkit.core import Result, Stat
 from atlas_toolkit.geom import shading
 from atlas_toolkit.geom import sketch as sk
-from atlas_toolkit.geom.drawing import Drawing, Pen, fmt_duration, fmt_length, plot_tiles
+from atlas_toolkit.geom.drawing import Drawing, Pen, fmt_duration, fmt_length, plot_tiles, saved_lines
 from atlas_toolkit.geom.image import view as raster_view
-from atlas_toolkit.geom.svgout import Layer, order_polylines, write_svg
+from atlas_toolkit.geom.svgout import Layer, arrange, order_polylines, pen_mode, write_pens
 
 from . import TOOL
 from . import stipple as st
@@ -89,6 +89,8 @@ def run(ctx, src: Path, dst: Path | None, p) -> Result:
     layers = [Layer("dots", dots_pls, "#000000", float(p.dot_width))]
     if outline_pls:
         layers.append(Layer("outline", outline_pls, "#000000", float(p.outline_width)))
+    mode = pen_mode(p)
+    layers = arrange(layers, mode, bool(p.optimise))
     pens = [Pen.from_polylines(L.label, L.label, L.polylines, "#0B1220", L.width) for L in layers]
     drawing = Drawing(W, H, (0.0, 0.0, W, H), pens)
     stats_ = drawing.stats()
@@ -101,8 +103,7 @@ def run(ctx, src: Path, dst: Path | None, p) -> Result:
     outputs = []
     if dst is not None:
         ctx.progress(0.95, "writing SVG")
-        write_svg(dst, W, H, layers, TOOL, dict(p))
-        outputs.append(str(dst))
+        outputs += [str(f) for f in write_pens(dst, W, H, layers, mode, TOOL, dict(p))]
     secs = time.perf_counter() - t0
 
     def n(x) -> str:
@@ -122,8 +123,7 @@ def run(ctx, src: Path, dst: Path | None, p) -> Result:
              f"  coverage   max {coverage:.2f} of a 5 mm square",
              f"  plot time  about {fmt_duration(stats_.ink / 25.0 + stats_.travel / 60.0 + stats_.strokes * LIFT_S)}"]
     lines += [f"  note       {x}" for x in notes]
-    if outputs:
-        lines.append(f"  saved as   {dst}")
+    lines += saved_lines(outputs)
     ctx.progress(1.0)
     return Result(outputs=outputs,
                   stats=[Stat("dots", "Dots", len(dots_pls)),

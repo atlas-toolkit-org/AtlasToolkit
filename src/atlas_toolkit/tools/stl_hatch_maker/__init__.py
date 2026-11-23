@@ -7,7 +7,7 @@ Outputs <name>_hatch.svg, signed <desc>stl-hatch-maker</desc> so Atlas links the
 import dataclasses
 
 from atlas_toolkit.core import (CAMERA_NOTE, Bool, Choice, Float, Inputs, Int, Output, Section, Seed, Tool,
-                                camera_params, paper_params)
+                                camera_params, paper_params, pen_output_param)
 
 STYLE_CHOICES = [("streamlines", "Surface strokes"), ("screen", "Straight lines"), ("contours", "Depth contours"),
                  ("stipple", "Stipple"), ("directional", "Normal strokes"), ("regions", "Tone regions"),
@@ -18,6 +18,11 @@ LIGHT_CHOICES = [("front", "Front (headlight)"), ("top-left", "Top left"), ("top
 
 def style_is(*names):
     return {"style": names}
+
+
+def several_pens(v):
+    """Hatching, outlines and creases are a pen each: Save pens as matters once two of them are drawn."""
+    return (v.get("style") != "none") + bool(v.get("silhouettes")) + bool(v.get("creases")) > 1
 
 
 def _theta_from_elevation(el):        # 6.x: the 3D viewer's elevation
@@ -39,7 +44,7 @@ def view_params() -> list:
 TOOL = Tool(
     id="stl-hatch-maker",
     name="Hatch Maker",
-    version="7.0.0",
+    version="7.1.0",
     category="mesh2svg",
     icon="hatch",
     action="Draw",
@@ -147,8 +152,8 @@ TOOL = Tool(
             Float("hatch_width", "Hatching pen", 0.3, unit="mm", min=0.05, max=3, step=0.05, decimals=2),
             Float("outline_width", "Outline pen", 0.5, unit="mm", min=0.05, max=3, step=0.05, decimals=2),
             Float("crease_width", "Crease pen", 0.35, unit="mm", min=0.05, max=3, step=0.05, decimals=2),
-            Bool("one_layer", "Everything on one pen", False,
-                 help="One layer instead of one per feature (hatching, outlines, creases)."),
+            pen_output_param(visible_if=several_pens, former=("one_layer",),          # 7.0's Bool
+                             former_convert=lambda v: "merged" if v else "layers"),
             Bool("optimise", "Order strokes to cut travel", True,
                  help="Draw each stroke from the end nearest the last one: much less pen-up travel."),
         ),

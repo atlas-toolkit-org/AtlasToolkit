@@ -21,6 +21,12 @@ from typing import Any, Callable
 
 from .params import Param, Params, flatten, resolve
 
+
+def rule_matches(rule: dict, values) -> bool:
+    """A `requires_if` / `needs_if` rule: every parameter has the value (or one of the tuple of values) it names."""
+    return all(values.get(k) in expected if isinstance(expected, (tuple, list)) else values.get(k) == expected
+               for k, expected in rule.items())
+
 CATEGORIES = {   # id: (sidebar heading, order)
     "svg": ("SVG · post-process", 10),
     "mesh2svg": ("Mesh → SVG", 20),
@@ -196,6 +202,13 @@ class Tool:
     needs: str | None = None                     # what a mesh input must be: "solid" (closed, outward) or "manifold"
                                                  # (clean, openings allowed). Inspecting warns early when it is not,
                                                  # and the engine calls geom.repair.prepare (docs/ADDING_A_TOOL.md)
+    needs_if: tuple = ()                         # (need, {parameter: value or tuple of values}): a need that holds
+                                                 # only for some settings (the requires_if pattern), e.g. Shape Crop's
+                                                 # union needs a solid while its crop takes any surface
+    official_presets: bool = True                # False: the official packs carry no presets for this tool (its
+                                                 # settings belong to each model); users still save their own
+    per_input_label: str = ""                    # what the per-file values are called in the file list's menu
+                                                 # ("shape"); empty: worded from the keys (Aim, plane ...)
     package: str = ""                            # filled by the registry
 
     # ------------------------------------------------------------------ schema
@@ -210,6 +223,36 @@ class Tool:
     def input_keys(self) -> tuple:
         """Keys whose values belong to each input file (Param.per_input): its view, frame, plane or painted area."""
         return tuple(p.key for p in self.param_list if p.per_input)
+
+    def needs_for(self, values=None) -> str | None:
+        """What the mesh input must be with these values: `needs`, else the first `needs_if` rule that matches."""
+        if self.needs:
+            return self.needs
+        values = self.defaults() if values is None else values
+        for need, rule in self.needs_if:
+            if rule_matches(rule, values):
+                return need
+        return None
+
+    @property
+    def strongest_need(self) -> str | None:
+        """The most a mesh input may have to be, whatever the settings ("solid" beats "manifold")."""
+        needs = {self.needs, *(n for n, _ in self.needs_if)} - {None}
+        return "solid" if "solid" in needs else next(iter(needs), None)
+
+    def need_options(self, need: str) -> str:
+        """The settings under which `need` holds, in words: "Operation: union or symmetric difference"."""
+        parts = []
+        for n, rule in self.needs_if:
+            if n != need:
+                continue
+            for key, expected in rule.items():
+                param = self.param(key)
+                wanted = expected if isinstance(expected, (tuple, list)) else (expected,)
+                labels = dict(param.pairs()) if hasattr(param, "pairs") else {}
+                words = [str(labels.get(v, v)).split(" · ")[-1] for v in wanted]
+                parts.append(f"{param.label}: " + (" or ".join(words)))
+        return "; ".join(parts)
 
     def defaults(self) -> Params:
         return resolve(self.param_list, {})
