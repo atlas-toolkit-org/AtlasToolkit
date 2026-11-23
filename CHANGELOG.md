@@ -62,7 +62,7 @@
   marked **Not used**, and Run counts only the others. Preview and Aim say why when one is selected, and the mark
   goes when a workflow can take the file again.
 
-## 2.4.7 (unreleased)
+## 2.4.7 (2026-11-23)
 
 **Surface Texture 0.2.0: every run finishes, the relief survives, and it shows in the drawing**
 - **No more "Texture refinement needs at least … faces".** Maximum output faces is now a budget, not a wall:

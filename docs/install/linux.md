@@ -4,13 +4,13 @@ Needs a 64-bit x86 system with glibc 2.34 or later: Ubuntu 22.04 and later, Debi
 
 Download the package for your system from [atlas-toolkit.org/download](https://atlas-toolkit.org/download/) or from the
 [latest release](https://github.com/atlas-toolkit-org/AtlasToolkit/releases/latest) on GitHub. The current version is
-**2.4.6**:
+**2.4.7**:
 
 | File |
 |---|
-| [`atlas-toolkit_2.4.6_amd64.deb`](https://github.com/atlas-toolkit-org/AtlasToolkit/releases/download/v2.4.6/atlas-toolkit_2.4.6_amd64.deb) |
-| [`atlas-toolkit-2.4.6-1.x86_64.rpm`](https://github.com/atlas-toolkit-org/AtlasToolkit/releases/download/v2.4.6/atlas-toolkit-2.4.6-1.x86_64.rpm) |
-| [`AtlasToolkit-2.4.6-linux-x86_64.AppImage`](https://github.com/atlas-toolkit-org/AtlasToolkit/releases/download/v2.4.6/AtlasToolkit-2.4.6-linux-x86_64.AppImage) |
+| [`atlas-toolkit_2.4.7_amd64.deb`](https://github.com/atlas-toolkit-org/AtlasToolkit/releases/download/v2.4.7/atlas-toolkit_2.4.7_amd64.deb) |
+| [`atlas-toolkit-2.4.7-1.x86_64.rpm`](https://github.com/atlas-toolkit-org/AtlasToolkit/releases/download/v2.4.7/atlas-toolkit-2.4.7-1.x86_64.rpm) |
+| [`AtlasToolkit-2.4.7-linux-x86_64.AppImage`](https://github.com/atlas-toolkit-org/AtlasToolkit/releases/download/v2.4.7/AtlasToolkit-2.4.7-linux-x86_64.AppImage) |
 
 Later versions keep these names with a new number. Each release also lists `SHA256SUMS.txt`, the checksum of
 every file.
@@ -30,13 +30,13 @@ It prints `OK` for each file you downloaded.
 Debian and Ubuntu:
 
 ```bash
-sudo apt install ./atlas-toolkit_2.4.6_amd64.deb
+sudo apt install ./atlas-toolkit_2.4.7_amd64.deb
 ```
 
 Fedora, RHEL, Rocky and AlmaLinux:
 
 ```bash
-sudo dnf install ./atlas-toolkit-2.4.6-1.x86_64.rpm
+sudo dnf install ./atlas-toolkit-2.4.7-1.x86_64.rpm
 ```
 
 Keep the `./`: it tells the package manager this is a file and not a package to search for. The package manager also installs the system libraries the app needs.
@@ -48,11 +48,11 @@ Atlas Toolkit then appears in your applications menu, and `atlas-toolkit` works 
 An AppImage is the whole app in one file, so it needs no administrator rights. Make it executable, then run it:
 
 ```bash
-chmod +x AtlasToolkit-2.4.6-linux-x86_64.AppImage
+chmod +x AtlasToolkit-2.4.7-linux-x86_64.AppImage
 ```
 
 ```bash
-./AtlasToolkit-2.4.6-linux-x86_64.AppImage
+./AtlasToolkit-2.4.7-linux-x86_64.AppImage
 ```
 
 It takes the same command-line arguments as the installed app. It does not add a menu entry or file type, and the package manager can't bring missing libraries for it. Any desktop system already has them. On a minimal system, install them yourself, or use the deb or rpm.
@@ -60,7 +60,7 @@ It takes the same command-line arguments as the installed app. It does not add a
 If it says it cannot mount and mentions FUSE, either install FUSE (`sudo apt install fuse3` or `sudo dnf install fuse3`) or run it without. Starting this way is slower, because it unpacks itself each time:
 
 ```bash
-./AtlasToolkit-2.4.6-linux-x86_64.AppImage --appimage-extract-and-run
+./AtlasToolkit-2.4.7-linux-x86_64.AppImage --appimage-extract-and-run
 ```
 
 A folder named `AtlasToolkit-data` next to the file keeps all its settings there, which suits a USB drive.
