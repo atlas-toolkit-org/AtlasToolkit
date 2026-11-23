@@ -114,7 +114,8 @@ are the heads of the Venus de Milo and Michelangelo's David, a photograph of a b
 ### Draw from 3D
 
 Each tool gives a model its own line language and writes an SVG sized for your paper, with hidden lines removed. Aim
-the camera live and the drawing follows that view.
+the camera live and the drawing follows that view. A drawing with several pens (outlines, hatching, hidden lines)
+is saved as a layer, a group or a file per pen, or on one pen: see [Save pens as](docs/TOOLS.md#pens-how-a-drawing-with-several-pens-is-saved).
 
 <table>
 <tr>

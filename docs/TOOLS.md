@@ -21,6 +21,11 @@ model or model units, and each file keeps its own placement; no presets. Built f
 1.3-million-face crop takes a few seconds, file reading included. Signed `<name>_crop.stl`. See [the guide](SHAPE_CROP.md)
 and the [crop-and-draw workflow](workflows/crop_contours.atlasflow).
 
+**Save pens as** (2.5.0): the six drawing tools that can draw with several pens (Hatch Maker, Plotter Vision, Sketch
+Hatching, Stipple, FlowRep Sketch and Photo Hatching) save them the same way, as you choose: a layer, a group or a
+file per pen, or all on one pen. Dashed pens are drawn as real dashes, so the plotter draws them dashed. See
+[Pens](#pens-how-a-drawing-with-several-pens-is-saved).
+
 **Motion Sculpture 0.5.0** turns a still model into swept laminae or splintered bars, inspired by layered glass
 and wind-carved bronze sculptures. Stream, Pulse, Gust and Vortex fields stretch tapered wakes behind a retained
 leading silhouette. Seven presets, seeded irregularity, layer tilt, base hold, feathered regions and bounded
@@ -197,6 +202,12 @@ See [Surface Stripes](SURFACE_STRIPES.md) for controls, build instructions and l
 | **Raster DEM to Mesh** 0.3.1 | Image → mesh | R 3d_DEM prototype | Geographic numeric DEM to faithful, smooth, faceted or terraced terrain. CRS, elevation units and masks; adaptive detail, plate sizing and validated printable solids or open drawing surfaces. `<name>_dem_solid.stl` / `<name>_dem_surface.stl` |
 | **Image to Mesh** 0.1.1 | Image → mesh | DEM heightfield foundation | Non-geographic photos and grayscale images to calibrated relief. Grayscale/channel selection, tonal preparation, alpha masks, neutral placement and seven presets; printable solids or open surfaces for pen drawings. `<name>_image_solid.stl` / `<name>_image_surface.stl` |
 | **Remesh/Decimate** 0.2.0 | Mesh → mesh | new | Constrained decimation, uniform/adaptive and directional triangles, aligned quads, native dual cells, planar dissolve and voxel rebuilding. Regional detail, source projection, measured surface error, ten presets. Signed `<name>_remesh.obj` (also PLY or triangulated STL). |
+| **[Shape Crop](SHAPE_CROP.md)** 0.1.0 | Mesh → mesh | new | Keeps the part of a model inside a box, sphere, cylinder or pyramid placed live in the Shape tab, cuts it away, adds the shape or keeps both remainders. Closed models get closed cuts; open scans are clipped exactly and stay open. Quick on millions of faces; no presets (placements belong to each model). Signed `<name>_crop.stl` (also OBJ or PLY). |
+| **[Plane Cut](PLANE_CUT.md)** 0.1.1 | Mesh → mesh | new | Trims or splits a model with a plane drawn and refined in the Plane tab: kept side, capped or open cut, both halves together or apart. Signed `<name>_plane-cut.stl` (also OBJ or PLY). |
+| **[Mirror](MIRROR.md)** 0.1.0 | Mesh → mesh | new | Reflects a whole model through a plane placed in the Plane tab; keeps the original or saves only the reflection, as one file or two. Signed `<name>_mirror.stl` (also OBJ or PLY). |
+| **[Repair Mesh](REPAIR_MESH.md)** 1.0.1 | Mesh → mesh | new | Fixes what stops the sculpting tools: back-to-back faces, crumbs, holes, non-manifold edges and bow-ties, wrongly wound or inside-out faces; rebuilds only if still not a solid. Before/after table and the tools it is ready for. Signed `<name>_repaired.ply` (also STL or OBJ). |
+| **[Pipe Fill](PIPE_FILL.md)** 0.1.1 | Mesh → mesh | new | Replaces a model with tubes throughout its interior: organic repulsive curves or orthogonal pipes with rounded elbows, strands or closed loops, solid or hollow; eight presets. Signed `<name>_pipes.stl` (also OBJ or PLY). |
+| **[Motion Sculpture](MOTION_SCULPTURE.md)** 0.5.0 | Mesh → mesh | new | A still model as swept laminae or splintered bars behind a kept leading silhouette: Stream, Pulse, Gust and Vortex fields, seven presets. Signed `<name>_motion.stl` (also OBJ or PLY). |
 | **Line Simplify** 0.1.0 | SVG → SVG | new | Native distance-based or heap effective-area reduction, physical error cap, corner/reversal/length/area controls and conservative all-pen topology guards. `<name>_simplified.svg` |
 | **Overlap Cleaner** 1.2.1 | SVG → SVG | SVG Overlap Cleaner v1, SVG Join Paths v1/v2, svg_dedup | Cuts ink drawn twice, so every line is plotted once. Optional: join stroke ends, whole-duplicates mode, rect/circle/ellipse, stroke width as part of the pen. `<name>--nooverlap.svg` |
 | **Shape Cutter** 2.0 | SVG → SVG | svg_shape_cutter | Keeps the lines inside (or outside) a closed shape: the element or layer named “shape”, a chosen layer or another SVG. Every island and hole counts. `<name>_cutout.svg` |
