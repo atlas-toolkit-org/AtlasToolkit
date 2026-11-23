@@ -7,7 +7,7 @@ import numpy as np
 
 from atlas_toolkit.core import Result, Stat
 from atlas_toolkit.geom import depth as gdepth
-from atlas_toolkit.geom.drawing import Drawing, Pen, fmt_duration, fmt_length, saved_lines
+from atlas_toolkit.geom.drawing import Drawing, Pen, fmt_duration, fmt_length, plot_tiles, saved_lines
 from atlas_toolkit.geom.image import view
 from atlas_toolkit.geom.svgout import arrange, pen_mode, travel, write_pens
 
@@ -62,10 +62,7 @@ def run(ctx, src: Path, dst: Path | None, p) -> Result:
     return Result(
         outputs=outputs,
         stats=[Stat("strokes", "Strokes", st.strokes),
-               Stat("ink", "Ink", fmt_length(st.ink), fmt="{}"),
-               Stat("travel", "Pen-up travel", fmt_length(after), before=fmt_length(before), fmt="{}"),
-               Stat("time", "Plot time", fmt_duration(st.seconds()), fmt="{}"),
-               Stat("seconds", "Computed in", sum(tm.values()), "s", fmt="{:.1f}")],
+               *plot_tiles(st, sum(tm.values()), (before, after))],
         report="\n".join(lines),
         preview={"views": views, "prefer": "Drawing"},
         status="Saved" if outputs else ("Draft" if ctx.draft else "Previewed"),

@@ -704,15 +704,19 @@ def pen_layers(strokes, pens, style=None):
         mine = [s for s in styled if by_role.get(s["role"], 0) == i]
         min_len = pen.get("min_len_mm", 1.0)
         pls = [s["pts"] for s in mine if plen(s["pts"]) >= min_len]
-        if pen.get("direction", "any") == "consistent":
+        consistent = pen.get("direction", "any") == "consistent"
+        if consistent:
             ang = math.radians(pen.get("direction_deg", 45.0))
             u = np.array([math.cos(ang), -math.sin(ang)])      # page y points down
             pls = [pl if (pl[-1] - pl[0]) @ u >= 0 else pl[::-1] for pl in pls]
+        # the pen-up travel in the order the strokes were made, for the "was …" the result tiles show
+        unordered = sum(math.hypot(*(b[0] - a[-1])) for a, b in zip(pls, pls[1:]))
+        if consistent:
             paths, travel = order_strokes(pls, reverse_ok=False, join_mm=0.0)
         else:
             paths, travel = order_strokes(pls, reverse_ok=True, join_mm=pen.get("join_mm", 0.0))
         layers.append({"name": pen["name"], "width": float(pen["width_mm"]), "strokes": paths,
-                       "travel": travel, "roles": sorted({s["role"] for s in mine}),
+                       "travel": travel, "travel_before": unordered, "roles": sorted({s["role"] for s in mine}),
                        "min_len": min_len})
     order = sorted(range(len(layers)), key=lambda k: pens[k].get("order", k))
     layers = [layers[k] for k in order]

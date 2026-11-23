@@ -11,7 +11,7 @@ from atlas_toolkit.geom import shading
 from atlas_toolkit.geom import sketch as sk
 from atlas_toolkit.geom.drawing import Drawing, Pen, fmt_duration, fmt_length, plot_tiles, saved_lines
 from atlas_toolkit.geom.image import view as raster_view
-from atlas_toolkit.geom.svgout import Layer, arrange, order_polylines, pen_mode, write_pens
+from atlas_toolkit.geom.svgout import Layer, arrange, order_polylines, pen_mode, travel, write_pens
 
 from . import TOOL
 from . import stipple as st
@@ -27,6 +27,7 @@ def run(ctx, src: Path, dst: Path | None, p) -> Result:
     W, H = view.paper.sheet
     notes: list = []
     dots_pls, outline_pls, expected, coverage = [], [], 0.0, 0.0
+    saved = 0.0                             # pen-up travel the ordering took out, mm
     extra_views = []
     if view.empty:
         notes.append("the model is outside the paper's drawing area: aim the camera in the Aim tab (F fits it)")
@@ -82,10 +83,13 @@ def run(ctx, src: Path, dst: Path | None, p) -> Result:
                          f"is thinned alike (raise the budget, or widen the darkest spacing)".replace(",", " "))
         ctx.progress(0.85, "ordering")
         dots_pls = [d.tolist() for d in st.dot_paths(pts, float(p.dot_radius), int(p.dot_sides))]
+        outline_pls = [pl.tolist() for pl in outline_pls]
+        before = travel(dots_pls) + travel(outline_pls)
         if p.optimise:
             dots_pls = order_polylines(dots_pls)
         if outline_pls:
-            outline_pls = order_polylines([pl.tolist() for pl in outline_pls])
+            outline_pls = order_polylines(outline_pls)
+        saved = max(0.0, before - travel(dots_pls) - travel(outline_pls))
     layers = [Layer("dots", dots_pls, "#000000", float(p.dot_width))]
     if outline_pls:
         layers.append(Layer("outline", outline_pls, "#000000", float(p.outline_width)))
@@ -127,7 +131,7 @@ def run(ctx, src: Path, dst: Path | None, p) -> Result:
     ctx.progress(1.0)
     return Result(outputs=outputs,
                   stats=[Stat("dots", "Dots", len(dots_pls)),
-                         *plot_tiles(stats_, secs, extra=[Stat("coverage", "Max coverage", coverage, fmt="{:.2f}",
+                         *plot_tiles(stats_, secs, (stats_.travel + saved, stats_.travel), extra=[Stat("coverage", "Max coverage", coverage, fmt="{:.2f}",
                                                                tone="warning" if coverage > 0.7 else "")])],
                   report="\n".join(lines),
                   preview={"views": [{"title": "Drawing", "kind": "svg", "drawing": drawing}] + extra_views,

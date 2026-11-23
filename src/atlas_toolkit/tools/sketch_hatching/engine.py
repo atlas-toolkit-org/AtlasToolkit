@@ -10,9 +10,9 @@ import numpy as np
 from atlas_toolkit.core import Result, Stat
 from atlas_toolkit.geom import shading
 from atlas_toolkit.geom import sketch as sk
-from atlas_toolkit.geom.drawing import Drawing, Pen, fmt_duration, fmt_length, plot_tiles, saved_lines
+from atlas_toolkit.geom.drawing import Drawing, Pen, fmt_duration, fmt_length, plot_tiles, saved_lines, unordered_seconds
 from atlas_toolkit.geom.image import view as raster_view
-from atlas_toolkit.geom.svgout import Layer, arrange, pen_mode, write_pens
+from atlas_toolkit.geom.svgout import Layer, arrange, pen_mode, travel, write_pens
 
 from . import TOOL
 from . import sketch_hatching as sh
@@ -66,6 +66,7 @@ def run(ctx, src: Path, dst: Path | None, p) -> Result:
     W, H = view.paper.sheet
     notes: list = []
     layers, n_lines, n_hatch, coverage = [], 0, 0, 0.0
+    saved = 0.0                             # pen-up travel the ordering took out, mm
     extra_views = []
     focus = []
     if view.empty:
@@ -106,6 +107,7 @@ def run(ctx, src: Path, dst: Path | None, p) -> Result:
         n_lines = len(strokes) - n_hatch
         layers = [Layer(L["name"], [pl.tolist() for pl in L["strokes"]], COLORS.get(L["name"], "#000000"),
                         L["width"]) for L in raw if L["strokes"]]
+        saved = sum(max(0.0, L["travel_before"] - travel(L["strokes"])) for L in raw)
         if layers:
             coverage = sk.coverage([{"width": L.width, "strokes": [np.asarray(pl) for pl in L.polylines]}
                                     for L in layers], (W, H), px_per_mm=6.0 if draft else 10.0)
@@ -140,7 +142,10 @@ def run(ctx, src: Path, dst: Path | None, p) -> Result:
              f"{p.density:g}{', draft' if draft else ''})"]
     for L in layers:
         lines.append(f"  pen        {L.label:<6} {L.width:g} mm: {n(len(L.polylines))} strokes")
-    lines += [f"  ink        {fmt_length(st.ink)}, plot time about {fmt_duration(st.seconds())}",
+    lines += [f"  ink        {fmt_length(st.ink)}, travel {fmt_length(st.travel + saved)} -> {fmt_length(st.travel)} "
+              f"(ordered)",
+              f"  plot time  about {fmt_duration(st.seconds())}"
+              + (f", {fmt_duration(unordered_seconds(st, (st.travel + saved, st.travel)))} unordered" if saved else ""),
               f"  coverage   max {coverage:.2f} of a 5 mm square",
               "  timings    " + ", ".join(f"{k} {v:.1f} s" for k, v in timings.items())]
     lines += [f"  note       {x}" for x in notes]
@@ -148,7 +153,7 @@ def run(ctx, src: Path, dst: Path | None, p) -> Result:
     ctx.progress(1.0)
     return Result(outputs=outputs,
                   stats=[Stat("strokes", "Strokes", st.strokes),
-                         *plot_tiles(st, secs, extra=[Stat("coverage", "Max coverage", coverage, fmt="{:.2f}",
+                         *plot_tiles(st, secs, (st.travel + saved, st.travel), extra=[Stat("coverage", "Max coverage", coverage, fmt="{:.2f}",
                                                            tone="warning" if coverage > 0.7 else "")])],
                   report="\n".join(lines),
                   preview={"views": [{"title": "Drawing", "kind": "svg", "drawing": drawing}] + extra_views,

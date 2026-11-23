@@ -108,16 +108,29 @@ def fmt_duration(s: float) -> str:
     return f"{m:.0f} min" if m < 90 else f"{int(m // 60)} h {int(m % 60):02d}"
 
 
+def unordered_seconds(st: PlotStats, travel: tuple) -> float:
+    """The plot time the drawing would take in the order its strokes were made: `travel` is the tool's own
+    (before, after) for its ordering. Only the travel changes; lifts saved by joining are not counted, so this
+    understates the saving rather than flatter it."""
+    before, after = travel
+    return st.seconds() + max(0.0, float(before) - float(after)) / 60.0
+
+
 def plot_tiles(st: PlotStats, seconds: float, travel: tuple | None = None, extra=()) -> list:
-    """The result tiles every drawing tool shows, in one order: Ink, Pen-up travel (`travel`: the tool's own
-    (before, after) when it ordered the strokes, shown as "was …"), Plot time, then at most one or two of the tool's own (`extra`), then
-    Computed in. Counts the queue shows as columns (strokes, dots, curves) go in the tool's own stats, before these."""
+    """The result tiles every drawing tool shows, in one order: Ink, Pen-up travel and Plot time (`travel`: the
+    tool's own (before, after) when it ordered the strokes; both then show what ordering saved as "was …"), then
+    at most one or two of the tool's own (`extra`), then Computed in. A "was" that reads the same as the value
+    (ordering off, or nothing to gain) is left out. Counts the queue shows as columns (strokes, dots, curves) go
+    in the tool's own stats, before these."""
     from atlas_toolkit.core.tool import Stat
     before, after = travel if travel is not None else (None, st.travel)
+    now = fmt_duration(st.seconds())
+    was_travel = fmt_length(before) if before is not None else None
+    was_time = fmt_duration(unordered_seconds(st, travel)) if travel is not None else None
     return [Stat("ink", "Ink", fmt_length(st.ink), fmt="{}"),
             Stat("travel", "Pen-up travel", fmt_length(after), fmt="{}",
-                 before=fmt_length(before) if before is not None else None),
-            Stat("time", "Plot time", fmt_duration(st.seconds()), fmt="{}"),
+                 before=was_travel if was_travel != fmt_length(after) else None),
+            Stat("time", "Plot time", now, fmt="{}", before=was_time if was_time != now else None),
             *extra,
             Stat("seconds", "Computed in", seconds, "s", fmt="{:.1f}")]
 

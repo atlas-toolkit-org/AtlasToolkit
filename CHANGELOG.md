@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.5.1 (unreleased)
+
+- **Plot time shows what stroke ordering saved.** Every Mesh → SVG tool that orders its strokes now shows the plot
+  time the drawing would take unordered as "was …" next to **Plot time**, as Pen-up travel already did (Stipple on a
+  ball: 3 h 44 → 42 min). Sketch Hatching and Stipple now report their travel before ordering too, and Depth Hatching
+  uses the shared tiles. The estimate counts the travel only, not lifts saved by joining, so it never overstates the
+  saving. A "was" that reads the same as the value (ordering off) is left out.
+
 ## 2.5.0 (unreleased)
 
 **Shape Crop: keep the part of a model inside a box, sphere, cylinder or pyramid, quickly, even on large scans**

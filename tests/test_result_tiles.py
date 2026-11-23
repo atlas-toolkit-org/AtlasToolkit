@@ -9,6 +9,8 @@ from atlas_toolkit.core.job import JobContext
 from atlas_toolkit.core.registry import registry
 
 SHARED = ["ink", "travel", "time"]
+# FlowRep Sketch orders its strokes inside flowrep3d and reports no travel before it; every other one shows the saving
+UNORDERED_REPORT = {"flowrep-sketch"}
 
 
 class ResultTileTests(unittest.TestCase):
@@ -34,6 +36,24 @@ class ResultTileTests(unittest.TestCase):
                     self.assertEqual(tiles[-1], "seconds")
                     self.assertLessEqual(len(tiles), 5)
                     self.assertTrue(all(s.text() for s in res.stats))
+                    if tool.id not in UNORDERED_REPORT:
+                        stats = {s.key: s for s in res.stats}
+                        self.assertIsNotNone(stats["travel"].before, "the travel ordering saved")
+                        # the time's "was" shows only when it reads differently (a ball saves seconds at most)
+                        if tool.id in ("sketch-hatching", "stipple"):
+                            self.assertIsNotNone(stats["time"].before, "the plot time ordering saved")
+
+    def test_plot_time_shows_what_ordering_saved(self):
+        from atlas_toolkit.geom.drawing import PlotStats, fmt_duration, plot_tiles
+        st = PlotStats(ink=25_000.0, travel=600.0, strokes=40)
+        tiles = {s.key: s for s in plot_tiles(st, 1.0, (60_600.0, 600.0))}
+        self.assertEqual(tiles["time"].before, fmt_duration(st.seconds() + 60_000.0 / 60.0))
+        self.assertEqual(tiles["travel"].before, "60.60 m")
+        # nothing saved (ordering off), or no ordering at all: no "was"
+        for travel in ((600.0, 600.0), None):
+            tiles = {s.key: s for s in plot_tiles(st, 1.0, travel)}
+            self.assertIsNone(tiles["travel"].before)
+            self.assertIsNone(tiles["time"].before)
 
 
 if __name__ == "__main__":
