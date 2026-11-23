@@ -826,6 +826,135 @@ def _rings(V, idx, base, plane=None):
     return _match_loop_winding(glob[T], idx), X[n:]
 
 
+def refill_flat_slivers(V, F, longer_than: float = 0.0, min_faces: int = 16, slender: float = 10.0,
+                        angle: float = 0.5):
+    """Re-triangulate flat patches made of long slivers, such as the fan that closes a planar cut (trimesh's
+    slice_plane caps, many hole fillers), with graded rings about the size of their border edges. The shape does not
+    change; only that flat region's triangles do. A tool that subdivides the surface would otherwise crowd hundreds
+    of thousands of crumbs where the fan's slivers meet.
+
+    A patch qualifies with at least `min_faces` faces within `angle` degrees of one plane, a median slenderness
+    (longest edge² / twice the area; 1.15 for an equilateral triangle) above `slender`, a longest edge above
+    `longer_than`, and one simple border loop around a disk. Returns V, F (unreferenced vertices dropped) and how
+    many patches were refilled."""
+    V = np.asarray(V, np.float64)
+    F = np.asarray(F, np.int64)
+    if len(F) < min_faces:
+        return V, F, 0
+    from scipy.sparse import coo_matrix
+    from scipy.sparse.csgraph import connected_components
+    tri = V[F]
+    normal = np.cross(tri[:, 1] - tri[:, 0], tri[:, 2] - tri[:, 0])
+    twice = np.linalg.norm(normal, axis=1)
+    unit = normal / np.maximum(twice, 1e-300)[:, None]
+    longest = np.linalg.norm(tri - tri[:, [1, 2, 0]], axis=2).max(axis=1)
+    slim = longest ** 2 / np.maximum(twice, 1e-300)
+    he, face, eid, count = _edges(F)
+    # faces on each side of every two-sided edge
+    order = np.argsort(eid, kind="stable")
+    sid, sface = eid[order], face[order]
+    first = np.r_[True, sid[1:] != sid[:-1]]
+    a = sface[first]
+    b = np.where(count[sid[first]] == 2, sface[np.minimum(np.flatnonzero(first) + 1, len(sface) - 1)], -1)
+    two = b >= 0
+    a, b = a[two], b[two]
+    flat = np.einsum("ij,ij->i", unit[a], unit[b]) > np.cos(np.radians(angle))
+    graph = coo_matrix((np.ones(int(flat.sum())), (a[flat], b[flat])), shape=(len(F), len(F)))
+    _, label = connected_components(graph, directed=False)
+    sizes = np.bincount(label)
+    candidates = [g for g in np.flatnonzero(sizes >= min_faces)
+                  if np.median(slim[label == g]) > slender and longest[label == g].max() > longer_than]
+    if not candidates:
+        return V, F, 0
+    keep = np.ones(len(F), bool)
+    newV, newF, nv, done = [V], [], len(V), 0
+    for g in candidates:
+        faces = np.flatnonzero(label == g)
+        sub = F[faces]
+        sub_he = np.concatenate([sub[:, [0, 1]], sub[:, [1, 2]], sub[:, [2, 0]]])
+        key = np.minimum(sub_he[:, 0], sub_he[:, 1]) * nv + np.maximum(sub_he[:, 0], sub_he[:, 1])
+        _, inverse, uses = np.unique(key, return_inverse=True, return_counts=True)
+        border = sub_he[uses[inverse] == 1]
+        verts = np.unique(sub)
+        inner_edges = int((uses == 2).sum())
+        if len(verts) - (inner_edges + len(border)) + len(sub) != 1:      # not a disk
+            continue
+        nxt = {}
+        for s, t in border.tolist():
+            if s in nxt:
+                nxt = None
+                break
+            nxt[s] = t
+        if not nxt:
+            continue
+        start = border[0, 0]
+        loop = [start]
+        while nxt.get(loop[-1], start) != start and len(loop) <= len(border):
+            loop.append(nxt[loop[-1]])
+        if len(loop) != len(border):                                      # several loops, or a pinched border
+            continue
+        tris, extra = _fill_flat(V, np.asarray(loop, np.int64), nv, max(longer_than, 0.0))
+        if tris is None:
+            continue
+        keep[faces] = False
+        if len(extra):
+            newV.append(extra)
+            nv += len(extra)
+        newF.append(tris)
+        done += 1
+    if not done:
+        return V, F, 0
+    V2, F2 = _compact(np.concatenate(newV), np.concatenate([F[keep]] + newF))
+    return V2, F2, done
+
+
+def _fill_flat(V, loop, base, spacing):
+    """Triangles over a flat, simply bounded loop of vertex ids: the border points and a grid of new points inside
+    (spacing about `spacing`, never finer than the border edges, kept half a step from the border), triangulated
+    (Delaunay) and clipped to the outline. (None, None) unless every border edge survives and the result is a disk."""
+    import shapely
+    from scipy.spatial import Delaunay
+    P = V[loop]
+    c = P.mean(0)
+    try:
+        _, _, vt = np.linalg.svd(P - c, full_matrices=False)
+    except np.linalg.LinAlgError:
+        return None, None
+    basis = vt[:2]
+    xy = (P - c) @ basis.T
+    outline = shapely.Polygon(xy)
+    if not outline.is_valid or outline.area <= 0:
+        return None, None
+    edge = float(np.linalg.norm(np.roll(xy, -1, axis=0) - xy, axis=1).mean())
+    step = max(spacing, edge)
+    lo, hi = xy.min(0), xy.max(0)
+    gx, gy = np.meshgrid(np.arange(lo[0] + step / 2, hi[0], step), np.arange(lo[1] + step / 2, hi[1], step))
+    grid = np.column_stack((gx.ravel(), gy.ravel()))
+    # every other row shifted half a step: near-equilateral triangles
+    grid[:, 0] += (np.round((grid[:, 1] - lo[1]) / step) % 2) * step / 2
+    inner = outline.buffer(-0.5 * step)
+    grid = grid[shapely.contains_xy(inner, grid[:, 0], grid[:, 1])] if not inner.is_empty else grid[:0]
+    pts = np.vstack((xy, grid))
+    try:
+        tri = Delaunay(pts).simplices
+    except Exception:
+        return None, None
+    centre = pts[tri].mean(1)
+    tri = tri[shapely.contains_xy(outline, centre[:, 0], centre[:, 1])]
+    u, w = pts[tri[:, 1]] - pts[tri[:, 0]], pts[tri[:, 2]] - pts[tri[:, 0]]
+    tri = tri[np.abs(u[:, 0] * w[:, 1] - u[:, 1] * w[:, 0]) > 1e-12 * step * step]
+    n = len(loop)
+    have = {tuple(sorted(e)) for t in tri.tolist() for e in ((t[0], t[1]), (t[1], t[2]), (t[2], t[0]))}
+    if any(tuple(sorted((i, (i + 1) % n))) not in have for i in range(n)):
+        return None, None
+    area = 0.5 * np.abs(u[:, 0] * w[:, 1] - u[:, 1] * w[:, 0])
+    area = area[np.abs(u[:, 0] * w[:, 1] - u[:, 1] * w[:, 0]) > 1e-12 * step * step]
+    if abs(float(area.sum()) - outline.area) > 1e-6 * outline.area:      # overlapping or missing triangles
+        return None, None
+    glob = np.concatenate([loop, base + np.arange(len(grid))])
+    return _match_loop_winding(glob[tri], loop), c + grid @ basis
+
+
 def rebuild(V, F, resolution: int = 192, progress=None):
     """Resample into a closed solid (signed distance by winding number, marching cubes): closes anything, merges
     pieces, softens detail smaller than about 1/resolution of the model."""

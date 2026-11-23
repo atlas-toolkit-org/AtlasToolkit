@@ -1,4 +1,4 @@
-# Atlas Surface Texture helper 0.2.0
+# Atlas Surface Texture helper 0.3.0
 
 MIT xatlas, pinned to `f700c7790aaa030e794b52ba7791a05c085faf0c` and vendored in `third_party/xatlas`. From the
 repository root, with Atlas's Python:
@@ -11,7 +11,10 @@ Requires the existing Atlas C++ toolchain (CMake/Ninja and a C++17 compiler). No
 dependency. The build compiles a statically linked helper and copies the executable and notices into the Python
 package. The standard Atlas release builder includes it.
 
-Protocol 2 input: little-endian uint32 version, vertex count, triangle count; float64 XYZ vertices; uint32 triangles.
+Protocol 3 input: little-endian uint32 version, vertex count, triangle count; xatlas chart options (float32
+maxCost, normalDeviationWeight, normalSeamWeight, roundnessWeight, straightnessWeight; uint32 maxIterations, 1..8);
+float64 XYZ vertices; uint32 triangles. Atlas asks for few, large charts, and for models over 25,000 faces sends a
+simplified copy whose charts it transfers back to the full surface (`tools/mesh_texture/backend.py`).
 Output: version, UV vertex count, triangle count; original vertex references (uint32); UVs in source model units
 (float64 pairs); triangle UV indices (uint32); chart IDs (int32). Standard output contains progress events.
 The parent Atlas process owns cancellation and lifetime. `--version` identifies executable/protocol compatibility.

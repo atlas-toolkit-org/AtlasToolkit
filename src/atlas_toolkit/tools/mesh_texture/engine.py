@@ -22,6 +22,17 @@ def make_sample(folder):
     return path
 
 
+def migrate(values,from_version):
+    """Before 0.2.0 the refinement tolerance was a share of the model's height ('tolerance', % h). It is now a share
+    of the relief itself ('detail_tolerance'), converted here with the preset's own relief. The face budget belongs
+    to the machine (preset_skip), so a preset that still carries one, as 0.1 presets do, no longer sets it."""
+    if 'tolerance' in values and 'detail_tolerance' not in values:
+        relief=float(values.get('relief') or .4)
+        values['detail_tolerance']=float(values.pop('tolerance'))/max(relief,1e-6)*100
+    values.pop('max_faces',None)
+    return values
+
+
 def input_dependencies(src,values):
     # One-file releases extract assets to a different _MEI directory on every
     # launch. Content-addressed persistent markers avoid putting those transient
@@ -86,20 +97,24 @@ def run(ctx,src,dst,p):
         surface=from_mesh(result)
         surface.frame=frame.frame_values()
         outputs=publish_meshes([surface],dst,ctx,TOOL,validator=validate_saved)
-    if data['limited']>.01:
-        ctx.warn(f"Collision protection reduced total displacement by {data['limited']:.1f}%; achieved maximum {data['relief']:.3g}% h.")
+    # Restraint is local (creases, near contacts); say so when it takes a noticeable share of the relief.
+    if data['limited']>5:
+        ctx.warn(f"Protection restrained {data['limited']:.1f}% of the total displacement, in creases and near contacts; achieved maximum {data['relief']:.3g}% h.")
     if not p.collision_protection:
-        ctx.warn('Collision protection is disabled; self-intersections were not checked.')
+        ctx.warn('Collision protection is disabled; triangles were kept valid but crossings were not checked.')
+    times=data.get('times',{})
+    budget=('budget reached: tolerance met on '+f"{min(100*(1-data.get('unmet',0)),99.9):.1f}% of the surface"
+            if data.get('budget_reached') else 'tolerance met')
     report=[src.name,f'  texture    {p.texture if p.source=="library" else Path(p.heightmap).name}; {p.relief_mode}; {p.mapping}',
-        f'  element    {p.element_size:g}% h; requested relief {p.relief:g}% h',
+        f'  element    {p.element_size:g}% h; requested relief {p.relief:g}% h; detail tolerance {p.detail_tolerance:g}% of relief',
         f"  achieved   {data['relief']:.4g}% h maximum; {data['limited']:.2f}% total displacement restrained",
-        f"  triangles  {len(original.faces):,} -> {len(result.faces):,}",
+        f"  triangles  {len(original.faces):,} -> {len(result.faces):,} (limit {p.max_faces:,}; {budget})",
         f"  cache      UV charts {'hit' if data['uv_cached'] else 'new/not used'}; heightmap {'hit' if data['height_cached'] else 'new/not used'}",
         '  surface    welded geometry; source units and placement preserved',
         '  drawing    A3 / 0.3 mm: Contour Lines or Sketch Hatching; Plotter Vision features without decimation',
-        f"  time       {data['seconds']:.3f} s"]
+        f"  time       {data['seconds']:.3f} s"+(' ('+', '.join(f'{k} {t:.1f} s' for k,t in times.items())+')' if times else '')]
     if p.mapping=='surface':
-        report.append(f"  charts     {data.get('charts',0)}; motifs may change direction across feathered chart seams")
+        report.append(f"  charts     {data.get('charts',0)}; motifs may change direction across chart seams, which cross-fade")
     report.extend('  saved      '+s for s in outputs)
     # Final geometry remains authoritative; a decimated copy is display-only.
     display=result

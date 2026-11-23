@@ -1,4 +1,4 @@
-# Surface Texture 0.1.1
+# Surface Texture 0.2.0
 
 Surface Texture adds actual relief to a model. Send its STL, OBJ or PLY to Contour Lines, Sketch Hatching or
 Plotter Vision to draw that relief. The tool keeps the original model's units, position and silhouette apart
@@ -10,7 +10,8 @@ from the requested displacement. The release works offline and includes its nati
 2. Set **Element size** to the approximate width of a scale, cell or groove, in percent of model height.
    Start around 6–10%. The catalogue calibrates the approximate number of motifs in each source image.
 3. Set **Height / depth**. Raised relief occupies 0..height; Engraved occupies -height..0;
-   Balanced occupies -height/2..height/2. A heightmap need not reach both endpoints.
+   Balanced occupies -height/2..height/2. A heightmap need not reach both endpoints. About 1% h (the default)
+   reads clearly at A3; 0.4% h is a whisper, 2% h and more is bold and is restrained a little more in creases.
 4. Preview the final mesh, then run a drawing workflow. The reference is A3 with a 0.3 mm pen.
 
 Example workflows: [texture contours](workflows/texture_contours.atlasflow),
@@ -22,19 +23,23 @@ can expose the mesh triangulation. Inspect the SVG at actual print scale before 
 ## Wrapping and placement
 
 **Follow surface** uses xatlas charts with approximately uniform physical texture density. It does not require
-UVs in the input. Geometry is welded independently of the texture coordinates. **Seam feather** fades
-relief near chart joins; motifs can change direction across those joins. Disabling the feather keeps the geometry
-closed but can make transitions more visible. This is automatic charting, not a globally seamless pattern solver.
+UVs in the input. Geometry is welded independently of the texture coordinates. Atlas asks xatlas for few, large
+charts, and a model of more than 25,000 faces is charted through a simplified copy whose charts are transferred back
+to every face: seconds instead of a minute on a 260,000-face scan, and charts that do not follow scan noise. At a
+chart join the two charts' patterns **cross-fade** over **Seam blend**, so the relief carries on across the seam
+instead of dipping to the bare skin; motifs can still change direction there. Seam blend 0 leaves a hard join
+(the geometry stays welded). This is automatic charting, not a globally seamless pattern solver.
 
 **Cylindrical** wraps about Up, Front or Side. The default seam is behind an upright model; seam rotation moves
 it. The circumference fits a whole approximate number of motifs; a tile can be cropped so large elements remain
-possible. The ends blend over Seam feather (at least 10% of an element), keeping the angular seam continuous.
+possible. The ends blend over Seam blend (at least 10% of an element), keeping the angular seam continuous.
 Actual element width can differ slightly from the request on small circumferences. Texture rotation becomes a helical twist
-so the seam remains periodic. Relief fades within half an element of the cylinder axis to avoid a singularity
-at poles. Caps can stretch: use surface charts when cap motifs matter.
+so the seam remains periodic. Where the skin faces along the axis (the crown of a head, under the chin, the
+ends of a column) angles crowd the motifs together, so there the texture turns into a projection along the axis,
+blended by the surface's direction. Relief still fades within half an element of the axis itself.
 
-**Triplanar** samples three perpendicular projections, blended by the original smooth vertex normals. It is
-useful for irregular rock and soil and can blur structured motifs where the projections meet.
+**Triplanar** samples three perpendicular projections, blended by the smoothed vertex normals. It is seamless,
+the quickest, and useful for irregular rock and soil; it can blur structured motifs where the projections meet.
 
 U/V offsets are in tile repeats. Aspect ratio stretches the V direction; custom image proportions are retained.
 Model Up/Front/Extra turn use the existing Atlas frame controls, independently of the viewer's orbit camera.
@@ -69,18 +74,33 @@ Invert Heightmap swaps black/white before the selected relief direction is appli
 ## Quality, protection and output
 
 Standard starts with six samples across an approximate element; High starts with ten. Midpoint and triangle-centre
-height-error samples add refinement until Displacement tolerance is met. This is sampled error control, not a
-certified continuous maximum. Both modes construct final geometry even for Preview. A display proxy can lighten
-very large previews; it never replaces the saved mesh.
+height-error samples then refine wherever the surface misses the heightmap by more than **Detail tolerance**, a
+share of the relief height (10% by default). Because it is a share, taller relief needs no more faces than shallow
+relief. Refinement never goes below 1/24 of an element (High: 1/40), finer than a 0.3 mm pen resolves at A3, so a
+crisp heightmap edge cannot make it chase detail forever. This is sampled error control, not a certified continuous
+maximum. Both modes construct final geometry even for Preview. A display proxy can lighten very large previews; it
+never replaces the saved mesh.
 
-Face and conservative working-memory checks stop before oversized refinement allocations. Increase element size
-or tolerance to reduce cost. Existing large scans can be prepared with Remesh/Decimate first. Automatic charting
-accepts at most two million source faces/vertices. Cancellation stops the worker and its native helper.
+**Maximum output faces** (1,000,000 by default, up to 3,000,000) is a budget, not a requirement. Refinement spends it
+on the places with the largest error first; when the next pass would not fit, it refines the worst faces that do and
+stops, with a warning that says how much of the surface met the tolerance. It never fails for want of faces. A
+source already at the budget is textured on its own vertices. Presets do not set the budget: it belongs to your
+computer. Larger outputs take longer in the drawing tools, so raise Element size or Detail tolerance before the
+budget when a drawing is slow. Automatic charting accepts at most two million source faces/vertices. Cancellation
+stops the worker and its native helper.
 
-Collision protection rejects already intersecting inputs, limits swept normal motion against opposite surfaces,
-then backtracks newly intersecting or invalid triangles. It reports achieved maximum relief and the fraction of
-total displacement restrained. It is a conservative geometric guard, not a continuous collision proof for arbitrary
-nonlinear motion. With protection disabled, triangle validity is checked but self-intersections are not certified.
+Relief is displaced along normals smoothed over about a quarter of an element, so it does not follow scan noise.
+Triangles are always kept valid: where relief would flip or collapse one (deep relief in a tight crease), it is
+restrained there, fading into the surroundings over a quarter of an element.
+
+**Collision protection** also keeps the relief from pushing one piece of skin through another. It limits the motion
+along each normal to under half the free distance in front of it, then finds every pair of triangles that would cross
+and restrains the relief locally around them, repeating until nothing crosses; the rest of the model keeps its full
+height. It reports the achieved maximum relief and the share of the total displacement restrained (typically a few
+percent, in creases and near contacts; a warning appears above 5%). A source that already crosses itself in a few
+places (a scan's stray fold) is textured around them, with a warning; a badly broken one is refused, and Repair Mesh
+fixes it. It is a geometric guard on the final triangles, not a continuous collision proof for arbitrary nonlinear
+motion. With protection disabled, triangles are still kept valid but crossings are not checked.
 Open inputs remain open; valid closed inputs remain closed. Zero relief bypasses texture preparation and exports
 unchanged input geometry. New relief exports are triangulated in all formats.
 

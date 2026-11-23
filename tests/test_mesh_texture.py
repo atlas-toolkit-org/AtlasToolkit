@@ -62,7 +62,7 @@ class TextureTests(unittest.TestCase):
             p=dict(self.p,relief_mode=mode,mapping='triplanar')
             field=mt.Field(p,self.mesh.vertices,self.mesh.vertex_normals,a,np.ones_like(a),1)
             result=field.evaluate(self.mesh.vertices,self.mesh.vertex_normals)
-            np.testing.assert_allclose(result,want*.004*2,atol=2e-7)
+            np.testing.assert_allclose(result,want*self.p['relief']/100*2,atol=2e-7)
 
     def test_zero_relief_is_exact_even_without_heightmap_or_backend(self):
         original=self.mesh.vertices.copy()
@@ -116,7 +116,7 @@ class TextureTests(unittest.TestCase):
         self.assertFalse(list((self.folder/'cache').glob('*.npz')))
 
     def test_triplanar_error_refinement_stays_nondegenerate(self):
-        result,_=self.build(texture='rock',mapping='triplanar',element_size=18.,tolerance=.1,max_faces=100000)
+        result,_=self.build(texture='rock',mapping='triplanar',element_size=18.,detail_tolerance=20.,max_faces=100000)
         self.assertTrue(result.is_watertight)
         self.assertTrue(result.nondegenerate_faces().all())
         self.assertGreater(result.area_faces.min(),1e-12)
@@ -127,14 +127,6 @@ class TextureTests(unittest.TestCase):
         result,_=self.build(mapping='triplanar')
         moved=result.vertices[:len(self.mesh.vertices)]-self.mesh.vertices
         self.assertTrue(np.all(np.einsum('ij,ij->i',moved,self.mesh.vertices)>0))
-
-    def test_verified_contacts_keep_real_crossings_and_discard_outside_points(self):
-        a=np.array([[0,0,0],[1,0,0],[0,1,0]],float)
-        b=np.array([[.25,.25,-1],[.25,.25,1],[.25,.75,0]],float)
-        point=np.array([[.25,.25,0]])
-        self.assertTrue(mt.verify_contact(a,b,(False,point,point)))
-        outside=np.array([[2.,2.,0]])
-        self.assertFalse(mt.verify_contact(a,b+np.array([3,3,0]),(False,outside,outside)))
 
     def test_band_and_inverse_do_not_move_excluded_source_vertices(self):
         for inverse in (False,True):
@@ -218,11 +210,159 @@ class TextureTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError,'finite'):
             mt.read_height(tiff)
 
-    def test_budget_failure_and_cancellation_leave_no_output(self):
-        with self.assertRaisesRegex(ValueError,'limit'):
-            self.build(element_size=.5,max_faces=1000)
+    def test_the_face_budget_is_a_ceiling_not_a_failure(self):
+        """0.1 raised as soon as a pass would pass Maximum output faces; now the worst faces that fit are refined."""
+        warnings=[]
+        def emit(kind,payload):
+            if kind=='log' and payload[0]=='warning':
+                warnings.append(payload[1])
+        result,info=mt.build(self.mesh.vertices,self.mesh.faces,dict(self.p,element_size=.5,max_faces=1000),
+                             JobContext(emit,lambda:False))
+        self.assertLessEqual(len(result.faces),1000)
+        self.assertGreater(len(result.faces),len(self.mesh.faces))
+        self.assertTrue(info['budget_reached'])
+        self.assertTrue(result.is_watertight)
+        self.assertTrue(any('Face budget reached' in w for w in warnings))
+        # A source already at the budget is textured on its own vertices.
+        result,_=mt.build(self.mesh.vertices,self.mesh.faces,dict(self.p,max_faces=len(self.mesh.faces)),context())
+        self.assertEqual(len(result.faces),len(self.mesh.faces))
+
+    def test_cancellation_leaves_no_output(self):
         with self.assertRaises(Cancelled):
             mt.build(self.mesh.vertices,self.mesh.faces,self.p,JobContext(lambda *a:None,lambda:True))
+
+    def test_detail_tolerance_is_a_share_of_the_relief(self):
+        """Taller relief needs no more faces: in 0.1 the count grew in step with the relief and broke the budget."""
+        self.mesh=trimesh.creation.icosphere(subdivisions=2)
+        counts=[len(self.build(texture='rock',mapping='triplanar',element_size=12.,relief=r,max_faces=400000,
+                               collision_protection=False)[0].faces) for r in (.4,2.)]
+        self.assertEqual(counts[0],counts[1])
+
+    def test_a_hard_step_converges_at_the_floor(self):
+        """A discontinuous heightmap never meets the tolerance; refinement stops at element / 24 instead of chasing
+        it (0.1: 'did not converge')."""
+        step=np.zeros((32,32),np.uint16)
+        step[:,16:]=65535
+        self.custom(step)
+        result,info=self.build(mapping='triplanar',element_size=20.,detail_tolerance=1.,max_faces=2000000,
+                               collision_protection=False)
+        self.assertFalse(info['budget_reached'])
+        element=.2*float(np.ptp(self.mesh.vertices[:,2]))
+        # Splits halve edges, so none is shorter than half the floor.
+        self.assertGreater(result.edges_unique_length.min(),element/24/2*.5)
+
+    def test_old_tolerance_settings_convert(self):
+        from atlas_toolkit.core import presets as P
+        from atlas_toolkit.core.registry import registry
+        tool=registry().get('mesh-texture')
+        self.assertAlmostEqual(tool.values({'tolerance':.04}).detail_tolerance,10.)
+        old=P.Preset('Old','mesh-texture',{'tolerance':.08,'relief':.5,'max_faces':400000},tool_version='0.1.1')
+        values,_=P.apply(tool,old)
+        self.assertAlmostEqual(values.detail_tolerance,16.)
+        # The face budget is the machine's, not the preset's: the default without a form, the form's with one.
+        self.assertEqual(values.max_faces,tool.defaults()['max_faces'])
+        values,_=P.apply(tool,old,current=dict(tool.defaults(),max_faces=250000))
+        self.assertEqual(values.max_faces,250000)
+
+    def crease(self):
+        """An open V, its two sides 30 degrees apart, welded along the fold, facing into the V."""
+        xs=np.linspace(0,1,41)
+        ys=np.linspace(-1,1,81)
+        X,Y=np.meshgrid(xs,ys)
+        half=np.radians(15)
+        sides=[np.column_stack((X.ravel()*np.cos(half),s*X.ravel()*np.sin(half),Y.ravel())) for s in (1,-1)]
+        nx,ny=len(xs),len(ys)
+        faces=[]
+        for k in (0,1):
+            for j in range(ny-1):
+                for i in range(nx-1):
+                    a,b=k*nx*ny+j*nx+i,k*nx*ny+j*nx+i+1
+                    c,d=b+nx,a+nx
+                    faces += [[a,b,c],[a,c,d]] if k==0 else [[a,c,b],[a,d,c]]
+        return trimesh.Trimesh(np.vstack(sides),np.array(faces),process=True)
+
+    def test_crease_restraint_is_local(self):
+        """Raised relief in a tight V collides near its fold. Protection restrains it there, fading out, and leaves
+        the rest at full height (0.1 scaled the whole relief down once contacts were many)."""
+        self.custom(np.full((8,8),65535,np.uint16))
+        m=self.crease()
+        p=dict(self.p,mapping='triplanar',relief=3.,element_size=10.,preserve_borders=False,max_faces=200000)
+        result,info=mt.build(m.vertices,m.faces,p,context())
+        from atlas_toolkit.geom.contact import crossings
+        self.assertEqual(len(crossings(result.vertices,result.faces)),0)
+        self.assertGreater(info['limited'],0)
+        self.assertLess(info['limited'],50)
+        moved=np.linalg.norm(result.vertices[:len(m.vertices)]-m.vertices,axis=1)
+        far=np.linalg.norm(m.vertices[:,:2],axis=1)>.5
+        self.assertGreater(moved[far].min(),.03*2*.95)
+
+    def test_a_stray_crossing_in_the_source_is_left_out_not_refused(self):
+        """A scan with one fold through itself (the catalogue David head has one pair) is textured around it."""
+        sliver=trimesh.Trimesh([[0,0,.6],[.15,0,1.4],[0,.15,1.4]],[[0,1,2]])
+        self.mesh=trimesh.util.concatenate([trimesh.creation.icosphere(subdivisions=2),sliver])
+        warnings=[]
+        def emit(kind,payload):
+            if kind=='log' and payload[0]=='warning':
+                warnings.append(payload[1])
+        result,info=mt.build(self.mesh.vertices,self.mesh.faces,dict(self.p,preserve_borders=False),JobContext(emit,lambda:False))
+        self.assertTrue(any('intersecting' in w for w in warnings))
+        self.assertGreater(info['relief'],0)
+        # The fold is still there, and nothing else crosses.
+        from atlas_toolkit.geom.contact import crossings
+        self.assertTrue(len(crossings(result.vertices,result.faces)))
+        moved=np.linalg.norm(result.vertices[:len(self.mesh.vertices)]-self.mesh.vertices,axis=1)
+        self.assertEqual(float(moved[-3:].max()),0.)
+
+    def test_protection_off_keeps_triangles_valid_instead_of_failing(self):
+        self.custom(np.full((8,8),65535,np.uint16))
+        m=self.crease()
+        p=dict(self.p,mapping='triplanar',relief=5.,element_size=10.,preserve_borders=False,
+               collision_protection=False,max_faces=200000)
+        result,_=mt.build(m.vertices,m.faces,p,context())
+        self.assertTrue(result.nondegenerate_faces().all())
+        self.assertTrue(result.is_winding_consistent)
+
+    def test_chart_seams_cross_fade_instead_of_fading_out(self):
+        """Constant relief stays constant across chart seams; 0.1 faded it to zero there."""
+        self.custom(np.full((8,8),65535,np.uint16))
+        self.mesh=trimesh.creation.icosphere(subdivisions=3)
+        result,info=self.build(mapping='surface',relief=1.,element_size=20.,seam_feather=50.)
+        self.assertGreater(info['charts'],1)
+        moved=np.linalg.norm(result.vertices[:len(self.mesh.vertices)]-self.mesh.vertices,axis=1)
+        self.assertGreater(moved.min(),.01*2*.9)
+
+    def test_dense_sources_chart_a_simplified_copy(self):
+        mesh=trimesh.creation.icosphere(subdivisions=3)
+        with patch.object(backend,'PROXY_FACES',300):
+            charts=backend.charts(mesh.vertices,mesh.faces,context())
+        self.assertEqual(charts.uv.shape,(len(mesh.faces),3,2))
+        self.assertLess(len(charts.proxy_f),len(mesh.faces))
+        self.assertTrue((charts.chart>=0).all())
+        # Inside a chart each vertex has one UV.
+        corner=np.repeat(charts.chart,3)*len(mesh.vertices)+mesh.faces.ravel()
+        uv=charts.uv.reshape(-1,2)
+        order=np.argsort(corner,kind='stable')
+        same=corner[order][1:]==corner[order][:-1]
+        np.testing.assert_allclose(uv[order][1:][same],uv[order][:-1][same])
+        # A point's UV in its own chart is its corner UV.
+        corners=mesh.faces[:5,0]
+        np.testing.assert_allclose(charts.locate(mesh.vertices[corners],charts.chart[:5],mesh.vertex_normals[corners]),
+                                   charts.uv[:5,0],atol=1e-9)
+
+    def test_cylindrical_caps_project_along_the_axis(self):
+        """At the crown the angle crowds the motifs together; caps take a projection along the axis instead, which
+        also needs fewer faces."""
+        a,alpha,elems,_=mt.prepare(self.p,context())
+        field=mt.Field(dict(self.p,element_size=10.),self.mesh.vertices,None,a,alpha,elems)
+        top=np.array([[.2,.1,.95],[-.3,.05,.9]])
+        planar,coverage=field.sample(top[:,:2]/field.tile)
+        np.testing.assert_allclose(field.evaluate(top,np.tile([0,0,1.],(2,1))),planar*coverage*field.height)
+        self.mesh=trimesh.creation.icosphere(subdivisions=2)
+        p=dict(mapping='cylindrical',element_size=8.,collision_protection=False,max_faces=2000000)
+        with_caps=len(self.build(**p)[0].faces)
+        with patch.object(mt,'CAP_FROM',2.),patch.object(mt,'CAP_TO',3.):
+            without=len(self.build(**p)[0].faces)
+        self.assertLess(with_caps,without)
 
     def test_collision_guard_prevents_crossing_between_close_surfaces(self):
         self.custom(np.full((8,8),65535,np.uint16))
