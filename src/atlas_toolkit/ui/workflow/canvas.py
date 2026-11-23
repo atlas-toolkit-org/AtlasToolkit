@@ -9,6 +9,10 @@ violet), edges as arrows.
     wheel · middle/Space-drag   zoom · pan          F fit · L lay out · Tab add · Del delete · P preview
 
 The canvas only draws and reports: the page owns the workflow and rebuilds the canvas after each change.
+
+Vertical (the page's side-by-side layout) draws the same positions transposed, top to bottom: the workflow keeps one
+set of left-to-right positions, so switching changes nothing in it. to_scene / to_model convert; a card then takes its
+input on top and hands its output on below, both in the icon's column, and side inputs stay on the left edge.
 """
 from __future__ import annotations
 
@@ -26,6 +30,9 @@ HEAD_H = 58.0
 ROW_H = 22.0
 PORT_R = 5.5
 GRID = 24.0
+VX, VY = 2.25, 150.0 / 270.0      # vertical: scene x = model y · VX, scene y = model x · VY (Lay out's grid → 150 px rows)
+PORT_X_V = 23.0                   # vertical: main ports in the icon's column, clear of the chip on the right
+RIGHT, DOWN = QPointF(1.0, 0.0), QPointF(0.0, 1.0)
 MIME = "application/x-atlas-workflow-entry"
 KIND_TONE = {"mesh": "highlight", "svg": "accent", "image": "secondary"}
 CHIP_TONE = {"accent": "accent-text", "live": "highlight", "success": "success", "warning": "warning",
@@ -86,6 +93,10 @@ class PortItem(QGraphicsItem):
     def center(self) -> QPointF:
         return self.mapToScene(QPointF(0, 0))
 
+    def direction(self) -> QPointF:
+        """The way an arrow leaves (output) or arrives (input): down when vertical, except side inputs."""
+        return DOWN if self.node.canvas.vertical and not self.side else RIGHT
+
     def hoverEnterEvent(self, e):
         self.hover = True
         self.update()
@@ -124,15 +135,19 @@ class NodeItem(QGraphicsObject):
             if it.scene() is not None:
                 it.scene().removeItem(it)
         self.ports_in, self.port_out = {}, None
+        vertical = self.canvas.vertical
         row = 0
         for key, _label, kind, side in self.card.ports:
             it = PortItem(self, key, kind, False, side)
-            it.setPos(0, HEAD_H / 2 if not side else HEAD_H + ROW_H * (row + 0.5) + 2)
+            if side:
+                it.setPos(0, HEAD_H + ROW_H * (row + 0.5) + 2)
+            else:
+                it.setPos(*((PORT_X_V, 0) if vertical else (0, HEAD_H / 2)))
             row += bool(side)
             self.ports_in[key] = it
         if self.card.has_output:
             self.port_out = PortItem(self, "out", self.card.out_kind, True)
-            self.port_out.setPos(NODE_W, HEAD_H / 2)
+            self.port_out.setPos(*((PORT_X_V, self.height()) if vertical else (NODE_W, HEAD_H / 2)))
 
     def set_card(self, card: Card) -> None:
         reshape = [p[:4] for p in card.ports] != [p[:4] for p in self.card.ports] or \
@@ -255,9 +270,15 @@ class EdgeItem(QGraphicsPathItem):
         b = tp.center() if tp else self.dst.mapToScene(QPointF(0, HEAD_H / 2))
         return a, b
 
+    def dirs(self) -> tuple[QPointF, QPointF]:
+        """How the arrow leaves its source and arrives at its target."""
+        tp = self.dst.ports_in.get(self.port)
+        return (self.src.port_out.direction() if self.src.port_out else RIGHT), (tp.direction() if tp else RIGHT)
+
     def update_path(self) -> None:
         a, b = self.ends()
-        self.setPath(curve(a, QPointF(b.x() - PORT_R - 5, b.y())))
+        da, db = self.dirs()
+        self.setPath(curve(a, b - db * (PORT_R + 5), da, db))
 
     def shape(self) -> QPainterPath:
         s = QPainterPathStroker()
@@ -277,10 +298,12 @@ class EdgeItem(QGraphicsPathItem):
         p.setBrush(Qt.NoBrush)
         p.drawPath(self.path())
         _a, b = self.ends()
-        tip = QPointF(b.x() - PORT_R - 1.5, b.y())
+        _da, db = self.dirs()
+        tip = b - db * (PORT_R + 1.5)
+        base, side = tip - db * 8, QPointF(-db.y(), db.x()) * 4.5
         p.setPen(Qt.NoPen)
         p.setBrush(col)
-        p.drawPolygon(QPolygonF([tip, QPointF(tip.x() - 8, tip.y() - 4.5), QPointF(tip.x() - 8, tip.y() + 4.5)]))
+        p.drawPolygon(QPolygonF([tip, base + side, base - side]))
 
     def hoverEnterEvent(self, e):
         self.hover = True
@@ -291,10 +314,12 @@ class EdgeItem(QGraphicsPathItem):
         self.update()
 
 
-def curve(a: QPointF, b: QPointF) -> QPainterPath:
-    dx = max(48.0, abs(b.x() - a.x()) * 0.5)
+def curve(a: QPointF, b: QPointF, da: QPointF = RIGHT, db: QPointF = RIGHT) -> QPainterPath:
+    """An S-curve from a, leaving along da, to b, arriving along db."""
+    span = abs((b.x() - a.x()) * da.x() + (b.y() - a.y()) * da.y())
+    d = max(48.0, span * 0.5)
     path = QPainterPath(a)
-    path.cubicTo(QPointF(a.x() + dx, a.y()), QPointF(b.x() - dx, b.y()), b)
+    path.cubicTo(a + da * d, b - db * d, b)
     return path
 
 
@@ -336,7 +361,21 @@ class WorkflowView(QGraphicsView):
         self._space = False
         self._press_pos: dict = {}
         self._rebuilding = False
+        self.vertical = False
         self.scene_.selectionChanged.connect(self._selection_changed)
+
+    # ------------------------------------------------------------------ orientation
+    def set_vertical(self, vertical: bool) -> None:
+        """Top to bottom or left to right; the page rebuilds the cards afterwards."""
+        self.vertical = bool(vertical)
+
+    def to_scene(self, x: float, y: float) -> QPointF:
+        """A workflow position (left to right) where the canvas draws it."""
+        return QPointF(y * VX, x * VY) if self.vertical else QPointF(x, y)
+
+    def to_model(self, pt: QPointF) -> tuple[float, float]:
+        """A point on the canvas as a workflow position (left to right)."""
+        return (pt.y() / VY, pt.x() / VX) if self.vertical else (pt.x(), pt.y())
 
     # ------------------------------------------------------------------ content
     def rebuild(self, cards: list[Card], positions: dict, edges: list, select: str | None = None) -> None:
@@ -348,7 +387,7 @@ class WorkflowView(QGraphicsView):
             for c in cards:
                 it = NodeItem(self, c)
                 x, y = positions.get(c.id, (0.0, 0.0))
-                it.setPos(QPointF(x, y))
+                it.setPos(self.to_scene(x, y))
                 self.scene_.addItem(it)
                 self.nodes[c.id] = it
             for src, dst, port in edges:
@@ -447,7 +486,8 @@ class WorkflowView(QGraphicsView):
         p.drawText(vr.adjusted(0, -16, 0, -16), Qt.AlignCenter,
                    "Drag tools here from the list, or press Tab to add one.")
         p.setFont(mono(11))
-        p.drawText(vr.adjusted(0, 24, 0, 24), Qt.AlignCenter, "INPUT  →  TOOLS  →  SAVE")
+        p.drawText(vr.adjusted(0, 24, 0, 24), Qt.AlignCenter,
+                   "INPUT  ↓  TOOLS  ↓  SAVE" if self.vertical else "INPUT  →  TOOLS  →  SAVE")
         p.restore()
 
     # ------------------------------------------------------------------ mouse
@@ -482,8 +522,10 @@ class WorkflowView(QGraphicsView):
         if self._drag is not None:
             pos = self.mapToScene(e.position().toPoint())
             port = self._port_at(e.position().toPoint())
-            end = port.center() if (port is not None and not port.dim and not port.output) else pos
-            self._temp.setPath(curve(self._drag["anchor"], end))
+            snap = port is not None and not port.dim and not port.output
+            da = self.nodes[self._drag["src"]].port_out.direction()
+            self._temp.setPath(curve(self._drag["anchor"], port.center() if snap else pos, da,
+                                     port.direction() if snap else da))
             return
         super().mouseMoveEvent(e)
 
@@ -497,7 +539,7 @@ class WorkflowView(QGraphicsView):
             return
         super().mouseReleaseEvent(e)
         if e.button() == Qt.LeftButton and self._press_pos:
-            moved = {k: (round(it.pos().x(), 1), round(it.pos().y(), 1)) for k, it in self.nodes.items()
+            moved = {k: tuple(round(v, 1) for v in self.to_model(it.pos())) for k, it in self.nodes.items()
                      if self._press_pos.get(k) != (it.pos().x(), it.pos().y())}
             self._press_pos = {}
             if moved:

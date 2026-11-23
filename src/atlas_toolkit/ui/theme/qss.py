@@ -259,6 +259,24 @@ QMenu::icon {{ padding-left: 6px; }}
 #warnBanner {{ background: {c['bg-1']}; border: 1px solid {c['warning']}; border-radius: 10px; }}
 #warnBanner QLabel {{ color: {c['text']}; }}
 #optNote {{ background: transparent; border: 1px dashed {c['line-2']}; border-radius: 10px; }}
+
+/* ---------------------------------------------------------------- workflow controls and the folded tabs' rail */
+#runPanel {{ background: {c['accent-soft']}; border: none; border-top: 2px solid {c['accent']}; }}
+#runPanel QLabel#runTitle {{ color: {c['accent-text']}; }}
+#runPanel QPushButton {{ background: {c['bg-3'] if dark else c['bg-1']}; border: 1px solid {c['line-3']};
+    padding: 8px 12px; }}
+#runPanel QPushButton:hover {{ background: {c['bg-4'] if dark else c['bg-2']}; border-color: {c['accent']}; }}
+#runPanel QPushButton:pressed {{ background: {c['bg-4'] if dark else c['bg-3']}; }}
+#runPanel QPushButton:disabled {{ background: transparent; border-color: {c['line-2']}; color: {c['text-4']}; }}
+#runPanel QPushButton[variant="primary"] {{ background: {c['accent']}; border-color: {c['accent']};
+    color: {c['on-accent']}; font-weight: 600; }}
+#runPanel QPushButton[variant="primary"]:hover {{ background: {c['accent-hover']}; border-color: {c['accent-hover']}; }}
+#runPanel QPushButton[variant="primary"]:pressed {{ background: {c['accent-press']}; }}
+#runPanel QPushButton[variant="primary"]:disabled {{ background: transparent; border-color: {c['line-2']};
+    color: {c['text-4']}; font-weight: 500; }}
+#runPanel QPushButton[variant="danger"] {{ color: {c['danger']}; }}
+#runPanel QPushButton[variant="danger"]:hover {{ border-color: {c['danger']}; }}
+#foldRail {{ background: {c['bg-1']}; border: 1px solid {c['line']}; border-radius: 10px; }}
 QPushButton[nav="true"][unavailable="true"] {{ color: {c['text-4']}; }}
 QPushButton[nav="true"][unavailable="true"]:hover {{ color: {c['text-3']}; }}
 #card[unavailable="true"] QLabel, #toolRow[unavailable="true"] QLabel {{ color: {c['text-3']}; }}

@@ -1,5 +1,23 @@
 # Changelog
 
+## 2.5.0 (unreleased)
+
+**Workflows: a side-by-side layout with a full-height preview, foldable tabs and clear workflow controls**
+- **Side by side**, a new layout beside **Stacked** (the switch is in the head, and the page remembers it). The
+  pipeline sits on the left and is drawn top to bottom, with the tabs under it. The preview is on the right, at full
+  height. Lay out and Fit follow the layout, and switching never changes the workflow (no edit, nothing to undo).
+- **Inputs · Problems · Log · Report fold away** with the arrow beside Inputs, as the tool pages' file list does,
+  for a wider preview or a taller pipeline. A slim strip keeps a button per tab, and the Problems button turns red
+  or amber after a Check. A picker beside the preview's title still chooses the file. A Check with errors brings
+  the tabs back on Problems, and Run or Preview without a file brings them back on Inputs.
+- **Workflow controls** is now a panel of its own under the step settings: tinted, with a title and the workflow's
+  status beside the buttons. Check and Run sit side by side, and the next step is always the bright button (Check,
+  then Run once it passes). It uses the design tokens, so it suits the light and dark themes.
+- **A run skips files its input cannot take.** The file list stays when you open another workflow, and a run used to
+  try every file on it, so an image left from an image workflow failed in a mesh one. Such files now stay listed,
+  marked **Not used**, and Run counts only the others. Preview and Aim say why when one is selected, and the mark
+  goes when a workflow can take the file again.
+
 ## 2.4.7 (unreleased)
 
 **Surface Texture 0.2.0: every run finishes, the relief survives, and it shows in the drawing**

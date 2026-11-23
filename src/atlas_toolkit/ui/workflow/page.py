@@ -4,7 +4,11 @@ The Workflows page: build a pipeline of tools on a canvas, check it, run it on a
     head      WORKFLOW eyebrow, name, status (not checked / ready / problems), New Open Save Save as Undo Redo …
     library   inputs, Save and every tool, searchable; the saved workflows
     canvas    the graph (canvas.py)                      inspector   the selected step, or the workflow's panel
-    bottom    Inputs · Problems · Log · Report | preview             Check · Run · Cancel · Open folder
+    bottom    Inputs · Problems · Log · Report | preview             Workflow controls: Check · Run · Cancel · Open folder
+
+Two arrangements of canvas, tabs and preview (remembered): stacked (the canvas on top, left to right; tabs | preview
+below) and side by side (the canvas on the left, top to bottom, with the tabs under it; the preview at full height on
+the right). The tabs fold away to a rail of one button per tab, and a picker beside the preview then selects the file.
 
 Run is enabled only after a Check without errors; any edit asks for a new Check. Each input file is one job in the
 worker process (core/workflow.py), and steps whose tool, settings and inputs did not change come from the cache.
@@ -20,9 +24,9 @@ from pathlib import Path
 
 from PySide6.QtCore import QPointF, Qt, QTimer, Signal
 from PySide6.QtGui import QKeySequence, QShortcut, QUndoCommand, QUndoStack
-from PySide6.QtWidgets import (QFileDialog, QFrame, QHBoxLayout, QLabel, QListWidget, QListWidgetItem, QMenu,
-                               QMessageBox, QPlainTextEdit, QPushButton, QScrollArea, QSplitter, QTabWidget,
-                               QVBoxLayout, QWidget)
+from PySide6.QtWidgets import (QBoxLayout, QComboBox, QFileDialog, QFrame, QHBoxLayout, QLabel, QListWidget,
+                               QListWidgetItem, QMenu, QMessageBox, QPlainTextEdit, QPushButton, QScrollArea,
+                               QSplitter, QTabWidget, QVBoxLayout, QWidget)
 
 from ...core import workflow as W
 from ..keys import shown
@@ -35,7 +39,7 @@ from ...core.settings import _write
 from ...core.tool import KINDS
 from ...version import __version__
 from ..theme import icon, mono, sans
-from ..widgets.common import badge, hint, label, set_badge
+from ..widgets.common import Segmented, apply_icon, badge, hint, icon_button, label, set_badge, set_variant
 from ..widgets.file_queue import FileQueue
 from ..widgets.preview import PreviewStage
 from .canvas import HEAD_H, NODE_W, Card, WorkflowView
@@ -98,6 +102,7 @@ class WorkflowPage(QWidget):
         self.auto_previewed: set = set()
         self.infos: dict = {}                   # path -> InputInfo, for the step forms
         self._inspecting: set = set()
+        self._wrong: set = set()                # listed files the workflow's input cannot take
         self.info_ready.connect(self._info_ready)
         self.undo = QUndoStack(self)
         self.autosave = QTimer(self, singleShot=True, interval=800, timeout=self._save_draft)
@@ -130,10 +135,9 @@ class WorkflowPage(QWidget):
         ml.setContentsMargins(22, 16, 16, 12)
         ml.setSpacing(10)
         ml.addLayout(self._build_head())
-        self.vsplit = QSplitter(Qt.Vertical)
-        self.vsplit.setChildrenCollapsible(False)
-        self.vsplit.setHandleWidth(8)
+        # three parts that never change, arranged by _arrange: the canvas, the tabs (or their rail), the preview
         frame = QFrame(objectName="stage")
+        self.canvas_frame = frame
         fl = QVBoxLayout(frame)
         fl.setContentsMargins(1, 1, 1, 1)
         self.view = WorkflowView(self.theme)
@@ -151,14 +155,14 @@ class WorkflowPage(QWidget):
         self.view.action.connect(self._view_action)
         self.view.files_dropped.connect(self.add_paths)
         fl.addWidget(self.view)
-        self.vsplit.addWidget(frame)
 
-        bottom = QSplitter(Qt.Horizontal)
-        bottom.setChildrenCollapsible(False)
-        bottom.setHandleWidth(8)
         self.tabs = QTabWidget()
         self.tabs.setDocumentMode(True)
-        self.tabs.addTab(self._build_inputs(), "Inputs")
+        self.btn_fold = icon_button("left", "", size=16)
+        self.btn_fold.clicked.connect(lambda: self.set_tabs_folded(not self.tabs_folded))
+        self.tabs.setCornerWidget(self.btn_fold, Qt.TopLeftCorner)
+        self.inputs_tab = self._build_inputs()
+        self.tabs.addTab(self.inputs_tab, "Inputs")
         self.problems = QListWidget()
         self.problems.itemClicked.connect(lambda it: self.select(it.data(Qt.UserRole)) if it.data(Qt.UserRole)
                                           else None)
@@ -171,23 +175,37 @@ class WorkflowPage(QWidget):
         self.report.setLineWrapMode(QPlainTextEdit.NoWrap)
         self.report.setPlaceholderText("The selected step's report, or the selected file's run.")
         self.tabs.addTab(self.report, "Report")
-        bottom.addWidget(self.tabs)
+        self.tabs_box = QWidget()
+        tl = QVBoxLayout(self.tabs_box)
+        tl.setContentsMargins(0, 0, 0, 0)
+        tl.addWidget(self.tabs)
+        self._build_rail()
+
         st = QWidget()
+        self.preview_box = st
         sl = QVBoxLayout(st)
         sl.setContentsMargins(0, 0, 0, 0)
         sl.setSpacing(6)
+        row = QHBoxLayout()
+        row.setSpacing(6)
         self.info_line = QLabel("")
         self.info_line.setFont(mono(11.5))
         self.info_line.setProperty("class", "mono")
-        sl.addWidget(self.info_line)
+        row.addWidget(self.info_line, 1)
+        row.addWidget(self._build_picker())
+        sl.addLayout(row)
         self.stage = PreviewStage(self.theme, self.ctx.settings)
         self.stage.set_art(self.ctx.art)
         sl.addWidget(self.stage, 1)
-        bottom.addWidget(st)
-        bottom.setSizes([520, 520])
-        self.vsplit.addWidget(bottom)
-        self.vsplit.setSizes([520, 330])
-        ml.addWidget(self.vsplit, 1)
+
+        self.body = QWidget()
+        self.body_lay = QVBoxLayout(self.body)
+        self.body_lay.setContentsMargins(0, 0, 0, 0)
+        self.split_root = self.split_inner = None
+        self.tabs_folded = bool(self.ctx.settings.get("workflow_tabs_folded", False))
+        self._sizes_timer = QTimer(self, singleShot=True, interval=400, timeout=self._save_sizes)
+        ml.addWidget(self.body, 1)
+        self._arrange(self.ctx.settings.get("workflow_layout", "stacked"))
         self.outer.addWidget(main)
         self.outer.addWidget(self._build_inspector())
         self.outer.setStretchFactor(0, 0)
@@ -232,6 +250,9 @@ class WorkflowPage(QWidget):
             b.setProperty("variant", "ghost")
             b.setToolTip(shown(tip))
             b.clicked.connect(fn)
+            if key == "layout":                 # the page's arrangement, then the canvas's own Lay out and Fit
+                tl.addSpacing(6)
+                tl.addWidget(self._build_layout_switch())
             tl.addWidget(b)
             self.toolbar[key] = b
         self.undo.canUndoChanged.connect(self.toolbar["undo"].setEnabled)
@@ -240,6 +261,237 @@ class WorkflowPage(QWidget):
         self.toolbar["redo"].setEnabled(False)
         head.addLayout(tl)
         return head
+
+    def _build_layout_switch(self) -> QWidget:
+        self.layout_seg = Segmented([("stacked", "Stacked"), ("side", "Side by side")], columns=2, tips={
+            "stacked": "The pipeline across the top, left to right; the tabs and the preview below it.",
+            "side": "The pipeline on the left, top to bottom, with the tabs under it; the preview on the right, "
+                    "at full height."})
+        self.layout_seg.setMinimumWidth(196)
+        self.layout_seg.picked.connect(self.set_layout)
+        return self.layout_seg
+
+    def _build_rail(self) -> None:
+        """What stays of the folded tabs: a button to unfold them, and one per tab that unfolds to it."""
+        self.rail = QFrame(objectName="foldRail")
+        self.rail_lay = QBoxLayout(QBoxLayout.TopToBottom, self.rail)
+        self.rail_lay.setContentsMargins(3, 6, 3, 6)
+        self.rail_lay.setSpacing(4)
+        self.btn_unfold = icon_button("right", "Show Inputs, Problems, Log and Report", size=16)
+        self.btn_unfold.clicked.connect(lambda: self.set_tabs_folded(False))
+        self.rail_lay.addWidget(self.btn_unfold)
+        self.rail_tabs = {}
+        for name, glyph, widget in (("Inputs", "file", self.inputs_tab), ("Problems", "warn", self.problems),
+                                    ("Log", "log", self.logview), ("Report", "doc", self.report)):
+            b = icon_button(glyph, name, size=16)
+            b.clicked.connect(lambda _=False, w=widget: self.show_tab(w))
+            self.rail_lay.addWidget(b)
+            self.rail_tabs[name] = b
+        self.rail_lay.addStretch(1)
+
+    def _build_picker(self) -> QWidget:
+        """While the tabs are folded: the file the preview uses, as the hidden list would select it."""
+        self.btn_prev = icon_button("up", "Previous file", size=14)
+        self.btn_prev.clicked.connect(lambda: self._step_input(-1))
+        self.picker = QComboBox()
+        self.picker.setSizeAdjustPolicy(QComboBox.AdjustToMinimumContentsLengthWithIcon)
+        self.picker.setMinimumContentsLength(16)
+        self.picker.setMaximumWidth(300)
+        self.picker.setToolTip("The file the preview runs on")
+        self.picker.activated.connect(self._picked)
+        self.btn_next = icon_button("down", "Next file", size=14)
+        self.btn_next.clicked.connect(lambda: self._step_input(1))
+        self.picker_status = QLabel("")
+        self.picker_status.setFont(mono(11.5))
+        self.picker_box = QWidget()
+        pl = QHBoxLayout(self.picker_box)
+        pl.setContentsMargins(0, 0, 0, 0)
+        pl.setSpacing(2)
+        for w in (self.btn_prev, self.picker, self.btn_next):
+            pl.addWidget(w)
+        pl.addSpacing(6)
+        pl.addWidget(self.picker_status)
+        self.picker_box.hide()
+        return self.picker_box
+
+    # ================================================================== arrangement
+    def _arrange(self, mode: str) -> None:
+        """Put the canvas, the tabs and the preview in the stacked or side-by-side arrangement. The three parts move
+        into new splitters; the workflow is not touched (side by side only draws it top to bottom)."""
+        mode = "side" if mode == "side" else "stacked"
+        first = self.split_root is None
+        if not first:
+            self._save_sizes()
+        old = self.split_root
+        if mode == "side":                     # H[ V[canvas, tabs] + rail, preview ]
+            left = QWidget()
+            ll = QVBoxLayout(left)
+            ll.setContentsMargins(0, 0, 0, 0)
+            ll.setSpacing(6)
+            inner = QSplitter(Qt.Vertical)
+            inner.addWidget(self.canvas_frame)
+            inner.addWidget(self.tabs_box)
+            ll.addWidget(inner, 1)
+            ll.addWidget(self.rail)
+            self.rail_lay.setDirection(QBoxLayout.LeftToRight)
+            self.rail_lay.setContentsMargins(6, 3, 6, 3)
+            root = QSplitter(Qt.Horizontal)
+            root.addWidget(left)
+            root.addWidget(self.preview_box)
+            root.setStretchFactor(1, 1)
+            defaults = {"root": [420, 580], "inner": [600, 260]}
+        else:                                  # V[ canvas, rail + H[tabs, preview] ]
+            bottom = QWidget()
+            bl = QHBoxLayout(bottom)
+            bl.setContentsMargins(0, 0, 0, 0)
+            bl.setSpacing(6)
+            inner = QSplitter(Qt.Horizontal)
+            inner.addWidget(self.tabs_box)
+            inner.addWidget(self.preview_box)
+            bl.addWidget(self.rail)
+            bl.addWidget(inner, 1)
+            self.rail_lay.setDirection(QBoxLayout.TopToBottom)
+            self.rail_lay.setContentsMargins(3, 6, 3, 6)
+            root = QSplitter(Qt.Vertical)
+            root.addWidget(self.canvas_frame)
+            root.addWidget(bottom)
+            defaults = {"root": [520, 330], "inner": [520, 520]}
+        for sp in (root, inner):
+            sp.setChildrenCollapsible(False)
+            sp.setHandleWidth(8)
+            sp.splitterMoved.connect(lambda *_: self._sizes_timer.start())
+        self.layout_mode = mode
+        self.split_root, self.split_inner = root, inner
+        self.body_lay.addWidget(root)
+        if old is not None:                    # its parts have moved out: only the empty splitters go
+            self.body_lay.removeWidget(old)
+            old.deleteLater()
+        saved = self.ctx.settings.get(f"workflow_sizes_{mode}") or {}
+        sizes = {k: saved.get(k) if isinstance(saved.get(k), list) and len(saved.get(k)) == 2 else v
+                 for k, v in defaults.items()}
+        root.setSizes(sizes["root"])
+        inner.setSizes(sizes["inner"])
+        self._tabs_size = sizes["inner"][self._tabs_index()]
+        for w in (self.canvas_frame, self.preview_box):
+            w.setVisible(True)
+        self._apply_fold()
+        self.layout_seg.set_value(mode)
+        self.view.set_vertical(mode == "side")
+        self.toolbar["layout"].setToolTip(shown("Arrange the steps top to bottom (L)" if mode == "side" else
+                                                "Arrange the steps left to right (L)"))
+        if not first:
+            self._rebuild()
+            QTimer.singleShot(0, self.view_fit)
+
+    def _tabs_index(self) -> int:
+        return 1 if self.layout_mode == "side" else 0
+
+    def set_layout(self, mode: str) -> None:
+        """Stacked or side by side (remembered); a view choice, so the workflow stays as it is."""
+        if mode == getattr(self, "layout_mode", None):
+            return
+        self._arrange(mode)
+        self.ctx.settings.set("workflow_layout", self.layout_mode)
+
+    def _save_sizes(self) -> None:
+        if self.split_root is None:
+            return
+        key = f"workflow_sizes_{self.layout_mode}"
+        saved = dict(self.ctx.settings.get(key) or {})
+        saved["root"] = self.split_root.sizes()
+        if not self.tabs_folded:               # folded, the tabs have no size: keep the one they will come back to
+            saved["inner"] = self.split_inner.sizes()
+        if saved != self.ctx.settings.get(key):
+            self.ctx.settings.set(key, saved)
+
+    # ================================================================== folding the tabs
+    def set_tabs_folded(self, folded: bool, save: bool = True) -> None:
+        """Fold Inputs · Problems · Log · Report away (to the left when stacked, down when side by side) so the
+        preview or the pipeline takes their room, or bring them back at the size they had. While folded, a rail
+        keeps a button per tab and a picker beside the preview selects the file."""
+        if folded == self.tabs_folded:
+            return
+        i = self._tabs_index()
+        if folded:
+            self._tabs_size = self.split_inner.sizes()[i]
+        self.tabs_folded = folded
+        self._apply_fold()
+        if not folded and self._tabs_size > 0:
+            total = sum(self.split_inner.sizes())
+            if total > self._tabs_size:
+                rest = total - self._tabs_size
+                self.split_inner.setSizes([self._tabs_size, rest] if i == 0 else [rest, self._tabs_size])
+        if save:
+            self.ctx.settings.set("workflow_tabs_folded", folded)
+            self._save_sizes()
+
+    def _apply_fold(self) -> None:
+        folded = self.tabs_folded
+        self.tabs_box.setVisible(not folded)
+        self.rail.setVisible(folded)
+        side = self.layout_mode == "side"
+        apply_icon(self.btn_fold, self.theme, "down" if side else "left")
+        self.btn_fold.setToolTip("Fold Inputs, Problems, Log and Report away, for a "
+                                 + ("taller pipeline" if side else "wider preview"))
+        apply_icon(self.btn_unfold, self.theme, "up" if side else "right")
+        self._tint_rail()
+        self._sync_picker()
+
+    def _tint_rail(self) -> None:
+        errs = W.errors(self.issues)
+        warns = [i for i in self.issues if i.level == "warning"]
+        tone = "danger" if errs else ("warning" if warns else "text-2")
+        for name, b in self.rail_tabs.items():
+            apply_icon(b, self.theme, tone=tone if name == "Problems" else "text-2")
+        n = len(self.issues)
+        self.rail_tabs["Problems"].setToolTip(f"Problems · {len(errs)} error(s), {len(warns)} warning(s)" if n
+                                              else "Problems")
+        n_files = len(self.files)
+        self.rail_tabs["Inputs"].setToolTip(f"Inputs · {n_files} file(s)" if n_files else "Inputs")
+        for b in (self.btn_prev, self.btn_next):
+            apply_icon(b, self.theme)
+
+    def show_tab(self, widget: QWidget) -> None:
+        """Bring the tabs back if they are folded, and open this one."""
+        self.set_tabs_folded(False)
+        self.tabs.setCurrentWidget(widget)
+
+    def _sync_picker(self) -> None:
+        """Fill the compact picker from the file list (same order, same selection); shown only while folded."""
+        keys = self.queue.keys()
+        self.picker_box.setVisible(self.tabs_folded and bool(keys))
+        if not self.tabs_folded:
+            return
+        cur = self.current_file()
+        if [self.picker.itemData(i) for i in range(self.picker.count())] != keys:
+            self.picker.blockSignals(True)
+            self.picker.clear()
+            for k in keys:
+                self.picker.addItem(Path(k).name, k)
+                self.picker.setItemData(self.picker.count() - 1, k, Qt.ToolTipRole)
+            self.picker.blockSignals(False)
+        self.picker.blockSignals(True)
+        self.picker.setCurrentIndex(keys.index(cur) if cur in keys else -1)
+        self.picker.blockSignals(False)
+        i = self.picker.currentIndex()
+        self.btn_prev.setEnabled(len(keys) > 1 and i != 0)
+        self.btn_next.setEnabled(len(keys) > 1 and i != len(keys) - 1)
+        it = self.files.get(cur)
+        self.picker_status.setText(it.text(1) if it is not None else "")
+        if it is not None:
+            self.picker_status.setStyleSheet(f"color: {it.foreground(1).color().name()};")
+        self.picker_status.setToolTip(it.toolTip(1) if it is not None else "")
+
+    def _picked(self, i: int) -> None:
+        key = self.picker.itemData(i)
+        if key in self.files:
+            self.queue.setCurrentItem(self.files[key])
+
+    def _step_input(self, step: int) -> None:
+        n = self.picker.count()
+        if n:
+            i = self.picker.currentIndex()
+            self._picked(max(0, min(n - 1, (i + step) if i >= 0 else 0)))
 
     def _build_inputs(self) -> QWidget:
         w = QWidget()
@@ -268,6 +520,7 @@ class WorkflowPage(QWidget):
                                "Drop the files to run the workflow on here\n\nor use  Add files…\n\n"
                                "(for 3D models, the  Catalogue… has ready-made ones)")
         self.queue.itemSelectionChanged.connect(self._file_selected)
+        self.queue.itemSelectionChanged.connect(self._sync_picker)
         self.queue.itemDoubleClicked.connect(lambda it, _c: self._reveal_saved(it.data(0, Qt.UserRole)))
         lay.addWidget(self.queue, 1)
         return w
@@ -283,23 +536,40 @@ class WorkflowPage(QWidget):
         self.scroll = QScrollArea()
         self.scroll.setWidgetResizable(True)
         outer.addWidget(self.scroll, 1)
-        act = QFrame()
-        act.setObjectName("transparent")
+        # the whole workflow's controls, set apart from the step settings above: a tinted panel with its own title,
+        # where the next thing to do (Check, then Run) is always the bright button
+        act = QFrame(objectName="runPanel")
+        self.run_panel = act
         al = QVBoxLayout(act)
-        al.setContentsMargins(20, 10, 20, 18)
+        al.setContentsMargins(20, 12, 20, 18)
         al.setSpacing(8)
+        tr = QHBoxLayout()
+        tr.setSpacing(7)
+        self.run_icon = QLabel()
+        self.run_icon.setPixmap(icon("pipeline", self.theme["accent-text"], 15).pixmap(15, 15))
+        tr.addWidget(self.run_icon)
+        title = label("workflow controls")
+        title.setObjectName("runTitle")
+        tr.addWidget(title)
+        tr.addStretch(1)
+        self.run_badge = badge("not checked")
+        tr.addWidget(self.run_badge)
+        al.addLayout(tr)
         self.run_note = hint("")
+        self.run_note.setWordWrap(True)
         al.addWidget(self.run_note)
+        r1 = QHBoxLayout()
+        r1.setSpacing(6)
         self.btn_check = QPushButton("Check")
         self.btn_check.setToolTip("Look for anything that would stop the workflow, before running it.")
         self.btn_check.setCursor(Qt.PointingHandCursor)
         self.btn_check.clicked.connect(self.check)
-        al.addWidget(self.btn_check)
+        r1.addWidget(self.btn_check, 1)
         self.btn_run = QPushButton("Run")
-        self.btn_run.setProperty("variant", "primary")
         self.btn_run.setCursor(Qt.PointingHandCursor)
         self.btn_run.clicked.connect(lambda: self.run_all())
-        al.addWidget(self.btn_run)
+        r1.addWidget(self.btn_run, 2)
+        al.addLayout(r1)
         self.btn_vary = QPushButton("New variation")
         self.btn_vary.setIcon(icon("dice", self.theme["text-2"], 16))
         self.btn_vary.setCursor(Qt.PointingHandCursor)
@@ -526,7 +796,7 @@ class WorkflowPage(QWidget):
             return None
         anchor = from_node or (self.selected if pos is None else None)
         if pos is not None:
-            node.pos = (pos.x() - NODE_W / 2, pos.y() - HEAD_H / 2)
+            node.pos = self.view.to_model(QPointF(pos.x() - NODE_W / 2, pos.y() - HEAD_H / 2))
         elif anchor in self.wf.nodes:
             ax, ay = self.wf.nodes[anchor].pos
             x, y = ax + NODE_W + 70, ay
@@ -536,7 +806,7 @@ class WorkflowPage(QWidget):
             node.pos = (x, y)
         else:
             c = self.view.center_pos()
-            node.pos = (c.x() - NODE_W / 2, c.y() - HEAD_H / 2)
+            node.pos = self.view.to_model(QPointF(c.x() - NODE_W / 2, c.y() - HEAD_H / 2))
         holder = {}
 
         def fn():
@@ -881,6 +1151,13 @@ class WorkflowPage(QWidget):
             m.addAction(icon("plus", th, 16), "Add a step…\tTab", lambda: self._quick_add(spos, None))
             m.addAction(icon("pipeline", th, 16), "Lay out\tL", self.layout_graph)
             m.addAction(icon("expand", th, 16), "Fit\tF", self.view_fit)
+            m.addSeparator()
+            other = "stacked" if self.layout_mode == "side" else "side"
+            m.addAction(icon("sidebar", th, 16), "Stacked layout" if other == "stacked" else "Side-by-side layout",
+                        lambda: self.set_layout(other))
+            m.addAction(icon("right" if self.tabs_folded else "left", th, 16),
+                        "Show the tabs" if self.tabs_folded else "Fold the tabs away",
+                        lambda: self.set_tabs_folded(not self.tabs_folded))
         m.exec(gpos)
 
     # ================================================================== input files
@@ -960,6 +1237,7 @@ class WorkflowPage(QWidget):
             return
         for key in self.queue.selected_keys():
             it = self.files.pop(key, None)
+            self._wrong.discard(key)
             if it is not None:
                 self.queue.takeTopLevelItem(self.queue.indexOfTopLevelItem(it))
         self._update_controls()
@@ -1000,7 +1278,9 @@ class WorkflowPage(QWidget):
         if not self.issues:
             it = QListWidgetItem(icon("check", th["success"], 16), "No problems found.")
             self.problems.addItem(it)
-        if errs or self.issues:
+        if errs:
+            self.show_tab(self.problems)
+        elif self.issues and not self.tabs_folded:
             self.tabs.setCurrentWidget(self.problems)
         self._refresh_cards()
         self._update_controls()
@@ -1014,8 +1294,36 @@ class WorkflowPage(QWidget):
         return W.workflow_job(wf or self.wf, file or None, action, target, cache.root, cache.limit / 1024 ** 3,
                               str(cache_dir()), stamp)
 
+    def fits(self, key: str) -> bool:
+        """Can the workflow's input take this file? The list outlives a workflow, so it may hold other kinds."""
+        kind = self.batch_kind()
+        return kind is None or Path(key).suffix.lower() in KINDS[kind][0]
+
     def run_files(self) -> list[str]:
-        return list(self.files) if self.wf.batch_inputs() else [""]
+        """The files a run goes through: those the input takes (others stay listed, marked, and are skipped)."""
+        return [f for f in self.files if self.fits(f)] if self.wf.batch_inputs() else [""]
+
+    def _wrong_kind(self, file: str) -> bool:
+        """Say so when the selected file is not one this workflow takes (preview and aim use it)."""
+        if not file or self.fits(file):
+            return False
+        kind = self.batch_kind()
+        self.ctx.toast(f"{Path(file).name} is not a {KINDS[kind][1]} file: this workflow takes "
+                       f"{' '.join(KINDS[kind][0])}.", "warning")
+        return True
+
+    def _mark_fits(self) -> None:
+        """Mark the listed files this workflow cannot take, and clear the mark when it can again."""
+        kind = self.batch_kind()
+        for key, it in self.files.items():
+            wrong = not self.fits(key)
+            if wrong and key not in self._wrong:
+                self._wrong.add(key)
+                self.queue.set_status(it, "Not used", "dim", f"This workflow takes {' '.join(KINDS[kind][0])} "
+                                      "files, so its runs skip this one.")
+            elif not wrong and key in self._wrong:
+                self._wrong.discard(key)
+                self.queue.set_status(it, "Ready", "accent")
 
     def run_variation(self) -> None:
         """Run again with a new random seed in every step that has one, every other setting as it is. The steps
@@ -1041,7 +1349,9 @@ class WorkflowPage(QWidget):
             return
         files = self.run_files()
         if not files:
-            self.ctx.toast("Add the files to run the workflow on (Inputs tab).", "warning")
+            self.ctx.toast("None of the listed files suits this workflow's input (Inputs tab)." if self.files
+                           else "Add the files to run the workflow on (Inputs tab).", "warning")
+            self.show_tab(self.inputs_tab)
             return
         exists, stamps = [], {}
         policy, mark = self.ctx.pref("on_existing"), prefs.stamp()   # Setup › Outputs: one stamp per run
@@ -1093,8 +1403,13 @@ class WorkflowPage(QWidget):
         if needs_file and not file:
             if not quiet:
                 self.ctx.toast("Add a file to preview with (Inputs tab).", "warning")
+                self.show_tab(self.inputs_tab)
             return
-        errs = [i for i in W.errors(W.check(self.wf, self.reg)) if i.node in needed]
+        if file and not self.fits(file):
+            if not quiet:
+                self._wrong_kind(file)
+            return
+        errs =[i for i in W.errors(W.check(self.wf, self.reg)) if i.node in needed]
         if errs:
             if not quiet:
                 self.ctx.toast(errs[0].message, "warning")
@@ -1133,6 +1448,9 @@ class WorkflowPage(QWidget):
         file = self.current_file() if needs_file else ""
         if needs_file and not file:
             self.ctx.toast("Add a file to aim with (Inputs tab).", "warning")
+            self.show_tab(self.inputs_tab)
+            return
+        if self._wrong_kind(file):
             return
         self.ctx.status(f"Preparing the input of {W.label_of(node, self.reg)}…")
         self._submit(file, "prepare", nid)
@@ -1351,14 +1669,19 @@ class WorkflowPage(QWidget):
         errs = W.errors(self.issues)
         warns = [i for i in self.issues if i.level == "warning"]
         if not self.wf.nodes:
-            set_badge(self.state_badge, "empty", "")
+            state = ("empty", "")
         elif errs:
-            set_badge(self.state_badge, f"{len(errs)} problem{'s' if len(errs) != 1 else ''}", "danger")
+            state = (f"{len(errs)} problem{'s' if len(errs) != 1 else ''}", "danger")
         elif self.checked:
-            set_badge(self.state_badge, "ready" + (f" · {len(warns)} warning{'s' if len(warns) != 1 else ''}"
-                                                   if warns else ""), "warning" if warns else "success")
+            state = ("ready" + (f" · {len(warns)} warning{'s' if len(warns) != 1 else ''}" if warns else ""),
+                     "warning" if warns else "success")
         else:
-            set_badge(self.state_badge, "not checked", "")
+            state = ("not checked", "")
+        set_badge(self.state_badge, *state)
+        set_badge(self.run_badge, *state)        # beside the buttons it explains
+        set_variant(self.btn_check, "" if self.checked else "primary")   # the next step is the bright one
+        set_variant(self.btn_run, "primary" if self.checked else "")
+        self._mark_fits()
         files = self.run_files()
         n = len([f for f in files if f])
         self.files_label.setText(f"FILES TO RUN ON  ·  {n}" if n else "FILES TO RUN ON")
@@ -1387,6 +1710,8 @@ class WorkflowPage(QWidget):
             self.run_note.setText("Add the files to run on in the Inputs tab.")
         else:
             self.run_note.setText("Ready. Unchanged steps come from the cache.")
+        self._tint_rail()
+        self._sync_picker()
         self._update_head()
 
     def status_text(self) -> str:
@@ -1431,6 +1756,8 @@ class WorkflowPage(QWidget):
         self.queue.retheme(theme)
         self.library.retheme(theme)
         self.btn_vary.setIcon(icon("dice", theme["text-2"], 16))
+        self.run_icon.setPixmap(icon("pipeline", theme["accent-text"], 15).pixmap(15, 15))
+        self._apply_fold()
         self._refresh_cards()
         self._show_inspector()
 

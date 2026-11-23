@@ -75,6 +75,13 @@ def set_badge(b: QLabel, text: str, tone: str = "") -> None:
     repolish(b)
 
 
+def set_variant(b, variant: str = "") -> None:
+    """Change a button's look (primary, danger, ghost, or '' for the plain one) and restyle it."""
+    if (b.property("variant") or "") != variant:
+        b.setProperty("variant", variant)
+        repolish(b)
+
+
 def hairline() -> QFrame:
     f = QFrame()
     f.setObjectName("hairline")

@@ -63,7 +63,8 @@ src/atlas_toolkit/
     sidebar.py     the tool list: foldable groups, full or icons only (the Workflows library mirrors it)
     tool_page.py   the generic tool page
     home.py  activity.py  palette.py  bridge.py (runner events → Qt signals)  context.py
-    workflow/      the Workflows page: canvas (steps, ports, arrows), step library, inspector, page (check, run)
+    workflow/      the Workflows page: canvas (steps, ports, arrows; left to right or top to bottom), step library,
+                   inspector, page (check, run; stacked or side-by-side layout, foldable tabs)
     theme/         tokens.json and icons.json (synced from the studio design system), Geist fonts, qss.py stylesheet
     widgets/       spin (the one number field: triangles, steps that fit the parameter), param_form, file_queue, preview (stage), plot_view (2D), mesh_view (3D), common
                    face_paint: the shared paint-a-face-area dialog (Surface Eject, Crumble, Stairs); it picks

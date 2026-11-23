@@ -703,8 +703,16 @@ Mesh input → Mesh Shatter → Hatch Maker (Contours) → Overlap Cleaner (Whol
 - **Set up each step** with the same presets and settings as on the tool's page. **Aim in tool…** opens the step's
   input in the tool's page (Hatch Maker's view, Plotter Vision's camera); **Back to workflow** brings the settings
   back. Right-click a setting's name to show it on the workflow's own panel, which appears when no step is selected.
-- **Check, then Run.** Check lists anything that would stop the workflow, both on the canvas and in Problems. Run is
-  enabled once Check passes, and runs once per file in Inputs. Any edit asks for a new Check.
+- **Check, then Run.** The tinted **Workflow controls** panel under the step settings runs the whole workflow, and
+  its bright button is always the next thing to do. Check lists anything that would stop the workflow, both on the
+  canvas and in Problems. Run is enabled once Check passes, and runs once per file in Inputs. Any edit asks for a
+  new Check.
+- **Two layouts.** **Stacked** puts the pipeline across the top, left to right, with the tabs and the preview below.
+  **Side by side** puts the pipeline on the left, drawn top to bottom, with the tabs under it, and the preview on the
+  right at full height. Lay out (L) and Fit (F) follow the layout. Switching never changes the workflow itself.
+- **Fold the tabs away** with the arrow beside Inputs, for a wider preview (Stacked) or a taller pipeline (Side by
+  side). A slim strip keeps one button per tab. While they are folded, a picker beside the preview's title chooses
+  the file to preview. A Check that finds errors brings the tabs back on Problems.
 - **New variation** (under Run, for workflows with seeded steps) runs again with new random seeds and the same
   settings; its files get the date and time, so every variation is kept, and the log lists the seeds drawn.
 - **Only Save writes files.** Intermediate results stay in a cache, so steps that did not change are not run again
