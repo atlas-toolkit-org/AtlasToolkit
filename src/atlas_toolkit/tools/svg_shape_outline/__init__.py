@@ -13,7 +13,7 @@ def _layers(info):
 TOOL = Tool(
     id="svg-shape-outline",
     name="Shape Outline",
-    version="2.0",
+    version="2.0.1",
     category="svg",
     icon="vector",
     action="Outline",

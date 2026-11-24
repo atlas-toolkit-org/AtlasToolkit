@@ -10,6 +10,9 @@
 - **A preset saved before a parameter was renamed keeps its value.** Loading one put the new parameter's default in
   first, so the old name was never read: a Hatch Maker 7.0 preset with *Everything on one pen* loaded as a layer per
   pen, without a word. Saved settings and workflows already converted; presets now do too.
+- **Shape Outline 2.0.1 outlines big, intricate drawings.** On a dense Contour Lines drawing (a 259k-face head) the
+  inward step of *Envelope* could come back self-intersecting from GEOS, and the union after it failed with "unable to
+  assign free hole to a shell". Such a shape is now repaired first (`make_valid`, keeping every lobe).
 
 ## 2.5.0 (unreleased)
 

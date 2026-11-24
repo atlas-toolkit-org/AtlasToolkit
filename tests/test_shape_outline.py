@@ -116,6 +116,18 @@ class OutlineTests(unittest.TestCase):
         with self.assertRaises(so.OutlineError):
             run('<text x="1" y="1">no strokes</text>')
 
+    def test_a_self_intersecting_buffer_is_repaired_before_any_union(self):
+        """GEOS can return an invalid inward buffer for a large, intricate outline; a union of it then raised
+        "unable to assign free hole to a shell" (Silhouette on a 259k-face head's contours)."""
+        from shapely.geometry import GeometryCollection, Polygon
+        bowtie = Polygon([(0, 0), (10, 10), (10, 0), (0, 10)])
+        self.assertFalse(bowtie.is_valid)
+        fixed = so._valid(bowtie)
+        self.assertTrue(fixed.is_valid)
+        self.assertAlmostEqual(sum(p.area for p in so._polygons(fixed)), 50, delta=1e-6)
+        nested = GeometryCollection([fixed, Polygon([(20, 0), (21, 0), (21, 1)])])
+        self.assertEqual(len(so._polygons(nested)), 3)                       # both triangles, and the third
+
 
 if __name__ == "__main__":
     unittest.main()
