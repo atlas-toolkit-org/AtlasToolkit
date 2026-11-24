@@ -225,6 +225,16 @@ def stabilize(solid, height):
                 if (len(repaired.decompose()) == components and abs(repaired.volume() - volume) <= volume * 1e-6
                         and safe(repaired)):
                     return repaired, allowance
+    # A cut can leave two vertices closer than float32 resolves but further apart than these tolerances may
+    # collapse (a 259k-face head's strata: a 6.7e-11 triangle). Every export writes float32, so its welded copy is
+    # what the file holds anyway: accept that copy when it is still a closed solid with the same pieces and volume.
+    snapped = clean(trimesh.Trimesh(mesh.vertices.astype(np.float32).astype(np.float64), mesh.faces.copy(),
+                                    process=False))
+    if snapped.is_volume and snapped.nondegenerate_faces().all():
+        repaired = from_arrays(snapped.vertices, snapped.faces)
+        if (len(repaired.decompose()) == components and abs(repaired.volume() - volume) <= volume * 1e-6
+                and safe(repaired)):
+            return repaired, float(np.finfo(np.float32).eps) * height
     raise ValueError("Connector joints could not be stabilized for reliable export. Reduce branches or increase thickness.")
 
 

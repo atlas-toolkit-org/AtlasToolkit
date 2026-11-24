@@ -27,6 +27,22 @@
     gives a solid, the safe tidy now closes what decimation pinched. One working result changes: a model that kept its
     full detail because every target pinched (the light Venus, 40k faces a copy) now gets the Source detail asked.
   - New `geom.repair.simplified_solid`: a lighter copy of a solid that is still a solid (decimation, then the tidy).
+- **Strata Sculpt 1.2.0 and Surface Eject 0.4.0 no longer stop a whole run over one connector.** On the catalogue,
+  Airy Roots, Square Supports and Pinned Strata failed on both David heads ("No safe connector"), and Fine Veins on
+  the heads, Thinker and the skull; changing the seed rarely helped. The 25
+  connected results that worked before (both heads, and Strata on Thinker and Venus) are byte-identical; the first
+  change below could in principle admit a support or branch that used to be rejected:
+  - A joint that float32 welds (two vertices a cut left closer than it resolves) is accepted as written: every export
+    writes float32, and the copy must still be closed, with the same pieces and volume (`solid_connectors.stabilize`,
+    for both tools). This was the whole failure of Square Supports and Airy Roots on the 30k head.
+  - *Strata*: a small piece a cut clips off a curl got its candidates only on its tapering rim; a pair that connects
+    from none of them now tries points inside its own facing caps, the most interior first. A speck narrower than six
+    of the thinnest connector, which no support fits, is left out and counted. When the fused solid cannot be
+    stabilized even without branches, the support that breaks it is found by halving and left out if its gap keeps
+    another (Airy Roots on Thinker).
+  - *Surface Eject*: a fragment no bridge can reach (one from the base of a bust thrown up past the head) floats free
+    like an unselected one, and so does one whose joint breaks the fused solid next to the others; the report names
+    them. Fine Veins: one floats on each David head, two of 22 on Thinker, seven on the thin-walled skull.
 
 ## 2.5.0 (unreleased)
 

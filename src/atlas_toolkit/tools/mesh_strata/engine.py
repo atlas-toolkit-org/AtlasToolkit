@@ -143,7 +143,8 @@ def run(ctx, src: Path, dst: Path | None, p) -> Result:
             pairs = info.get("pairs", [])
             fitted = sum(row.get("supports", 0) < row.get("requested", 0) for row in pairs)
             lines.append(f"  stage {i}    {len(records)} fused supports; {achieved}/{requested} extra branches; "
-                         f"{fitted} pairs fitted below requested count; {info.get('components', 1)} solid components")
+                         f"{fitted} pairs fitted below requested count; {info.get('components', 1)} solid components"
+                         + (f"; {info['left_out']} specks left out" if info.get("left_out") else ""))
             for row in records:
                 lines.append(f"    layers {row['lower']+1}–{row['upper']+1}: thickness {row['diameter']/frame.scale:.5g} units; "
                              f"forks {row['branches']}/{row['requested_branches']}; levels {row['branch_levels']}; "

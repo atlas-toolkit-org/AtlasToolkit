@@ -32,7 +32,7 @@ def dislocated(v):
 TOOL = Tool(
     id="mesh-strata",
     name="Strata Sculpt",
-    version="1.1.1",
+    version="1.2.0",
     category="mesh",
     icon="strata",
     action="Sculpt",

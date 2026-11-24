@@ -52,6 +52,13 @@ double/float32 geometry with the same bounded precision policy as Surface Eject.
 holes or silently exporting an unattached required joint. Reduce dislocation or thickness, or change Connection
 seed, if a required connection cannot be fitted.
 
+Three recoveries apply only where a run would otherwise stop. Samples are
+drawn over a layer's whole section, so a small piece (a curl tip the cut clips) gets them only on its rim: a pair
+that none of them connects also tries points inside its own facing caps, the most interior first. A speck narrower
+than six times the thinnest connector, which no support fits, is left out (the report counts it). And when the
+fused solid cannot be stabilized even with every branch removed, supports are added in order and one that breaks it
+is left out if its gap keeps another.
+
 Amount zero is the exact original mesh. The original influence and motion controls still apply; supports join
 affected layers to their neighbours. Connected Draft and Preview compute the same full geometry as Sculpt;
 display copies may still be simplified. Maximum faces limits input, generated geometry and progression output.

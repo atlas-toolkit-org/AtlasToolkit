@@ -80,7 +80,7 @@ def build(extraction, p, height, ctx=None):
     body_query = trimesh.proximity.ProximityQuery(body_mesh)
     all_parts = union(extraction.parts)
     segments = min(48, int(p["segments"]))
-    connectors, records = [], []
+    connectors, records, unreachable = [], [], []
     precision = 0.
     for ordinal, index in enumerate(selected):
         part, row, interface = extraction.parts[index], extraction.records[index], extraction.interfaces[index]
@@ -131,8 +131,10 @@ def build(extraction, p, height, ctx=None):
             if valid(candidate):
                 break
         else:
-            raise ValueError(f"Connector for fragment {index + 1} is obstructed or cannot reach its cavity. "
-                             "Increase Footprint spacing, reduce ejection distance or change Seed; no output was published.")
+            # Its bridge would pass through the body (a fragment from the base of a bust thrown up past the head)
+            # or another fragment. That no longer stops the run: it floats, like an unselected one, and says so.
+            unreachable.append(index)
+            continue
         paths = [path]
         branch_solids = [candidate]
         levels, path_radii = [0], [radius]
@@ -264,6 +266,29 @@ def build(extraction, p, height, ctx=None):
             raise ValueError("Connectors exceed Maximum faces. Reduce Pieces / Extra branches / Curved shape segments.")
     if ctx:
         ctx.check_cancel()
+    try:
+        combined, adjustment = assemble(extraction, selected, unreachable, connectors, records, p, height, ctx)
+    except ValueError as error:
+        if "stabilized" not in str(error) or len(connectors) < 2:
+            raise
+        # Each joint was sound with its own fragment, yet two far apart can still meet through a thin wall in the
+        # fused solid. Find the first connector that breaks it (by halving) and let that fragment float instead.
+        lost = unstable_connectors(extraction, selected, unreachable, connectors, height, ctx)
+        keep = [i for i in range(len(connectors)) if i not in lost]
+        unreachable += [records[i]["fragment_index"] for i in lost]
+        connectors, records = [connectors[i] for i in keep], [records[i] for i in keep]
+        combined, adjustment = assemble(extraction, selected, unreachable, connectors, records, p, height, ctx)
+    if unreachable and ctx:
+        many = len(unreachable) > 1
+        ctx.note(f"{len(unreachable)} fragment{'s' if many else ''} ({', '.join(str(i + 1) for i in sorted(unreachable))}) "
+                 f"could not be safely joined to {'their cavities' if many else 'its cavity'} and "
+                 f"float{'' if many else 's'} free, as unselected fragments do.")
+    return Connections(combined, connectors, records, max(precision, adjustment))
+
+
+def assemble(extraction, selected, unreachable, connectors, records, p, height, ctx=None):
+    """The fused body, attached fragments and their connectors, with any other fragment floating free."""
+    selected = [index for index in selected if index not in unreachable]
     joined = union([extraction.body, *(extraction.parts[index] for index in selected), *connectors])
     # Check the selected assembly on its own: loose components are legitimate only for unselected fragments.
     if len(joined.decompose()) > len(extraction.body.decompose()):
@@ -274,5 +299,36 @@ def build(extraction, p, height, ctx=None):
     if (combined.status() != mf.Error.NoError or combined.is_empty() or combined.num_tri() > p["max_faces"]
             or len(combined.decompose()) != expected_components):
         raise ValueError("Connector assembly lost a selected joint or an unselected floating piece.")
-    combined, adjustment = stabilize(combined, height)
-    return Connections(combined, connectors, records, max(precision, adjustment))
+    return stabilize(combined, height)
+
+
+def unstable_connectors(extraction, selected, unreachable, connectors, height, ctx=None):
+    """Connectors to leave out so the fused solid can be stabilized: each time, the first one (in order) whose
+    union with the body, every fragment and the connectors before it cannot be. Empty when even the body and
+    fragments alone cannot be (then nothing here helps)."""
+    base = [extraction.body, *extraction.parts]
+
+    def stable(indices):
+        if ctx:
+            ctx.check_cancel()
+        try:
+            stabilize(union(base + [connectors[i] for i in indices]), height)
+            return True
+        except ValueError:
+            return False
+
+    if not stable([]):
+        raise ValueError("Connector joints could not be stabilized for reliable export. Reduce branches or increase thickness.")
+    accepted, rest, lost = [], list(range(len(connectors))), []
+    while rest and not stable(accepted + rest):
+        lo, hi = 0, len(rest) - 1
+        while lo < hi:
+            mid = (lo + hi) // 2
+            if stable(accepted + rest[:mid + 1]):
+                lo = mid + 1
+            else:
+                hi = mid
+        lost.append(rest[lo])
+        accepted += rest[:lo]
+        rest = rest[lo + 1:]
+    return lost
