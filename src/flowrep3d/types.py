@@ -31,6 +31,15 @@ def progress_to(callback: Progress | None, value: float, message: str, cancel=No
         callback(float(value), message)
 
 
+def stage(callback: Progress | None, start: float, end: float, message: str):
+    """A progress callback for one long step: `report(fraction, detail)` moves the bar from start to end."""
+    if not callback:
+        return None
+    def report(fraction, detail=""):
+        callback(start + (end - start) * min(max(float(fraction), 0.0), 1.0), f"{message} ({detail})" if detail else message)
+    return report
+
+
 @dataclass
 class FlowRepOptions:
     dmax: float = 20.0

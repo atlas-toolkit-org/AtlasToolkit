@@ -92,9 +92,10 @@ class DeclutterTests(unittest.TestCase):
         flows=rows+[up,down,late]
         state=NetworkState(CoverageEvaluator(mesh,flows),mesh.topology.edge_faces[:,1]<0)
         state.ranges[5]=[2,5]                                       # late is drawn from row 3 up
-        state.counts=(mesh.topology.edge_faces[:,1]<0).astype(np.int64)
+        counts=(mesh.topology.edge_faces[:,1]<0).astype(np.int64)
         for fi,f in enumerate(flows):
-            a,b=state.ranges[fi]; state.counts[f.edges[a:b]]+=1
+            a,b=state.ranges[fi]; counts[f.edges[a:b]]+=1
+        state.counts=counts                                         # assigned whole: degrees follow the counts
         proposal=_bridged_removal(state,1)
         self.assertFalse(proposal.selected[1])
         self.assertTrue(proposal.selected[3] and proposal.selected[4])

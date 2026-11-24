@@ -7,6 +7,21 @@
   ball: 3 h 44 → 42 min). Sketch Hatching and Stipple now report their travel before ordering too, and Depth Hatching
   uses the shared tiles. The estimate counts the travel only, not lifts saved by joining, so it never overstates the
   saving. A "was" that reads the same as the value (ordering off) is left out.
+- **FlowRep Sketch 0.3.1 is several times quicker, most of all on big meshes, with the same drawings.** On the sculpted
+  head (524k triangles), extraction with loading takes 47 s at 6000 quads and 70 s at 10,000 (before: about 2.5 and
+  11 minutes), 2.5 minutes at 20,000 (was about 13) and 5 at 40,000: it now grows about linearly. Profiling showed the
+  simplifier measuring the same patches over and over (1.45 million measures at 10,000 quads): they are now cached
+  under exactly what they read, whole assessments too, and the local search recomputes only the curve costs a swap
+  can change. Clustering builds its graph with array operations and refines each pair of clusters near the border
+  they share, not over both whole clusters (86 s → 9 s at 20,000 quads; the step that grew as faces^1.5). Uniform
+  meshes (scans, sculpts, STL) load with array operations: 32 s → 2 s for the head's faces.
+- Only the clustering window can change a result: with full refinement the networks are bit for bit the old ones
+  (checked on the head and on each benchmark model whose drawing changed). The window's clustering score on the head
+  at 20,000 quads matches the full refinement's (slightly higher on the second stage). At 6000 quads 10 of 14
+  benchmark drawings are byte-identical; the others differ by a curve or two (the wine glass and bottle lose their
+  last loose ends, spot gains three strokes).
+- The bar no longer sits at 9 % while clustering: it has its own steps (merging, then each refinement pass), and the
+  local search and decluttering report as they go. *Remesh resolution*'s help says what each range costs.
 - **A preset saved before a parameter was renamed keeps its value.** Loading one put the new parameter's default in
   first, so the old name was never read: a Hatch Maker 7.0 preset with *Everything on one pen* loaded as a layer per
   pen, without a word. Saved settings and workflows already converted; presets now do too.

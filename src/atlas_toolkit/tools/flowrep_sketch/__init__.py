@@ -6,7 +6,7 @@ from atlas_toolkit.core import (CAMERA_KEYS, CAMERA_NOTE, FRAME_KEYS, Bool, Choi
 TOOL = Tool(
     id="flowrep-sketch",
     name="FlowRep Sketch",
-    version="0.3.0",
+    version="0.3.1",
     category="mesh2svg",
     icon="flowrep-sketch",
     action="Draw",
@@ -38,7 +38,8 @@ TOOL = Tool(
                 Choice("prepare","Mesh preparation","auto",
                        [("auto","Auto"),("preserve","Preserve polygons"),("remesh","Remesh")]),
                 Int("target_faces","Remesh resolution",6000,min=100,max=200000,step=500,
-                    help="Approximate number of quads for triangle inputs."),
+                    help="Approximate number of quads for triangle inputs. 3000-10,000 suits most models (about a minute "
+                         "on a dense sculpt); 20,000 takes 2-3 minutes and 40,000 about 5. Finer rarely adds lines a pen shows."),
                 Float("crease_angle","Sharp feature angle",45.,unit="°",min=1,max=180,step=1,decimals=1,advanced=True),
                 Bool("declutter","Declutter parallel curves",True,
                      help="Remove one of two flowlines running side by side when the shape is still described "

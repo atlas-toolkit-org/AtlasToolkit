@@ -116,6 +116,45 @@ draws broken arcs (its network is fragmented there). The doghead and bottle keep
 as feature curves, and the authors' networks have none. Wall-clock time: about seven minutes for all 14
 models, six at a time; the paper inputs are their own 6k-30k quad meshes.
 
+## Speed, FlowRep Sketch 0.3.1 (2026-11-23)
+
+The same 14 models at 6000 quads, 0.3.0 against 0.3.1, six at a time (extraction time includes loading and
+remeshing; *Declutter* on, as the tool runs):
+
+| Model | Quads | 0.3.0 s | 0.3.1 s | Drawing |
+|---|---|---|---|---|
+| David head (light) | 5684 | 131 | 58 | identical |
+| goblet | 6508 | 107 | 50 | identical |
+| rook | 5748 | 180 | 76 | identical |
+| rounded cube | 5886 | 59 | 44 | identical |
+| teapot | 6110 | 188 | 78 | identical |
+| Venus of Willendorf (light) | 5918 | 120 | 52 | identical |
+| doghead | 14886 | 354 | 117 | identical |
+| mouse | 29508 | 514 | 231 | identical |
+| mug | 5984 | 78 | 39 | identical |
+| phone | 5288 | 73 | 35 | identical |
+| cube | 6052 | 24 | 31 | same counts, one removal fewer |
+| spot | 5980 | 134 | 56 | 55 → 58 strokes |
+| bottle | 20788 | 380 | 158 | 49 strokes both, free ends 2 → 0 |
+| wine glass | 4727 | 58 | 26 | 57 → 55 strokes, free ends 1 → 0 |
+
+The four that differ come from the clustering window alone: run with full refinement, 0.3.1 gives every one of
+them bit for bit the 0.3.0 network. The window's clustering score on the sculpted head at 20,000 quads equals the
+full refinement's on edges (30510.27) and is slightly higher on flowlines (2515.65 against 2514.73). These runs
+were measured with the caches but before the faster loader and region keys, so they understate 0.3.1.
+
+The sculpted head (524k triangles, 20°, *Declutter* on), extraction with loading, one at a time:
+
+| Quads | 6000 | 10,000 | 20,000 | 40,000 | 100,000 |
+|---|---|---|---|---|---|
+| 0.3.0 | about 2.5 min (at 5000) | 11 min under the profiler | about 13 min | not run | not run |
+| 0.3.1 | 47 s | 70 s | 145 s | 299 s | 17 min (a build ran beside it) |
+
+The 0.3.0 runs had *Declutter* off, which only saves time. Time now grows about linearly with the resolution up to
+40,000 quads, a little faster beyond. At Descriptiveness 1° (almost nothing removable) the head takes 37 s at 10,000 quads
+and 3 min 51 s at 50,000; in 0.3.0 a 100,000-quad run at those settings never got past clustering.
+What remains is spread over measuring the new patches, building proposals and the local search; no step dominates.
+
 ## Dense triangle preparation
 
 A subdivided dog-head STL with 117,760 triangles produced 6,070 quads

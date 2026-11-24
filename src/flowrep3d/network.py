@@ -12,7 +12,7 @@ from scipy.sparse.csgraph import connected_components
 
 from .flowlines import projectivity
 from .mesh import unit
-from .types import checkpoint, progress_to
+from .types import checkpoint, progress_to, stage
 
 
 def predict_normal(n1, n2, distance_from_first, distance_from_second):
@@ -44,11 +44,49 @@ class Region:
     dominance_error: float = 0.0
 
 
+def _csr(lists):
+    """(pointer, flat) arrays for a list of integer lists."""
+    sizes=np.fromiter((len(x) for x in lists),np.int64,len(lists))
+    flat=np.fromiter((int(v) for x in lists for v in x),np.int64,int(sizes.sum()))
+    return np.r_[0,np.cumsum(sizes)],flat
+
+
+def _gather(pointer, flat, rows):
+    """flat entries of the given rows, row after row."""
+    starts=pointer[rows]; sizes=pointer[rows+1]-starts
+    total=int(sizes.sum())
+    if not total:
+        return flat[:0]
+    return flat[np.repeat(starts-np.r_[0,np.cumsum(sizes)[:-1]],sizes)+np.arange(total)]
+
+
+_SALTS = tuple(np.uint64(x) for x in (0x243F6A8885A308D3,0x13198A2E03707344,0xA4093822299F31D0,0x082EFA98EC4E6C89,
+                                         0x452821E638D01377,0xBE5466CF34E90C6C))
+
+
+def _mix(x, salt):
+    """splitmix64 of integer ids (with a salt per kind of item), for order-free region keys."""
+    with np.errstate(over="ignore"):
+        z=np.asarray(x,np.int64).astype(np.uint64)^salt
+        z=z+np.uint64(0x9E3779B97F4A7C15)
+        z=(z^(z>>np.uint64(30)))*np.uint64(0xBF58476D1CE4E5B9)
+        z=(z^(z>>np.uint64(27)))*np.uint64(0x94D049BB133111EB)
+        return z^(z>>np.uint64(31))
+
+
+MEASURE_CACHE = 400_000   # region measurements kept (a few scalars each, keyed by a 16-byte digest)
+ASSESS_CACHE = 12_000_000  # face and vertex ids kept in cached assessments (about 100 MB)
+
+
 class CoverageEvaluator:
+    """Measures regions (§5.1). A region's measure depends only on its faces, on which edges round its vertices
+    are blocked, on which of its flowlines count as crossing, and on the fixed positions and normals; the
+    simplifier asks for the same region thousands of times (every evaluation and re-evaluation of a removal, and
+    the local search's energy), so results are cached under a digest of exactly those inputs."""
     def __init__(self, mesh, flows, cancel=None):
         self.mesh,self.flows,self.topo,self.cancel=mesh,flows,mesh.topology,cancel
-        self.N=self.topo.normals
-        self.positions=mesh.vertices
+        self._N=self.topo.normals
+        self._positions=mesh.vertices
         self.vertex_flows=[[] for _ in mesh.vertices]
         for fi,f in enumerate(flows):
             for v in set(map(int,f.vertices)):
@@ -56,29 +94,60 @@ class CoverageEvaluator:
         self.face_vertices=[np.asarray(f,np.int64) for f in mesh.faces]
         offsets=np.cumsum([0]+[len(f) for f in mesh.faces])
         self.face_halfedges=[np.arange(a,b,dtype=np.int64) for a,b in zip(offsets[:-1],offsets[1:])]
-        self._last_blocked=None
-        self._anchors=None
+        self._fv=_csr(mesh.faces); self._ve=_csr(self.topo.vertex_edges); self._vf=_csr(self.vertex_flows)
+        self._fe=_csr(self.topo.face_edges)
+        self._cache={}; self.cache_hits=0; self.cache_misses=0
 
-    def network_anchors(self,blocked):
-        if self._last_blocked is not blocked:
-            anchors=np.zeros(len(self.mesh.vertices),bool)
-            anchors[self.topo.edges[blocked].ravel()]=True
-            self._last_blocked=blocked
-            self._anchors=anchors
-        return self._anchors
+    # Positions and normals change once, after regularization: the cached measures then no longer hold.
+    @property
+    def positions(self):
+        return self._positions
+
+    @positions.setter
+    def positions(self, value):
+        self._positions=value; self._cache.clear()
+
+    @property
+    def N(self):
+        return self._N
+
+    @N.setter
+    def N(self, value):
+        self._N=value; self._cache.clear()
+
+    def crossing_mask(self, crossing):
+        if crossing is None or isinstance(crossing,np.ndarray):
+            return crossing
+        mask=np.zeros(len(self.flows),bool)
+        if crossing: mask[list(crossing)]=True
+        return mask
 
     def partition(self, blocked, faces=None):
+        """Connected face regions between blocked edges. Only the given faces' own edges are read, so the cost is
+        the size of the region, not of the mesh (this runs for every proposal)."""
         T=self.topo
         if faces is None:
             faces=np.arange(len(self.mesh.faces),dtype=np.int64)
         faces=np.asarray(faces,np.int64)
         if not len(faces):
             return []
-        local=np.full(len(self.mesh.faces),-1,np.int64)
-        local[faces]=np.arange(len(faces))
-        D=T.dual_faces
-        valid=(~blocked[T.dual_edges])&(local[D[:,0]]>=0)&(local[D[:,1]]>=0)
-        a,b=local[D[valid,0]],local[D[valid,1]]
+        if len(faces)==len(self.mesh.faces):
+            local=np.full(len(self.mesh.faces),-1,np.int64)
+            local[faces]=np.arange(len(faces))
+            D=T.dual_faces
+            valid=(~blocked[T.dual_edges])&(local[D[:,0]]>=0)&(local[D[:,1]]>=0)
+            a,b=local[D[valid,0]],local[D[valid,1]]
+        else:
+            edges=np.unique(_gather(*self._fe,faces))
+            edges=edges[~blocked[edges]]
+            EF=T.edge_faces[edges]; EF=EF[EF[:,1]>=0]
+            order=np.argsort(faces,kind="stable"); ordered=faces[order]
+            def local_of(x):
+                at=np.minimum(np.searchsorted(ordered,x),len(ordered)-1)
+                return np.where(ordered[at]==x,order[at],-1)
+            a,b=local_of(EF[:,0]),local_of(EF[:,1])
+            valid=(a>=0)&(b>=0)
+            a,b=a[valid],b[valid]
         graph=coo_matrix((np.ones(len(a),np.int8),(a,b)),shape=(len(faces),len(faces))).tocsr()
         _,labels=connected_components(graph,directed=False)
         order=np.argsort(labels,kind="stable")
@@ -87,12 +156,14 @@ class CoverageEvaluator:
 
     def _boundary(self, faces, blocked):
         T=self.topo
-        inside=np.zeros(len(self.mesh.faces),bool); inside[faces]=True
+        ordered=np.sort(faces)
         half=np.concatenate([self.face_halfedges[int(f)] for f in faces])
         twin=T.he_twin[half]
         is_boundary=blocked[T.he_edge[half]]|(twin<0)
         valid=twin>=0
-        is_boundary[valid]|=~inside[T.he_face[twin[valid]]]
+        other=T.he_face[twin[valid]]
+        at=np.minimum(np.searchsorted(ordered,other),len(ordered)-1)
+        is_boundary[valid]|=ordered[at]!=other
         boundary=half[is_boundary]
         boundary_set=set(map(int,boundary))
         used=set(); cycles=0
@@ -117,20 +188,16 @@ class CoverageEvaluator:
         vertices=np.unique(np.r_[T.he_vertices[boundary],T.he_vertices[T.he_next[boundary]]])
         return vertices,cycles
 
-    def network_degree(self, blocked):
-        if getattr(self,"_degree_blocked",None) is not blocked:
-            self._degree=np.bincount(self.topo.edges[blocked].ravel(),minlength=len(self.mesh.vertices))
-            self._degree_blocked=blocked
-        return self._degree
-
     def _thin(self, faces, vertices, boundary, blocked, cycles):
         """A region with no interior vertex (a strip one quad wide, or a single quad) has nothing to predict inside,
         but its cycle must still describe it: each stretch of its boundary between two junctions is predicted from
         the normals at its ends, as interior vertices are along a crossing flowline (§5.1). A fully dense network
         (every side one edge) scores 0. A strip whose ring runs round a whole tube to a single meridian does not:
         without this, stacks of parallel rings with one meridian were a trivially "descriptive" optimum."""
-        degree=self.network_degree(blocked)
-        corner=degree[boundary]>=3
+        incident=[self.topo.vertex_edges[int(v)] for v in boundary]
+        owner=np.repeat(np.arange(len(boundary)),[len(x) for x in incident])
+        degree=np.bincount(owner,blocked[np.concatenate(incident).astype(np.int64)],len(boundary))
+        corner=degree>=3
         if corner.all():
             return Region(faces,vertices,0.0,cycles,0,0)
         from .flowlines import graph_chains
@@ -148,22 +215,80 @@ class CoverageEvaluator:
         error=percentile90(np.asarray(angles)) if angles else 0.0
         return Region(faces,vertices,error,cycles,0,0,error)
 
-    def measure(self, faces, blocked, crossing=None):
+    def _keys(self, faces, label, count, blocked, crossing):
+        """Per region (faces[i] belongs to region label[i]): its sorted vertices, and a key that changes when
+        anything its measure reads changes: its faces, which edges round its vertices are blocked, and (for
+        dominance) which flowlines through its vertices cross. Each key is two order-free sums of 64-bit hashes
+        of those items, computed for all regions at once."""
+        nv=len(self.mesh.vertices)
+        rows=_gather(*self._fv,faces)
+        owner=np.repeat(label,self._fv[0][faces+1]-self._fv[0][faces])
+        pairs=np.unique(owner*nv+rows)
+        region,vertex=pairs//nv,pairs%nv
+        hashes=[(_mix(faces,s),label) for s in _SALTS[:2]]
+        star_owner=np.repeat(region,self._ve[0][vertex+1]-self._ve[0][vertex])
+        star=_gather(*self._ve,vertex)
+        token=star*2+blocked[star]
+        hashes+=[(_mix(token,s),star_owner) for s in _SALTS[2:4]]
+        if crossing is not None:
+            flow_owner=np.repeat(region,self._vf[0][vertex+1]-self._vf[0][vertex])
+            flows=_gather(*self._vf,vertex)
+            token=flows*2+crossing[flows]
+            hashes+=[(_mix(token,s),flow_owner) for s in _SALTS[4:6]]
+        total=np.zeros((2,count),np.uint64)
+        for k,(h,where) in enumerate(hashes):
+            np.add.at(total[k%2],where,h)
+        sizes=np.bincount(label,minlength=count); vsizes=np.bincount(region,minlength=count)
+        cuts=np.r_[0,np.cumsum(vsizes)]
+        keys=[(int(a),int(b),int(c),int(d),crossing is not None)
+              for a,b,c,d in zip(sizes.tolist(),vsizes.tolist(),total[0].tolist(),total[1].tolist())]
+        return keys,[vertex[cuts[i]:cuts[i+1]] for i in range(count)]
+
+    def measure_all(self, groups, blocked, crossing=None):
+        """Regions for several face groups (as `partition` returns them) at once."""
         checkpoint(self.cancel)
-        vertices=np.unique(np.concatenate([self.face_vertices[int(f)] for f in faces]))
-        # Planar regions need no prediction or boundary tracing. Reusing the
-        # anchor mask also avoids full-mesh allocation for every tiny patch.
-        anchors=self.network_anchors(blocked)
-        interior=vertices[~anchors[vertices]]
+        if not groups:
+            return []
+        crossing=self.crossing_mask(crossing)
+        faces=np.concatenate(groups).astype(np.int64)
+        label=np.repeat(np.arange(len(groups)),[len(g) for g in groups])
+        keys,vertex_lists=self._keys(faces,label,len(groups),blocked,crossing)
+        out=[]
+        for f,key,vertices in zip(groups,keys,vertex_lists):
+            known=self._cache.get(key)
+            if known is not None:
+                self.cache_hits+=1
+                out.append(Region(f,vertices,*known)); continue
+            self.cache_misses+=1
+            region=self._measure(np.asarray(f,np.int64),vertices,blocked,crossing)
+            if len(self._cache)>=MEASURE_CACHE:
+                self._cache.clear()
+            self._cache[key]=(region.error,region.boundary_cycles,region.interior_vertices,region.predicted_vertices,
+                              region.dominance_error)
+            out.append(region)
+        return out
+
+    def measure(self, faces, blocked, crossing=None):
+        return self.measure_all([np.asarray(faces,np.int64)],blocked,crossing)[0]
+
+    def _measure(self, faces, vertices, blocked, crossing):
+        # Everything below is indexed by position in `vertices` (sorted): no array the size of the mesh is made,
+        # since this runs for every proposal the simplifier weighs.
+        def locate(ids):
+            at=np.minimum(np.searchsorted(vertices,ids),len(vertices)-1)
+            return at,vertices[at]==ids
         fn=self.topo.face_normals[faces]
         mean=unit(fn.sum(0))
         planar=bool(np.all(fn@mean>=np.cos(np.radians(0.75))))
         if planar:
-            return Region(faces,vertices,0.0,-1,len(interior),len(interior))
+            # Planar regions need no prediction or boundary tracing; the count is a diagnostic only.
+            edges=np.unique(np.concatenate([self.topo.face_edges[int(f)] for f in faces]))
+            on=np.zeros(len(vertices),bool); on[locate(self.topo.edges[edges[blocked[edges]]].ravel())[0]]=True
+            interior=int((~on).sum())
+            return Region(faces,vertices,0.0,-1,interior,interior)
         boundary,cycles=self._boundary(faces,blocked)
-        inside=np.zeros(len(self.mesh.vertices),bool); inside[vertices]=True
-        anchors=np.zeros(len(inside),bool); anchors[boundary]=True
-        interior=vertices[~anchors[vertices]]
+        anchor=np.zeros(len(vertices),bool); anchor[locate(boundary)[0]]=True
+        interior=vertices[~anchor]
         # This topological rule applies even to a one-quad-wide annulus with
         # no interior vertices. Otherwise parallel rings could incorrectly
         # replace a connected descriptive network.
@@ -172,18 +297,21 @@ class CoverageEvaluator:
         if not len(interior):
             return self._thin(faces,vertices,boundary,blocked,cycles)
         candidate=sorted({fi for v in interior for fi in self.vertex_flows[int(v)]})
-        error=np.zeros(len(inside)); seen=np.zeros(len(inside),bool)
-        cross_error=np.zeros(len(inside)); cross_seen=np.zeros(len(inside),bool)
+        error=np.zeros(len(vertices)); seen=np.zeros(len(vertices),bool)
+        cross_error=np.zeros(len(vertices)); cross_seen=np.zeros(len(vertices),bool)
         for fi in candidate:
             f=self.flows[fi]; ids=f.vertices
             if f.closed:
                 base=ids[:-1]
-                ai=np.flatnonzero(anchors[base])
+                at,inside=locate(base)
+                ai=np.flatnonzero(inside&anchor[at])
                 if not len(ai):
                     continue
                 first=int(ai[0])
                 ids=np.r_[base[first:],base[:first],base[first]]
-            ai=np.flatnonzero(anchors[ids])
+            at,inside=locate(ids)
+            anchors=inside&anchor[at]
+            ai=np.flatnonzero(anchors)
             if len(ai)<2:
                 continue
             P=self.positions[ids]
@@ -192,17 +320,18 @@ class CoverageEvaluator:
                 if b<=a+1:
                     continue
                 loc=np.arange(a+1,b)
-                vv=ids[loc]
-                keep=inside[vv]&~anchors[vv]
-                loc,vv=loc[keep],vv[keep]
-                if not len(vv):
+                keep=inside[loc]&~anchors[loc]
+                loc=loc[keep]
+                if not len(loc):
                     continue
+                vv=ids[loc]; lv=at[loc]
                 prediction=predict_normal(self.N[ids[a]],self.N[ids[b]],arc[loc]-arc[a],arc[b]-arc[loc])
                 angles=np.degrees(np.arccos(np.clip((prediction*self.N[vv]).sum(1),-1,1)))
-                np.maximum.at(error,vv,angles); seen[vv]=True
-                if crossing is not None and fi in crossing:
-                    np.maximum.at(cross_error,vv,angles); cross_seen[vv]=True
-        sample=interior[seen[interior]]
+                np.maximum.at(error,lv,angles); seen[lv]=True
+                if crossing is not None and crossing[fi]:
+                    np.maximum.at(cross_error,lv,angles); cross_seen[lv]=True
+        local=np.flatnonzero(~anchor)
+        sample=local[seen[local]]
         # The paper omits isolated unpredicted vertices. A wholly unpredicted patch
         # is explicitly uncovered instead of receiving a fictitious zero error,
         # unless all it has inside is a few isolated vertices (flowlines end at a
@@ -213,7 +342,7 @@ class CoverageEvaluator:
             thin=self._thin(faces,vertices,boundary,blocked,cycles)
             return Region(faces,vertices,thin.error,cycles,len(interior),0,thin.error)
         dc=percentile90(error[sample]) if len(sample) else 90.0
-        cs=interior[cross_seen[interior]]
+        cs=local[cross_seen[local]]
         dominance=percentile90(cross_error[cs]) if len(cs) else 0.0
         return Region(faces,vertices,dc,cycles,len(interior),len(sample),dominance)
 
@@ -223,9 +352,11 @@ class NetworkState:
         self.ev=evaluator; self.flows=evaluator.flows; self.trim=np.asarray(trim,bool)
         self.selected=np.ones(len(self.flows),bool) if selected is None else np.array(selected,bool)
         self.ranges=np.array([[0,len(f.edges)] for f in self.flows],np.int64).reshape(-1,2)
-        self.counts=self.trim.astype(np.int64)
+        counts=self.trim.astype(np.int64)
         for fi in np.flatnonzero(self.selected):
-            self.counts[self.flows[fi].edges]+=1
+            counts[self.flows[fi].edges]+=1
+        self.counts=counts
+        self._assessed={}; self._assessed_size=0; self.assess_hits=0
         self.trim_vertices=np.zeros(len(evaluator.mesh.vertices),bool)
         self.trim_vertices[evaluator.topo.edges[self.trim].ravel()]=True
         self.labels=np.full(len(evaluator.mesh.faces),-1,int)
@@ -233,6 +364,17 @@ class NetworkState:
         self.next_id=0
         self.projectivity_cache={}
         self.rebuild()
+
+    @property
+    def counts(self):
+        return self._counts
+
+    @counts.setter
+    def counts(self, value):
+        """Assign counts, never change them in place: the network's vertex degrees are kept with them."""
+        self._counts=np.asarray(value)
+        E=self.ev.topo.edges
+        self.degree=np.bincount(E[self._counts>0].ravel(),minlength=len(self.ev.mesh.vertices)).astype(np.int64)
 
     @property
     def blocked(self):
@@ -245,10 +387,11 @@ class NetworkState:
     def rebuild(self):
         self.regions={}
         blocked=self.blocked
-        for faces in self.ev.partition(blocked):
+        groups=self.ev.partition(blocked)
+        for faces,region in zip(groups,self.ev.measure_all(groups,blocked)):
             rid=self.next_id; self.next_id+=1
             self.labels[faces]=rid
-            self.regions[rid]=self.ev.measure(faces,blocked)
+            self.regions[rid]=region
 
     def active_vertices(self, fi, ranges=None):
         a,b=(self.ranges if ranges is None else ranges)[fi]
@@ -261,13 +404,13 @@ class NetworkState:
         where two flowlines continue each other at an obtuse angle is not an end."""
         selected=self.selected.copy(); ranges=self.ranges.copy(); counts=self.counts.copy()
         E=self.ev.topo.edges; P=self.ev.mesh.vertices
-        degree=np.bincount(E[counts>0].ravel(),minlength=len(self.ev.mesh.vertices)).astype(int)
+        degree=self.degree.copy()                        # kept up to date below, as counts change
         def continues(v,inner):
             if degree[v]!=2: return False
             other=[int(E[e,0]) if int(E[e,1])==v else int(E[e,1]) for e in self.ev.topo.vertex_edges[v] if counts[e]>0]
             other=[w for w in other if w!=inner]
             return bool(other) and float(unit(P[inner]-P[v])@unit(P[other[0]]-P[v]))<0
-        changed=set()
+        changed=set(); examined=set(map(int,remove))|set(map(int,add))|{int(f) for f,_,_ in set_ranges}
         queue=deque(); queued=set()
         def enqueue_vertices(ids):
             for v in ids:
@@ -275,11 +418,12 @@ class NetworkState:
                     if selected[f] and f not in queued:
                         queue.append(f); queued.add(f)
         def update(fi,a,b):
-            olda,oldb=ranges[fi]
-            old=self.flows[fi].edges[olda:oldb] if selected[fi] else np.array([],int)
-            new=self.flows[fi].edges[a:b]
-            removed=np.setdiff1d(old,new,assume_unique=True)
-            added=np.setdiff1d(new,old,assume_unique=True)
+            olda,oldb=map(int,ranges[fi]); edges=self.flows[fi].edges
+            if not selected[fi]:
+                olda=oldb=0
+            # the edges of one range not in the other, in flowline order (a flowline does not repeat an edge)
+            removed=np.r_[edges[olda:max(olda,min(oldb,a))],edges[max(olda,b):oldb]] if oldb>olda else edges[:0]
+            added=np.r_[edges[a:max(a,min(b,olda))],edges[max(a,oldb):b]] if oldb>olda else edges[a:b]
             for es,sign in ((removed,-1),(added,1)):
                 before=counts[es]>0
                 counts[es]+=sign
@@ -307,7 +451,7 @@ class NetworkState:
             elif not remove and not add and not set_ranges:
                 queue.extend(map(int,np.flatnonzero(selected)))
             while queue:
-                fi=queue.popleft(); queued.discard(fi)
+                fi=queue.popleft(); queued.discard(fi); examined.add(fi)
                 if not selected[fi] or self.flows[fi].closed:
                     continue
                 a,b=ranges[fi]; ids=self.flows[fi].vertices
@@ -329,7 +473,7 @@ class NetworkState:
                     b=a+int(candidates[-1])
                 if a!=olda or b!=oldb:
                     update(fi,a,b)
-        return Proposal(selected,ranges,counts,np.array(sorted(changed),int))
+        return Proposal(selected,ranges,counts,np.array(sorted(changed),int),degree,frozenset(examined))
 
     def assess(self, proposal, crossing=None):
         if not len(proposal.changed_edges):
@@ -338,12 +482,32 @@ class NetworkState:
         affected=sorted(set(map(int,self.labels[EF[EF>=0]])))
         faces=np.concatenate([self.regions[r].faces for r in affected])
         blocked=proposal.counts>0
-        regions=[self.ev.measure(f,blocked,crossing) for f in self.ev.partition(blocked,faces)]
+        crossing=self.ev.crossing_mask(crossing)
+        # The new regions depend only on the affected faces, on which edges round their vertices the proposal
+        # blocks, and on which of their flowlines cross: the same removal is weighed again and again (re-queued
+        # candidates, the local search's energy) while nothing near it has changed.
+        ev=self.ev
+        keys,vertex_lists=ev._keys(faces,np.zeros(len(faces),np.int64),1,blocked,crossing)
+        key=keys[0]
+        known=self._assessed.get(key)
+        if known is not None:
+            self.assess_hits+=1
+            return affected,known[0],known[1]
+        vertices=vertex_lists[0]
+        regions=ev.measure_all(ev.partition(blocked,faces),blocked,crossing)
         dominance=max((r.dominance_error for r in regions),default=0.0)
+        size=len(faces)+len(vertices)
+        if self._assessed_size+size>ASSESS_CACHE:
+            self._assessed.clear(); self._assessed_size=0
+        self._assessed[key]=(regions,dominance); self._assessed_size+=size
         return affected,regions,dominance
 
     def commit(self, proposal, affected, regions):
-        self.selected,self.ranges,self.counts=proposal.selected,proposal.ranges,proposal.counts
+        self.selected,self.ranges=proposal.selected,proposal.ranges
+        if proposal.degree is None:
+            self.counts=proposal.counts
+        else:
+            self._counts,self.degree=proposal.counts,proposal.degree
         for rid in affected:
             del self.regions[rid]
         for region in regions:
@@ -357,6 +521,8 @@ class Proposal:
     ranges: np.ndarray
     counts: np.ndarray
     changed_edges: np.ndarray
+    degree: np.ndarray | None = None
+    examined: frozenset = frozenset()     # flowlines whose ends the proposal looked at
 
 
 def _compatible_composites(state):
@@ -535,12 +701,15 @@ def _bridged_removal(state, f, reach=3):
     return state.propose(remove=(f,),set_ranges=extend,keep_continuations=True)
 
 
-def _declutter(state, bound, cancel=None):
+def _declutter(state, bound, cancel=None, progress=None):
     """The paper's final declutter: of two adjacent parallel flowlines, remove the one whose removal raises the
     descriptiveness error least, when every affected region stays within the relaxed bound (dmax + 20 %)."""
     removed=0
-    for a,b in parallel_pairs(state):
+    pairs=parallel_pairs(state)
+    for k,(a,b) in enumerate(pairs):
         checkpoint(cancel)
+        if progress and k%20==0:
+            progress(k/max(1,len(pairs)),f"{k}/{len(pairs)}")
         if not (state.selected[a] and state.selected[b]):
             continue
         best=None
@@ -633,19 +802,42 @@ def simplify_network(mesh, flows, trim, options, progress=None, cancel=None):
         fa,fb=int(owner[a]),int(owner[b])
         if fa>=0 and fb>=0 and fa!=fb and flows[fa].strand==flows[fb].strand:
             neighbors[fa][fb]+=1; neighbors[fb][fa]+=1
+    # The local search's energy is the sum of every selected flowline's removal cost. Each cost depends only on the
+    # vertices its removal looks at: the flowlines its shortening examines and the regions it reshapes. A swap
+    # changes a few edges, so only costs near it are recomputed; every vertex a change touches is stamped.
+    E=ev.topo.edges
+    stamp=np.zeros(len(ev.mesh.vertices),np.int64); clock=[0]
+    def touch(edges):
+        clock[0]+=1
+        if len(edges): stamp[E[edges].ravel()]=clock[0]
+    terms={}
+    def term(fi):
+        known=terms.get(fi)
+        if known is not None and int(stamp[known[1]].max(initial=0))<=known[2]:
+            return known[0]
+        proposal=state.propose(remove=(fi,))
+        affected,_,D=state.assess(proposal,_crossing_set(state,(fi,)))
+        value=_geometric_cost(state,(fi,),compatible)+360.0-D
+        parts=[state.active_vertices(f) for f in proposal.examined|{fi}]
+        if affected:
+            parts.append(_gather(*ev._fv,np.concatenate([state.regions[r].faces for r in affected])))
+        terms[fi]=(value,np.unique(np.concatenate(parts)),clock[0])
+        return value
     def energy():
         total=0.0
         for fi in np.flatnonzero(state.selected):
-            proposal=state.propose(remove=(int(fi),))
-            _,_,D=state.assess(proposal,_crossing_set(state,(int(fi),)))
-            total+=_geometric_cost(state,(int(fi),),compatible)+360.0-D
+            total+=term(int(fi))
         return total
     swaps=0
     for iteration in range(options.local_passes):
-        progress_to(progress,0.80+0.03*iteration/max(1,options.local_passes),"optimizing neighboring curve representatives",cancel)
+        progress_to(progress,0.80+0.04*iteration/max(1,options.local_passes),"optimizing neighboring curve representatives",cancel)
         baseline=energy()
         changed=False
-        for fi in list(map(int,np.flatnonzero(state.selected))):
+        order=list(map(int,np.flatnonzero(state.selected)))
+        for k,fi in enumerate(order):
+            if k%20==0:
+                progress_to(progress,0.80+0.04*(iteration+k/max(1,len(order)))/max(1,options.local_passes),
+                            f"optimizing neighboring curve representatives {k}/{len(order)}",cancel)
             if not state.selected[fi]:
                 continue
             for fj,_ in sorted(neighbors[fi].items(),key=lambda p:(-p[1],p[0]))[:2]:
@@ -657,17 +849,18 @@ def simplify_network(mesh, flows, trim, options, progress=None, cancel=None):
                     continue
                 # Evaluate the full context-dependent objective before committing a substitution.
                 old=(state.selected,state.ranges,state.counts,state.labels.copy(),state.regions.copy(),state.next_id)
-                state.commit(proposal,affected,regions)
+                state.commit(proposal,affected,regions); touch(proposal.changed_edges)
                 candidate=energy()
                 if candidate<baseline-1e-7:
                     baseline=candidate; swaps+=1; changed=True; break
                 state.selected,state.ranges,state.counts,state.labels,state.regions,state.next_id=old
+                touch(proposal.changed_edges)
         if not changed:
             break
     relaxed=0
     if options.relaxed_declutter:
         progress_to(progress,0.84,"decluttering parallel curves",cancel)
-        relaxed=_declutter(state,options.dmax*1.2,cancel)
+        relaxed=_declutter(state,options.dmax*1.2,cancel,stage(progress,0.84,0.86,"decluttering parallel curves"))
     progress_to(progress,0.86,"closing gaps and shortening open curve ends",cancel)
     bound=options.dmax*1.2 if options.relaxed_declutter else options.dmax
     ends_before=len(open_ends(state))

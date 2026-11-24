@@ -9,7 +9,7 @@ import numpy as np
 
 from .clustering import alignment_weight, correlation_cluster
 from .mesh import unit
-from .types import checkpoint, progress_to
+from .types import checkpoint, progress_to, stage as _stage
 
 
 @dataclass
@@ -177,6 +177,39 @@ def _angle(a,b):
     return float(np.degrees(np.arccos(np.clip(abs(float(unit(a)@unit(b))),0,1))))
 
 
+def _edge_affinity(mesh):
+    """The signed edge-affinity arcs of §6.1 as arrays (a, b, w), in the order the per-vertex loop made them: at each
+    vertex every pair of incident edges, weighted by the angle between them in the tangent plane (aligned attract,
+    perpendicular repel), then every pair of opposite quad edges (a weak pull that groups parallel strands)."""
+    topo=mesh.topology; V=mesh.vertices; E=topo.edges; N=topo.normals
+    degree=np.fromiter((len(x) for x in topo.vertex_edges),np.int64,len(topo.vertex_edges))
+    chunks=[]                                            # (vertex, pair index, a, b, w) per degree class
+    for d in np.unique(degree[degree>=2]):
+        vs=np.flatnonzero(degree==d)
+        incident=np.array([topo.vertex_edges[v] for v in vs],np.int64).reshape(len(vs),d)
+        direction=V[E[incident,1]]-V[E[incident,0]]
+        n=N[vs][:,None,:]
+        direction=unit(direction-(direction*n).sum(-1,keepdims=True)*n)
+        I,J=np.triu_indices(int(d),1)                    # itertools.combinations order
+        cos=np.abs((unit(direction[:,I])*unit(direction[:,J])).sum(-1))
+        angle=np.degrees(np.arccos(np.clip(cos,0,1)))
+        k=np.broadcast_to(np.arange(len(I)),angle.shape)
+        chunks.append((np.repeat(vs,len(I)),k.ravel(),incident[:,I].ravel(),incident[:,J].ravel(),
+                       alignment_weight(angle).ravel()))
+    if chunks:
+        v,k,a,b,w=(np.concatenate(c) for c in zip(*chunks))
+        order=np.lexsort((k,v))
+        a,b,w=a[order],b[order],w[order]
+    else:
+        a=b=np.zeros(0,np.int64); w=np.zeros(0)
+    O=topo.opposite
+    if len(O):
+        da=V[E[O[:,0],1]]-V[E[O[:,0],0]]; db=V[E[O[:,1],1]]-V[E[O[:,1],0]]
+        angle=np.degrees(np.arccos(np.clip(np.abs((unit(da)*unit(db)).sum(1)),0,1)))
+        a=np.r_[a,O[:,0]]; b=np.r_[b,O[:,1]]; w=np.r_[w,0.05*np.exp(-(angle/5)**2)]
+    return a.astype(np.int64),b.astype(np.int64),w.astype(float)
+
+
 def _tangent(mesh, flow, end):
     ids=flow.vertices if end==flow.vertices[0] else flow.vertices[::-1]
     P=mesh.vertices[ids]
@@ -302,19 +335,10 @@ def compute_flowlines(mesh, options, progress=None, cancel=None, reliable_sigma=
     topo=mesh.topology; V=mesh.vertices; E=topo.edges; N=topo.normals
     creases={}
     trim=trim_edges(mesh,options.crease_angle,options.min_trim_edges,creases)
-    pairs=[]; weights=[]
-    progress_to(progress,0.12,"building signed edge-affinity graph",cancel)
-    for v,incident in enumerate(topo.vertex_edges):
-        if v%4000==0: checkpoint(cancel)
-        direction=V[E[incident,1]]-V[E[incident,0]]
-        direction=unit(direction-(direction@N[v])[:,None]*N[v])
-        for i,j in combinations(range(len(incident)),2):
-            angle=_angle(direction[i],direction[j])
-            pairs.append((incident[i],incident[j])); weights.append(float(alignment_weight(angle)))
-    for a,b in topo.opposite:
-        angle=_angle(V[E[a,1]]-V[E[a,0]],V[E[b,1]]-V[E[b,0]])
-        pairs.append((a,b)); weights.append(0.05*np.exp(-(angle/5)**2))
-    labels,first_info=correlation_cluster(len(E),pairs,weights,options.clustering_passes,cancel)
+    progress_to(progress,0.10,"building signed edge-affinity graph",cancel)
+    a,b,w=_edge_affinity(mesh)
+    labels,first_info=correlation_cluster(len(E),np.stack([a,b],1),w,options.clustering_passes,cancel,
+                                          _stage(progress,0.11,0.24,f"clustering {len(E)} edges into strands"))
     protected=set(np.flatnonzero(np.array([len(es) for es in topo.vertex_edges])!=4))
     protected.update(map(int,E[trim].ravel()))
     initial=[]
@@ -355,7 +379,8 @@ def compute_flowlines(mesh, options, progress=None, cancel=None, reliable_sigma=
                 crossing.add((a,b))
     for pair in crossing:
         arcs[pair]=-25.0
-    reliable,second_info=correlation_cluster(len(initial),list(arcs),list(arcs.values()),options.clustering_passes,cancel)
+    reliable,second_info=correlation_cluster(len(initial),list(arcs),list(arcs.values()),options.clustering_passes,cancel,
+                                             _stage(progress,0.30,0.38,f"grouping {len(initial)} flowlines into strands"))
     edge_labels=np.full(len(E),-1,int)
     for fi,f in enumerate(initial):
         edge_labels[f.edges]=reliable[fi]
