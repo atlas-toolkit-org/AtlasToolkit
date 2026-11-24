@@ -1,6 +1,6 @@
 # Raster DEM to Mesh
 
-Atlas Toolkit 1.11.1 · tool 0.3.1 · **Image → Mesh**
+Atlas Toolkit 1.11.1 · tool 0.3.2 · **Image → Mesh**
 
 Build terrain from a supplied geographic numeric DEM. Non-geographic photos and grayscale heightmaps use
 [Image to Mesh](IMAGE_TO_MESH.md). A CRS is required in the source or override. No R, QGIS or Blender

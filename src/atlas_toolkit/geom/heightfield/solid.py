@@ -42,8 +42,26 @@ def export_precision(mesh,ctx,allow_planar_simplify=False):
         if solid.status()!=md.Error.NoError:raise ValueError('Terrace boolean returned invalid closed geometry.')
         fixed=solid.simplify(precision).to_mesh64()
         result=trimesh.Trimesh(np.asarray(fixed.vert_properties)[:,:3],np.asarray(fixed.tri_verts),process=False)
-        check_mesh(result)
-        check_mesh(file_copy(result))
+        try:
+            check_mesh(result)
+            check_mesh(file_copy(result))
+        except ValueError:
+            # A dense terraced relief (millions of faces of contour treads) can still hold zero-area triangles,
+            # pinched edges and boolean specks, which a reader's float32 welding turns into holes. The file holds
+            # that float32 copy, so tidy it and flip away corners lying on an edge, then
+            # keep it only if it is one valid solid. Only here: a relief that passed is written as before.
+            from atlas_toolkit.geom import repair
+            from .precision import flip_caps
+            copy=file_copy(result)
+            V,F,notes=repair.tidy_arrays(np.asarray(copy.vertices,float),np.asarray(copy.faces,np.int64))
+            tidied=flip_caps(trimesh.Trimesh(V,F,process=False))
+            check_mesh(tidied)
+            check_mesh(file_copy(tidied))
+            # tidy also drops loose pieces: only true debris may go, never a piece of the terrain
+            if abs(tidied.volume-result.volume)>abs(result.volume)*1e-5:
+                raise ValueError('Terrain repair would have changed the solid. Increase sampling pitch or simplify the source mask.')
+            result=tidied
+            for note in notes:ctx.log(f'terraces: {note}')
     if collapsed:ctx.log(f'precision repair: collapsed {collapsed:,} sub-format solid edges; preserved local winding and manifold links')
     return result,True
 

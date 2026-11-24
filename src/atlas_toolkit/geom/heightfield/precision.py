@@ -12,6 +12,56 @@ def file_copy(mesh):
     return clean(trimesh.Trimesh(mesh.vertices.astype('float32'),mesh.faces,process=False))
 
 
+def flip_caps(mesh, height=1e-7, rounds=8):
+    """Remove "cap" triangles (a corner lying on the opposite edge, as a file reader sees them: after float32
+    rounding, within `height` mm of it) that native simplification of planar terraces leaves, by flipping that edge:
+    the cap (a, b, c) and its neighbour (b, a, d) across a-b become (c, a, d) and (c, d, b), the neighbour cut in
+    two at c. Closed, consistently wound surfaces stay so. A cap whose flip would duplicate an edge, or a needle
+    (two corners together), is left for the caller's check to refuse."""
+    import trimesh
+    F = np.array(mesh.faces, dtype=np.int64)
+    V = np.asarray(mesh.vertices, dtype=np.float64)
+    R = V.astype(np.float32).astype(np.float64)
+    n = len(V)
+    for _ in range(rounds):
+        tri = R[F]
+        edge = np.stack((tri[:, 1]-tri[:, 0], tri[:, 2]-tri[:, 1], tri[:, 0]-tri[:, 2]), axis=1)
+        length = np.linalg.norm(edge, axis=2)
+        area = .5*np.linalg.norm(np.cross(edge[:, 0], -edge[:, 2]), axis=1)
+        caps = np.flatnonzero((2*area <= height*length.max(axis=1)) & (length.min(axis=1) > height))
+        del tri, edge, area
+        if not len(caps):
+            break
+        # Directed edges as sorted keys (millions of faces: no Python dictionary of them).
+        keys = np.concatenate([F[:, k]*n+F[:, (k+1) % 3] for k in range(3)])
+        order = np.argsort(keys, kind="stable")
+        ranked = keys[order]
+        del keys
+
+        def owner(x, y):
+            i = np.searchsorted(ranked, x*n+y)
+            return int(order[i]) % len(F) if i < len(ranked) and ranked[i] == x*n+y else -1
+
+        touched, made = set(), set()
+        for i in map(int, caps):
+            if i in touched:
+                continue
+            k = int(np.argmax(length[i]))
+            a, b, c = int(F[i][k]), int(F[i][(k+1) % 3]), int(F[i][(k+2) % 3])
+            j = owner(b, a)
+            if j < 0 or j in touched or j == i:                     # an open edge, or a face just changed
+                continue
+            d = int(next(v for v in F[j] if v not in (a, b)))
+            if owner(c, d) >= 0 or owner(d, c) >= 0 or (min(c, d), max(c, d)) in made:
+                continue
+            F[i], F[j] = (c, a, d), (c, d, b)
+            touched |= {i, j}
+            made.add((min(c, d), max(c, d)))
+        if not touched:
+            break
+    return trimesh.Trimesh(V, F, process=False)
+
+
 def valid_surface(mesh):
     from .mesh import check_mesh
     check_mesh(mesh,solid=False)

@@ -48,6 +48,12 @@
   edge four faces share, no hole), and each coarser simplification only made holes of it. Such an edge is now
   separated first (Repair Mesh's split, whose copies stay apart through every format's reload); a mesh with a real
   hole is refused as before.
+- **Image to Mesh 0.1.2 and Raster DEM to Mesh 0.3.2 finish dense terraced reliefs.** Terraced relief on the gallery
+  photo failed with "Collapsed terrain triangles" at 0.25, 0.35 and 0.5 mm pitch: simplifying millions of planar treads left zero-area
+  triangles, boolean specks and edges that float32 welding opens. Only where that happens, the float32 copy is tidied
+  and corners lying on an edge are flipped away, and it is kept
+  only when it is one closed solid of the same volume. At 0.25 mm that relief has 6.5 million faces, so it still
+  needs a larger export budget or a coarser pitch.
 
 ## 2.5.0 (unreleased)
 

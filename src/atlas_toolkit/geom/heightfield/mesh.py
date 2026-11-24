@@ -304,6 +304,26 @@ def solid_union(parts):
     return trimesh.Trimesh(np.asarray(mesh.vert_properties)[:, :3], np.asarray(mesh.tri_verts), process=False)
 
 
+SPECK_FACES = 16        # a loose closed piece of fewer faces is boolean debris, not a terrace
+
+
+def without_specks(mesh, ctx=None):
+    """A fused solid without the loose specks a boolean of many thin terrace slabs can leave (closed four-face
+    slivers apart from the body). In solid mode every real terrace is fused to the plate, so the solid would be refused
+    for a speck. Only pieces of a few faces go: anything larger still refuses the output."""
+    import trimesh
+    from atlas_toolkit.geom import repair
+    V, F = np.asarray(mesh.vertices, float), np.asarray(mesh.faces, np.int64)
+    V, F, note = repair.drop_pieces(V, F, 'crumbs', share=SPECK_FACES/max(len(F), 1))
+    if not note:
+        return mesh
+    if ctx:
+        ctx.log(f'terraces: {note}')
+    out = trimesh.Trimesh(V, F, process=False)
+    out.remove_unreferenced_vertices()
+    return out
+
+
 def terraces(centre_heights, mask, width, height, data, p, base, ctx):
     import trimesh
     from skimage.measure import find_contours
@@ -465,7 +485,7 @@ def process(raster, p, ctx):
         else:
             plate = extruded(data['plate'], 0., base)
             ctx.progress(.7, 'fusing terrain terraces and plate')
-            output = solid_union([plate, *built])
+            output = without_specks(solid_union([plate, *built]), ctx)
     else:
         # Conservative grid coverage followed by polygon clipping retains tiny
         # islands and holes even when no regular sample centre lands inside them.
