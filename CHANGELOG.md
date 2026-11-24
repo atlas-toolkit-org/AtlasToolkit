@@ -27,6 +27,10 @@
     gives a solid, the safe tidy now closes what decimation pinched. One working result changes: a model that kept its
     full detail because every target pinched (the light Venus, 40k faces a copy) now gets the Source detail asked.
   - New `geom.repair.simplified_solid`: a lighter copy of a solid that is still a solid (decimation, then the tidy).
+- **Motion Sculpture 0.6.1 saves every shell closed.** A wake draws a few triangles thinner than float32 resolves, so
+  some files held flattened triangles and non-manifold edges, and one shell (Shattered slipstream on Thinker) a hole.
+  Only a shell that does not come through float32 intact is changed (`solid_connectors.stabilize`: closed, volume to
+  one part per million).
 - **Strata Sculpt 1.2.0 and Surface Eject 0.4.0 no longer stop a whole run over one connector.** On the catalogue,
   Airy Roots, Square Supports and Pinned Strata failed on both David heads ("No safe connector"), and Fine Veins on
   the heads, Thinker and the skull; changing the seed rarely helped. The 25

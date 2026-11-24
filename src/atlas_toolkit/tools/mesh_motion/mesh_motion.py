@@ -220,3 +220,40 @@ def sculpt_within(mesh, p, ctx):
             return out, info, len(reduced[1])
         except (FaceBudget, OpenPiece):     # a decimated section can leave a piece that will not close: go lighter
             continue
+
+
+def file_safe(mesh, ctx=None):
+    """The shells as a float32 file can hold them: (mesh, pieces made safe, pieces that could not be). A wake draws a
+    few triangles thinner than float32 resolves, and dropping those on load can open a shell. Only a shell that does
+    not come through intact is changed, by `solid_connectors.stabilize` (closed, same pieces, volume to one part per
+    million); every other one keeps its exact vertices and faces."""
+    import trimesh
+    from atlas_toolkit.geom import repair
+    from atlas_toolkit.geom import solid_connectors as co
+    from atlas_toolkit.geom.mesh import clean
+    V, F = np.asarray(mesh.vertices, float), np.asarray(mesh.faces, np.int64)
+    if not len(F):
+        return mesh, 0, 0
+    _, labels = repair._components(F)
+    height = float(np.ptp(V, axis=0).max())
+    order = np.argsort(labels, kind="stable")
+    vertices, faces, offset, safe, unsafe = [], [], 0, 0, 0
+    for ids in np.split(order, np.cumsum(np.bincount(labels))[:-1]):
+        if ctx:
+            ctx.check_cancel()
+        used, local = np.unique(F[ids], return_inverse=True)
+        v, f = V[used], local.reshape(-1, 3)
+        copy = clean(trimesh.Trimesh(v.astype(np.float32).astype(float), f.copy(), process=False))
+        if len(copy.faces) != len(f) or not copy.is_volume:
+            try:
+                solid, _ = co.stabilize(co.from_arrays(v, f), height)
+                v, f = (np.asarray(a) for a in (co.to_mesh(solid).vertices, co.to_mesh(solid).faces))
+                safe += 1
+            except ValueError:
+                unsafe += 1
+        vertices.append(v)
+        faces.append(f + offset)
+        offset += len(v)
+    if not safe:
+        return mesh, 0, unsafe
+    return trimesh.Trimesh(np.vstack(vertices), np.vstack(faces), process=False), safe, unsafe

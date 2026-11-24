@@ -6,7 +6,7 @@ from atlas_toolkit.geom import frame3d, mesh as gm
 from atlas_toolkit.geom import repair as R
 from atlas_toolkit.geom.mesh_export import publish_meshes
 from . import TOOL
-from .mesh_motion import sculpt_within
+from .mesh_motion import file_safe, sculpt_within
 
 
 def run(ctx, src, dst, p):
@@ -41,6 +41,12 @@ def run(ctx, src, dst, p):
     output.vertices = frame.inverse(output.vertices)
     if p.amount == 0:
         output = original.copy()
+    else:
+        ctx.progress(.9, "checking every shell as a file holds it")
+        output, _, unsafe = file_safe(output, ctx)
+        if unsafe:
+            ctx.warn(f"{unsafe} thin shell{'s' if unsafe > 1 else ''} may not stay closed in a file: use fewer layers "
+                     "or bars, or less Tail taper.")
     surface = from_mesh(output)
     surface.frame = frame.frame_values()
     outputs = publish_meshes([surface], dst, ctx, TOOL) if dst is not None else []

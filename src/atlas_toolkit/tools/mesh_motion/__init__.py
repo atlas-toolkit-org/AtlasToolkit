@@ -11,7 +11,7 @@ def region_params():
     return params
 
 TOOL = Tool(
-    id="mesh-motion", name="Motion Sculpture", version="0.6.0", category="mesh",
+    id="mesh-motion", name="Motion Sculpture", version="0.6.1", category="mesh",
     icon="motion-sculpture", action="Sculpt",
     summary="Stretch a silhouette into swept laminae, splintered bars or a rising vortex of motion.",
     tagline="Give a still form a wake. Carve time into the silhouette.",

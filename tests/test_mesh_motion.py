@@ -10,7 +10,7 @@ from atlas_toolkit.core.selftest import signed
 from atlas_toolkit.geom import mesh as gm
 from atlas_toolkit.tools.mesh_motion import TOOL
 from atlas_toolkit.tools.mesh_motion.engine import run, make_sample
-from atlas_toolkit.tools.mesh_motion.mesh_motion import sculpt, sculpt_within, wake, basis
+from atlas_toolkit.tools.mesh_motion.mesh_motion import file_safe, sculpt, sculpt_within, wake, basis
 
 
 def context(mode="run", cancel=False):
@@ -124,6 +124,34 @@ class MotionTests(unittest.TestCase):
         same, _, worked = sculpt_within(self.mesh, TOOL.values(self.values), context())
         self.assertIsNone(worked)
         np.testing.assert_array_equal(same.vertices, light.vertices)
+
+    def test_a_shell_float32_would_open_is_made_safe_and_the_others_kept_exactly(self):
+        """Shattered slipstream on Thinker saved a shell with a hole: float32 flattened a few of its triangles."""
+        good = trimesh.creation.icosphere(subdivisions=2, radius=1000.)
+        good.apply_translation((3000., 3000., 9000.))
+        v = (trimesh.creation.icosphere(subdivisions=2, radius=1000.).vertices + 3000.).astype(np.float32).astype(float)
+        f = good.faces
+        a, b = f[0, 0], f[0, 1]
+        on = [i for i, t in enumerate(f) if a in t and b in t]
+        v = np.vstack((v, v[a] + (v[b] - v[a]) / np.linalg.norm(v[b] - v[a]) * 1e-5))     # welds with a in float32
+        faces = [list(t) for i, t in enumerate(f) if i not in on]
+        for i in on:
+            first, second = list(f[i]), list(f[i])
+            first[first.index(b)], second[second.index(a)] = len(v) - 1, len(v) - 1
+            faces += [first, second]
+        fragile = trimesh.Trimesh(v, faces, process=False)
+        both = trimesh.util.concatenate((good, fragile))
+        out, safe, unsafe = file_safe(both)
+        self.assertEqual((safe, unsafe), (1, 0))
+        n = len(good.vertices)
+        np.testing.assert_array_equal(out.vertices[:n], good.vertices)
+        np.testing.assert_array_equal(out.faces[:len(good.faces)], good.faces)
+        stored = gm.clean(trimesh.Trimesh(out.vertices.astype(np.float32), out.faces.copy(), process=False))
+        self.assertEqual(len(stored.faces), len(out.faces))
+        self.assertTrue(stored.is_watertight)
+        same, safe, _ = file_safe(good)
+        self.assertIs(same, good)
+        self.assertEqual(safe, 0)
 
     def test_basis_is_orthonormal(self):
         for axis in ("up", "front", "side"):
