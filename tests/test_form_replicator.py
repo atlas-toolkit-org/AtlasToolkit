@@ -198,18 +198,31 @@ class EngineTests(Fixture):
         self.assertTrue(mesh_of(res).is_volume)
         self.assertAlmostEqual(mesh_of(res).volume, 40 ** 3 - 20 ** 3, delta=.1)
 
-    def test_reduction_that_pinches_a_solid_retries_at_higher_detail(self):
+    def test_reduction_that_breaks_a_solid_retries_at_higher_detail(self):
         cube = trimesh.load(self.src)
-        bad = cube.copy()
-        bad.apply_translation((12, 10, 0))
-        pinched = trimesh.util.concatenate((cube, bad))
-        reduced = [(pinched.vertices, pinched.faces), (cube.vertices, cube.faces)]
+        lone = (np.array([[0., 0, 0], [1, 0, 0], [0, 1, 0]]), np.array([[0, 1, 2]]))   # nothing a tidy can close
+        reduced = [lone, (cube.vertices, cube.faces)]
         p = TOOL.values(dict(self.values, count=1, source_faces=4))
         with patch.object(gm, "simplify_faces", side_effect=reduced) as simplify:
             res = engine.run(context("analyse"), self.src, None, p)
         self.assertEqual(simplify.call_count, 2)
         self.assertTrue(mesh_of(res).is_volume)
         self.assertEqual(res.data["source_faces"], 12)
+
+    def test_reduction_that_pinches_a_solid_at_every_target_is_tidied_at_the_requested_detail(self):
+        """Decimating Venus de Milo or Thinker pinches the drapery at every target, so the loop used to end on the
+        full 1M-face source and refuse the layout (or keep 40k faces per copy on the light Venus)."""
+        cube = trimesh.load(self.src)
+        bad = cube.copy()
+        bad.apply_translation((12, 10, 0))
+        pinched = trimesh.util.concatenate((cube, bad))       # an edge contact: closed when tidied, not when welded
+        self.assertIsNone(engine.source_solid(pinched.vertices, pinched.faces))
+        p = TOOL.values(dict(self.values, count=1, source_faces=4))
+        with patch.object(gm, "simplify_faces", return_value=(pinched.vertices, pinched.faces)) as simplify:
+            res = engine.run(context("analyse"), self.src, None, p)
+        self.assertEqual(simplify.call_count, 2)              # higher targets first: a model one serves is unchanged
+        self.assertTrue(mesh_of(res).is_volume)
+        self.assertEqual(res.data["source_faces"], 24)
 
     def test_all_mesh_formats_are_signed_closed_and_preserve_the_source(self):
         before = hashlib.sha256(self.src.read_bytes()).digest()

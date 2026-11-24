@@ -16,7 +16,7 @@ def layouts(*names):
 
 
 TOOL = Tool(
-    id="form-replicator", name="Form Replicator", version="1.0.2", category="mesh", icon="rosette",
+    id="form-replicator", name="Form Replicator", version="1.0.3", category="mesh", icon="rosette",
     action="Compose", summary="Compose a model into crosses, stars, urchins, spirals and sculptural wreaths.",
     tagline="One shape, a new sculpture: rhythmic silhouettes and open spaces for line art.",
     description=(

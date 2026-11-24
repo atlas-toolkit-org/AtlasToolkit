@@ -1,7 +1,7 @@
 """Motion Sculpture. Atlas signature: atlas-toolkit:mesh-motion."""
 from dataclasses import replace
 
-from atlas_toolkit.core import Choice, Float, Inputs, Int, Output, Section, Seed, Tool, frame_params, influence_params
+from atlas_toolkit.core import Bool, Choice, Float, Inputs, Int, Output, Section, Seed, Tool, frame_params, influence_params
 
 
 def region_params():
@@ -11,7 +11,7 @@ def region_params():
     return params
 
 TOOL = Tool(
-    id="mesh-motion", name="Motion Sculpture", version="0.5.0", category="mesh",
+    id="mesh-motion", name="Motion Sculpture", version="0.6.0", category="mesh",
     icon="motion-sculpture", action="Sculpt",
     summary="Stretch a silhouette into swept laminae, splintered bars or a rising vortex of motion.",
     tagline="Give a still form a wake. Carve time into the silhouette.",
@@ -78,6 +78,10 @@ TOOL = Tool(
                 help="Maximum longitudinal edge span is piece length divided by this number. Conforming refinement."),
             Int("max_faces", "Maximum faces", 1500000, min=10000, max=4000000, advanced=True,
                 help="Hard output budget. Reduce layers, bars or wake resolution when exceeded."),
+            Bool("fit", "Simplify to fit", True,
+                 help="When the result would exceed Maximum faces, sculpt a lighter copy of the model instead "
+                      "(half the faces each time, until it fits). A dense model's section caps are what the wake "
+                      "multiplies. The report says when. Off: such a model is refused."),
             Choice("repair", "Open input", "strict", [("strict", "Require closed solid"),
                    ("resample", "Repair by resampling")],
                    help="Small defects (decimation debris, pin-holes, flipped faces) are always tidied without "

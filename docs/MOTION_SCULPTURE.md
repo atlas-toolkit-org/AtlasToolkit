@@ -52,7 +52,10 @@ Changing topology or layer/bar counts changes piece identity.
 The engine requires closed, consistently oriented, positive-volume input and checks every resulting shell for
 closure, winding, finite coordinates and positive volume. It does not silently repair a scan. Simplify or repair
 the source first if cuts encounter invalid geometry. Maximum faces is a hard total budget; a second guard limits
-Splinters to 5,000 layer/bar cells. Cancellation is checked during cuts, refinement and every piece.
+Splinters to 5,000 layer/bar cells. A dense model's section caps are what the wake refinement multiplies (a
+259k-face head makes over 2 million faces at 64 layers), so with **Simplify to fit** (on by default) a result that
+would exceed the budget is sculpted again from a closed copy with half the faces, and half again, until it fits. A
+model that fits is never simplified; the report gives the face count it worked at. Cancellation is checked during cuts, refinement and every piece.
 
 The output is separate sculptural shells, without a boolean union, supports or structural certification. Curl can
 make bars within a layer overlap; zero gaps can leave touching surfaces. Treat the output as drawing geometry

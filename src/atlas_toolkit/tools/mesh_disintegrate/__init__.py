@@ -7,7 +7,7 @@ from atlas_toolkit.core import Bool, Choice, Float, Inputs, Int, Output, Section
 TOOL = Tool(
     id="mesh-disintegrate",
     name="Disintegrate",
-    version="1.1.0",
+    version="1.2.0",
     category="mesh",
     icon="cube",
     action="Disintegrate",
@@ -18,8 +18,9 @@ TOOL = Tool(
         "corner on its own, so neighbouring triangles separate. Strength grows with the stage number; the "
         "result is open surface fragments, not closed solids. Preview computes the same geometry as Run. Large "
         "previews sample whole triangles without welding them. All stages together must fit a two-million-face "
-        "budget; dense inputs are never simplified. Save the progression, the final stage, or also every stage "
-        "separately, then draw a mesh with Hatch Maker or Contour Lines."),
+        "budget: a denser model is simplified just enough to fit (Simplify to fit), and stage 0 is then that "
+        "lighter copy. Save the progression, the final stage, or also every stage separately, then draw a mesh "
+        "with Hatch Maker or Contour Lines."),
     inputs=Inputs("mesh", exclude=(
         r"(?i)_(?:disintegrate|morph)_(?:final|progression)_\d+steps(?:_stage_\d+)?\.(stl|obj|ply)$",)),
     output=Output("{stem}_disintegrate_{layout}_{steps}steps.stl", "mesh", formats=(".stl", ".obj", ".ply")),
@@ -35,6 +36,10 @@ TOOL = Tool(
             Int("steps", "Subdivision steps", 2, min=0, max=8, slider=True,
                 help="Steps after the original (stage 0). Each step multiplies faces by four, so five steps make "
                      "six stages and want a light model. Total budget: 2,000,000 faces."),
+            Bool("fit", "Simplify to fit", True,
+                 help="A model too dense for these steps is simplified just enough that all stages fit the "
+                      "budget (3 steps: about 23,500 faces; 2 steps: about 95,000). The report says when. Off: "
+                      "such a model is refused instead."),
         ),
         Section(
             "Distortion",

@@ -1092,6 +1092,20 @@ def tidy_arrays(V, F, log=None):
     return V, F, notes
 
 
+def simplified_solid(V, F, max_faces: int, log=None):
+    """A copy of a closed solid with about `max_faces` faces that is still a closed solid, or None. Quadric decimation
+    keeps the shape but leaves back-to-back sheets and pinched edges where thin parts collapse (Venus de Milo's
+    drapery, at any target): the safe tidy separates and removes them (split copies move 0.1 % of the way to the
+    faces around them, and loose crumbs go). For tools that must
+    work at a lower resolution than a dense input."""
+    from .mesh import simplify_faces
+    V, F = simplify_faces(V, F, max_faces, log)
+    if is_solid(V, F):
+        return V, F
+    V, F, _ = tidy_arrays(V, F, log)
+    return (V, F) if len(F) and is_solid(V, F) else None
+
+
 def tidy(mesh, log=None):
     V, F = _arrays(mesh)
     V, F, notes = tidy_arrays(V, F, log)

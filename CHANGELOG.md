@@ -13,6 +13,20 @@
 - **Shape Outline 2.0.1 outlines big, intricate drawings.** On a dense Contour Lines drawing (a 259k-face head) the
   inward step of *Envelope* could come back self-intersecting from GEOS, and the union after it failed with "unable to
   assign free hole to a shell". Such a shape is now repaired first (`make_valid`, keeping every lobe).
+- **Disintegrate, Motion Sculpture and Form Replicator work on catalogue-sized models.** On the catalogue (median
+  200k faces) every Disintegrate and Motion essential failed on Thinker (600k) and Venus de Milo (1M), and Form
+  Replicator's on Venus and one on Thinker; all now finish on both, in about a minute or less:
+  - *Disintegrate 1.2.0*: a model too dense for its steps is simplified just enough that every stage fits the
+    2-million-face budget (**Simplify to fit**, on: about 95,000 faces for two steps, 23,500 for three). Three-step
+    presets used to fail on every catalogue model, even the 30k light copies.
+  - *Motion Sculpture 0.6.0*: when the wake would exceed **Maximum faces**, a closed copy with half the faces is
+    sculpted, and half again, until it fits (**Simplify to fit**, on). A dense model's section caps are what the wake
+    refinement multiplies: a 259k head made over 2 million faces.
+  - *Form Replicator 1.0.3*: decimating Venus or Thinker pinched the drapery at every target, so the source stayed at
+    full detail and Sea Urchin, Sunflower and Toroidal Wreath were refused (96–216 copies × 1M faces). When no target
+    gives a solid, the safe tidy now closes what decimation pinched. One working result changes: a model that kept its
+    full detail because every target pinched (the light Venus, 40k faces a copy) now gets the Source detail asked.
+  - New `geom.repair.simplified_solid`: a lighter copy of a solid that is still a solid (decimation, then the tidy).
 
 ## 2.5.0 (unreleased)
 

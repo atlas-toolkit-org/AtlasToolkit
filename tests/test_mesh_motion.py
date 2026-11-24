@@ -10,7 +10,7 @@ from atlas_toolkit.core.selftest import signed
 from atlas_toolkit.geom import mesh as gm
 from atlas_toolkit.tools.mesh_motion import TOOL
 from atlas_toolkit.tools.mesh_motion.engine import run, make_sample
-from atlas_toolkit.tools.mesh_motion.mesh_motion import sculpt, wake, basis
+from atlas_toolkit.tools.mesh_motion.mesh_motion import sculpt, sculpt_within, wake, basis
 
 
 def context(mode="run", cancel=False):
@@ -107,6 +107,23 @@ class MotionTests(unittest.TestCase):
             self.sculpt(layers=12, resolution=48, max_faces=10000)
         with self.assertRaises(Cancelled):
             sculpt(self.mesh, TOOL.values(self.values), context(cancel=True))
+
+    def test_simplify_to_fit_sculpts_a_lighter_copy_only_when_needed(self):
+        """Every preset failed on catalogue models of 259k faces and more: the caps of dense sections multiply under
+        the wake. Simplify to fit retries on a closed copy with half the faces until the result fits."""
+        dense = trimesh.creation.icosphere(subdivisions=5)                  # 20,480 faces: 70,906 sculpted
+        dense.apply_scale((.5, .4, 1.))
+        p = TOOL.values({**self.values, "layers": 12, "resolution": 12, "max_faces": 65000})
+        out, _, worked = sculpt_within(dense, p, context())
+        self.assertEqual(worked, 10240)
+        self.assertLessEqual(len(out.faces), 65000)
+        self.assertTrue(out.is_watertight and out.is_winding_consistent and out.volume > 0)
+        with self.assertRaisesRegex(ValueError, "Maximum faces"):
+            sculpt_within(dense, TOOL.values({**p, "fit": False}), context())
+        light, _ = self.sculpt()
+        same, _, worked = sculpt_within(self.mesh, TOOL.values(self.values), context())
+        self.assertIsNone(worked)
+        np.testing.assert_array_equal(same.vertices, light.vertices)
 
     def test_basis_is_orthonormal(self):
         for axis in ("up", "front", "side"):

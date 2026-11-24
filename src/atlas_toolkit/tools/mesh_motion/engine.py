@@ -6,7 +6,7 @@ from atlas_toolkit.geom import frame3d, mesh as gm
 from atlas_toolkit.geom import repair as R
 from atlas_toolkit.geom.mesh_export import publish_meshes
 from . import TOOL
-from .mesh_motion import sculpt
+from .mesh_motion import sculpt_within
 
 
 def run(ctx, src, dst, p):
@@ -34,7 +34,10 @@ def run(ctx, src, dst, p):
     up, front, rotate, _ = frame3d.resolve_axes(src, p, original.extents)
     frame = frame3d.fit_frame(original.vertices, up, front, rotate, mode="height", size=2.)
     canonical = trimesh.Trimesh(frame.apply(original.vertices), original.faces, process=False)
-    output, info = sculpt(canonical, p, ctx)
+    output, info, worked = sculpt_within(canonical, p, ctx)
+    if worked:
+        ctx.note(f"Sculpted a copy simplified from {len(canonical.faces):,} to {worked:,} faces: at full detail the "
+                 f"wake would exceed Maximum faces ({p.max_faces:,}). Simplify to fit.")
     output.vertices = frame.inverse(output.vertices)
     if p.amount == 0:
         output = original.copy()
@@ -46,6 +49,7 @@ def run(ctx, src, dst, p):
               f"  layers     {info['layers']}; {info['pieces']} closed shells",
               f"  wake       up to {info['max_reach']/frame.scale:.5g} source units",
               f"  geometry   {len(original.faces):,} → {len(output.faces):,} faces; original units and placement",
+              *([f"  working    simplified to {worked:,} faces to fit Maximum faces"] if worked else []),
               "  assembly   separate shells, not fused; bars may intersect after sideways curl",
               "  preview    final geometry; display may use a proxy",
               f"  time       {time.perf_counter()-started:.2f} s"]

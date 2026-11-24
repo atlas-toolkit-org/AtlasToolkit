@@ -223,7 +223,7 @@ class DisintegrateEngineTests(unittest.TestCase):
                     written = trimesh.load(str(dst), process=False, force="mesh")
                     self.assertEqual(len(written.faces), expected)
                     for i, path in enumerate(result.outputs):
-                        self.assertIn(b"atlas-toolkit:mesh-disintegrate 1.1", Path(path).read_bytes()[:300])
+                        self.assertIn(b"atlas-toolkit:mesh-disintegrate 1.2", Path(path).read_bytes()[:300])
                         if i:
                             stage = trimesh.load(path, process=False, force="mesh")
                             np.testing.assert_allclose(stage.triangles, reference.stages[i-1], atol=1e-4)
@@ -306,7 +306,7 @@ class DisintegrateEngineTests(unittest.TestCase):
                 self.assertEqual(len(loaded.faces), len(triangles))
                 self.assertEqual(len(loaded.vertices), len(triangles) * 3)
                 np.testing.assert_allclose(loaded.triangles, triangles, atol=1e-5)
-                self.assertIn(b"atlas-toolkit:mesh-disintegrate 1.1", path.read_bytes()[:300])
+                self.assertIn(b"atlas-toolkit:mesh-disintegrate 1.2", path.read_bytes()[:300])
         self.assertFalse(list(self.folder.glob(".*-chunk.stl")))
 
     def test_cancellation_inside_each_batched_export_cleans_scratch(self):
@@ -347,6 +347,22 @@ class DisintegrateEngineTests(unittest.TestCase):
         self.assertEqual(list(self.folder.iterdir()), [self.src])
         result, _ = self.run_tool(steps=1)
         self.assertEqual(result.status, "Saved")
+
+    def test_a_dense_model_is_simplified_just_enough_to_fit(self):
+        """Catalogue models (median 200k faces) were refused by every preset; Simplify to fit takes the input down to
+        the most faces that fit, and only then. Off, the model is refused as before."""
+        self.assertEqual((mm.fitting_faces(2), mm.fitting_faces(3)), (95238, 23529))
+        trimesh.creation.icosphere(subdivisions=4, radius=40).export(self.src)        # 5,120 faces
+        result, _ = self.run_tool(steps=5, layout="final")                             # fits up to 1,465
+        stage0 = result.data["stage_faces"][0]
+        self.assertTrue(mm.FIT_MIN_FACES <= stage0 <= mm.fitting_faces(5))
+        self.assertLessEqual(sum(result.data["stage_faces"]), mm.MAX_TOTAL_FACES)
+        self.assertIn("simplified from 5,120", result.report)
+        with self.assertRaisesRegex(ValueError, "Largest supported step count: 4"):
+            self.run_tool(steps=5, fit=False)
+        light, _ = self.run_tool(steps=2)                                              # fits: untouched
+        self.assertEqual(light.data["stage_faces"][0], 5120)
+        self.assertNotIn("simplified", light.report)
 
     def test_imported_scene_transforms_are_preserved(self):
         scene = trimesh.Scene()

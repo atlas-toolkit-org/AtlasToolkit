@@ -160,6 +160,22 @@ class TidyTests(unittest.TestCase):
         self.assertEqual(notes, [])
         self.assertEqual(len(F2), len(F))
 
+    def test_a_simplified_solid_stays_a_solid(self):
+        """What a tool that must work lighter than its input uses: decimation, then the tidy for what it pinches."""
+        V, F = sphere()
+        v, f = R.simplified_solid(V, F, len(F) // 4)
+        self.assertLessEqual(len(f), len(F) // 4)
+        self.assertTrue(R.is_solid(v, f))
+        cube = trimesh.creation.box(extents=(12, 10, 40))
+        other = cube.copy()
+        other.apply_translation((12, 10, 0))              # an edge contact, as decimation leaves in thin drapery
+        joined = trimesh.util.concatenate((cube, other))
+        pinched = trimesh.Trimesh(joined.vertices, joined.faces)         # welded: four faces on the shared edge
+        self.assertFalse(R.is_solid(pinched.vertices, pinched.faces))
+        v, f = R.simplified_solid(pinched.vertices, pinched.faces, 1000)
+        self.assertTrue(R.is_solid(v, f))
+        self.assertIsNone(R.simplified_solid(np.eye(3), np.array([[0, 1, 2]]), 10))
+
 
 class FlatSliverTests(unittest.TestCase):
     """refill_flat_slivers: a cut closed by a fan of slivers gets well-shaped triangles, without changing shape."""
