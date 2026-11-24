@@ -19,7 +19,7 @@ TOOL = Tool(
     id="cubic-replicator",
     name="Cubic Replicator",
     version="3.1",
-    category="mesh",
+    category="mesh", group="combine",
     icon="replicate",
     action="Replicate",
     summary="Tile copies of a model on a 3D grid, flipped and turned at random.",

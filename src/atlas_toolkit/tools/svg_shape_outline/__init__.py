@@ -14,7 +14,7 @@ TOOL = Tool(
     id="svg-shape-outline",
     name="Shape Outline",
     version="2.0.1",
-    category="svg",
+    category="svg", group="cut",
     icon="vector",
     action="Outline",
     summary="Draw one closed outline around a drawing: a silhouette to cut with, frame or plot.",

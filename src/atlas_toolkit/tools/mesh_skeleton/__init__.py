@@ -47,7 +47,7 @@ TOOL = Tool(
     id="mesh-skeleton",
     name="Skeleton Shell",
     version="0.1.0",
-    category="mesh",
+    category="mesh", group="carve",
     icon="skeleton-shell",
     action="Hollow",
     summary="Empty a model and keep only a structure on its skin: wire cells, a triangle net, strands, ribs or a cut "

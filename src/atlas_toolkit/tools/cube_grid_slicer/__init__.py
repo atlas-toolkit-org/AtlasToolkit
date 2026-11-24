@@ -9,7 +9,7 @@ TOOL = Tool(
     id="cube-grid-slicer",
     name="Grid Slicer",
     version="3.1.1",
-    category="mesh",
+    category="mesh", group="fragment",
     icon="slice",
     action="Slice",
     summary="Cut a model into an n × n × n grid of closed blocks and push them apart.",

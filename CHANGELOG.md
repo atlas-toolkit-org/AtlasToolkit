@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.5.2 (unreleased)
+
+- **Tools come in subgroups.** The side bar, Home, the Workflows step list, About and `atlas-toolkit list` group the
+  tools as the README does: Mesh → Mesh (was "Mesh · model prep") in six foldable families, Mesh → SVG and SVG in two
+  each. Headers fold with a click and are remembered; Mesh → Mesh starts folded to its six headers, and opening a tool
+  from elsewhere unfolds its group. Developable Surfaces moves to Surface and relief.
+- For tool authors: `group`, `slow` and `draft_note` in the spec, and an optional `stage_note()` on a viewer
+  (docs/ADDING_A_TOOL.md); `scripts/dev/tool_times.py` measures which tools are slow.
+
 ## 2.5.1 (unreleased)
 
 - **Plot time shows what stroke ordering saved.** Every Mesh → SVG tool that orders its strokes now shows the plot

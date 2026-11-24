@@ -24,7 +24,7 @@ TOOL = Tool(
     id="sketch-hatching",
     name="Sketch Hatching",
     version="1.2.0",
-    category="mesh2svg",
+    category="mesh2svg", group="tone",
     icon="sketch",
     action="Draw",
     summary="Draw a 3D model as a pen sketch: outline, suggestive contours and hatching that follows the form.",

@@ -98,10 +98,13 @@ def main(argv: list | None = None) -> int:
     args = build_parser().parse_args(argv)
     reg = registry()
     if args.command == "list":
-        for cat, tools in reg.by_category():
+        for cat, subs in reg.by_group():
             print(cat)
-            for t in tools:
-                print(f"  {t.id:<24} {t.name} {t.version}  {t.io_badge}  {t.summary}")
+            for _key, title, tools in subs:
+                if title:
+                    print(f"  {title}")
+                for t in tools:
+                    print(f"  {'  ' if title else ''}{t.id:<24} {t.name} {t.version}  {t.io_badge}  {t.summary}")
         for b in reg.broken:
             print(f"  ! {b.name}: {b.error.splitlines()[0]}")
         return 0

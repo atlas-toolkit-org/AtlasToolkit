@@ -32,7 +32,9 @@ TOOL = Tool(
     id="mesh-compress",
     name="Compress",
     version="0.1.0",
-    category="mesh",
+    category="mesh", group="deform",
+    draft_note="A physical draft has fewer faces and load steps, so its folds are fewer and fall in other "
+               "places.",
     icon="press",
     action="Compress",
     summary="Squash a model in a press, crush it from around or every side, or press it into a cube, sphere, "

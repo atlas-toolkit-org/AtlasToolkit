@@ -30,6 +30,16 @@ class ReadmeTests(unittest.TestCase):
                 self.assertIn(path, text, f"{tool.id} has no image in README.md")
                 self.assertTrue((IMAGES / f"{tool.id}.webp").is_file(), f"{path} is missing")
 
+    def test_its_headings_are_the_apps_subgroups(self):
+        text = README.read_text(encoding="utf-8")
+        for _cat, subs in registry().by_group():
+            for _key, title, tools in subs:
+                if title:
+                    self.assertIn(f"#### {title}\n", text)
+                    section = re.split(r"\n##+ ", text.split(f"#### {title}\n")[1])[0]
+                    named = {m.strip("[") for m in re.findall(r"\*\*(\[?[^*\]]+)", section)}
+                    self.assertLessEqual({t.name for t in tools}, named, title)
+
     def test_relative_links_resolve(self):
         for page in (README, ROOT / "docs" / "TOOLS.md"):
             for target in LINK.findall(page.read_text(encoding="utf-8")):

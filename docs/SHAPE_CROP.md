@@ -1,6 +1,6 @@
 # Shape Crop
 
-Available in Atlas Toolkit 2.5.0, tool version 0.1.0 (Mesh · model prep, README family *Prepare and cut*).
+Available in Atlas Toolkit 2.5.0, tool version 0.1.0 (Mesh → Mesh › *Prepare and cut*).
 
 Shape Crop keeps the part of a model that lies inside a box, sphere, cylinder or pyramid you place on it. It is a
 preparation tool: choose the region of a scan or sculpture to draw, before Contour Lines, Sketch Hatching, Plotter

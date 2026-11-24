@@ -9,7 +9,7 @@ TOOL = Tool(
     id="voxelizer",
     name="Voxelizer",
     version="2.0",
-    category="mesh",
+    category="mesh", group="carve",
     icon="voxel",
     action="Voxelize",
     summary="Rebuild a model from cubes, spheres or cylinders on a voxel grid.",

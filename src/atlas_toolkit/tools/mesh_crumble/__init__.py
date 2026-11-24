@@ -37,7 +37,7 @@ TOOL = Tool(
     id="mesh-crumble",
     name="Crumble",
     version="0.1.1",
-    category="mesh",
+    category="mesh", group="fragment",
     icon="crumble",
     action="Crumble",
     summary="Fracture part of a model into solid blocks that break away and collapse under gravity, leaving a hollow.",

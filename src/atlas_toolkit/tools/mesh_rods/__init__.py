@@ -58,7 +58,7 @@ TOOL = Tool(
     id="mesh-rods",
     name="Rods",
     version="1.0",
-    category="mesh",
+    category="mesh", group="carve",
     icon="rods",
     action="Add rods",
     summary="Add rods, hollow pipes, drooping cables or spikes to a model, through it or growing out of it.",

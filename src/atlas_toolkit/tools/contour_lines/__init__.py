@@ -11,7 +11,7 @@ TOOL = Tool(
     id="contour-lines",
     name="Contour Lines",
     version="1.2.0",
-    category="mesh2svg",
+    category="mesh2svg", group="lines",
     icon="contours",
     action="Draw",
     summary="Draw a 3D model as horizontal slices seen through a camera, hidden lines removed.",

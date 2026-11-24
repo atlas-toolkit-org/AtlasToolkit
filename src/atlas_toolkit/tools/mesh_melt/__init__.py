@@ -20,7 +20,7 @@ TOOL = Tool(
     id="mesh-melt",
     name="Melt",
     version="1.1",
-    category="mesh",
+    category="mesh", group="deform",
     icon="melt",
     action="Melt",
     summary="Melt a model: it softens, sags, pools at its base and drips, up to dissolving; in Blender.",

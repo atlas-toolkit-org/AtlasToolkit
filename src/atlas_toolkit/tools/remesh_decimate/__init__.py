@@ -15,7 +15,7 @@ for param in regional:
 
 
 TOOL = Tool(
-    id='remesh-decimate', name='Remesh/Decimate', version='0.2.0', category='mesh', icon='remesh-decimate',
+    id='remesh-decimate', name='Remesh/Decimate', version='0.2.0', category='mesh', group='prepare', icon='remesh-decimate',
     action='Apply', summary='Simplify scans or rebuild them as triangles, flowing quads, directional meshes and dual cells.',
     tagline='Mesh preparation and expressive topology for pen-plotter drawings.',
     description='Preserve detail with constrained decimation, uniform or curvature-adaptive triangles; explore '

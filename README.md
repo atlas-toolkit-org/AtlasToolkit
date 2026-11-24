@@ -117,6 +117,10 @@ Each tool gives a model its own line language and writes an SVG sized for your p
 the camera live and the drawing follows that view. A drawing with several pens (outlines, hatching, hidden lines)
 is saved as a layer, a group or a file per pen, or on one pen: see [Save pens as](docs/TOOLS.md#pens-how-a-drawing-with-several-pens-is-saved).
 
+#### Lines and contours
+
+Describe a form with its slices, edges and curves.
+
 <table>
 <tr>
 <td width="50%" valign="top">
@@ -136,13 +140,29 @@ with depth pens, outline and hidden-line pens, and red-blue stereo.
 </tr>
 <tr>
 <td valign="top">
+<img src="docs/images/readme/flowrep-sketch.webp" alt="Venus as a sparse network of curves" width="100%">
+
+**FlowRep Sketch**<br>
+A sparse network of curvature-aligned curves that describe a form, after FlowRep (Gori et al., 2017). Descriptiveness
+sets how many remain, and an optional silhouette closes the figure.
+</td>
+</tr>
+</table>
+
+#### Hatching and tone
+
+Build light and shade from strokes or dots.
+
+<table>
+<tr>
+<td width="50%" valign="top">
 <img src="docs/images/readme/sketch-hatching.webp" alt="David as a pen sketch" width="100%">
 
 **Sketch Hatching**<br>
 An illustrator's pen sketch: lost-and-found outline, suggestive contours, creases and hatching that follows the form in
 tone bands. Cast shadows, ambient occlusion and a portrait focus. Two pens.
 </td>
-<td valign="top">
+<td width="50%" valign="top">
 <img src="docs/images/readme/stl-hatch-maker.webp" alt="Venus shaded with hatching" width="100%">
 
 **Hatch Maker**<br>
@@ -157,13 +177,6 @@ creases, each pen saved as a layer, a group, a file or merged, ordered to cut pe
 **Stipple**<br>
 Dots only: blue-noise stippling of ray-cast light and shade. Keep highlights empty, darken edges in place of an outline,
 and set a dot budget.
-</td>
-<td valign="top">
-<img src="docs/images/readme/flowrep-sketch.webp" alt="Venus as a sparse network of curves" width="100%">
-
-**FlowRep Sketch**<br>
-A sparse network of curvature-aligned curves that describe a form, after FlowRep (Gori et al., 2017). Descriptiveness
-sets how many remain, and an optional silhouette closes the figure.
 </td>
 </tr>
 </table>
@@ -323,13 +336,6 @@ Elastic or plastic skin, stiffness, pressure and friction.
 Stretches a still model into swept laminae or splintered bars. Stream, Pulse, Gust and Vortex fields draw tapered wakes
 behind a retained silhouette, over the whole model, a height band or a sphere.
 </td>
-<td valign="top">
-<img src="docs/images/readme/mesh-developable.webp" alt="David evolved into flowing folded surfaces" width="100%">
-
-**[Developable Surfaces](docs/DEVELOPABLE_SURFACES.md)**<br>
-Evolves a mesh into nearly developable pieces with flowing seams and straight rulings, after Stein, Grinspun and Crane
-(2018). From recognisable sculpture to abstract folds.
-</td>
 </tr>
 </table>
 
@@ -368,6 +374,15 @@ holds across models, and a second pattern can take over up the height.
 **Ribbon Wrap**<br>
 Wraps a model in silk, satin, velvet, cotton or gauze: a spiral bandage, parcel bands or a loose drape. Free tails fall
 outside the form, with threads, weave and ripples as geometry.
+</td>
+</tr>
+<tr>
+<td valign="top">
+<img src="docs/images/readme/mesh-developable.webp" alt="David evolved into flowing folded surfaces" width="100%">
+
+**[Developable Surfaces](docs/DEVELOPABLE_SURFACES.md)**<br>
+Evolves a mesh into nearly developable pieces with flowing seams and straight rulings, after Stein, Grinspun and Crane
+(2018). From recognisable sculpture to abstract folds.
 </td>
 </tr>
 </table>
@@ -548,11 +563,18 @@ echoed, patchworked or cocooned.
 The last step before the pen. These tools work on any SVG, in millimetres, and keep its layers, ids, styles and
 transforms.
 
+#### Clean up
+
 | Tool | What it does |
 |---|---|
 | **Overlap Cleaner** | Cuts ink drawn twice, so every line is plotted once. Optionally joins stroke ends and removes whole duplicates. |
 | **[Line Smooth](docs/LINE_SMOOTH.md)** | Removes sawtooth and jagged linework with curvature smoothing, within limits on displacement, corners and topology. |
 | **[Line Simplify](docs/LINE_SIMPLIFY.md)** | Reduces vertices within a physical error limit, protecting corners, crossings and enclosed shapes. |
+
+#### Cut and outline
+
+| Tool | What it does |
+|---|---|
 | **Shape Cutter** | Keeps the lines inside or outside a closed shape, taken from a layer, a named element or another SVG. |
 | **Shape Outline** | Draws one closed outline around a drawing: an envelope, a concave or a convex hull, with a margin in millimetres. |
 

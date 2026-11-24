@@ -2,7 +2,7 @@
 from atlas_toolkit.core import Bool, Choice, Float, Inputs, Output, Section, Tool
 
 TOOL = Tool(
-    id="svg-smooth", name="Line Smooth", version="0.1.0", category="svg", icon="line-smooth",
+    id="svg-smooth", name="Line Smooth", version="0.1.0", category="svg", group="clean", icon="line-smooth",
     action="Smooth", summary="Remove jagged and sawtooth linework with controlled curve smoothing.",
     tagline="Flowing strokes, with control over the drawing's character.",
     description=("Arc-length Whittaker–Henderson curvature smoothing or spectral Taubin filtering moves linework "

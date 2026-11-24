@@ -45,7 +45,7 @@ TOOL = Tool(
     id="stl-hatch-maker",
     name="Hatch Maker",
     version="7.1.0",
-    category="mesh2svg",
+    category="mesh2svg", group="tone",
     icon="hatch",
     action="Draw",
     summary="Draw a 3D model for the plotter: hatching that shades its form, its outline and creases.",

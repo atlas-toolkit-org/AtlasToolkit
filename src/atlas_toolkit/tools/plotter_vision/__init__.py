@@ -23,7 +23,7 @@ TOOL = Tool(
     id="plotter-vision",
     name="Plotter Vision",
     version="1.7.0",
-    category="mesh2svg",
+    category="mesh2svg", group="lines",
     icon="eye",
     action="Draw",
     summary="Draw a 3D model as the edges you can see, through a perspective camera, hidden lines removed.",

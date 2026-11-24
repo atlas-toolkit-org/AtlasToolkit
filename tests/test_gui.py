@@ -694,7 +694,7 @@ class GuiFlowTests(unittest.TestCase):
         self.assertEqual(d.releases.item(0).data(Qt.UserRole)[0], __version__)   # the changelog is current
         # the notes show the newest entry (its own first heading, so the test holds for every later release)
         newest = next(ln for ln in releases(changelog_text())[0][2].splitlines() if ln.strip())
-        self.assertIn(newest.replace("**", "").split(" (")[0].strip(), d.notes.toPlainText())
+        self.assertIn(newest.replace("**", "").replace("`", "").split(" (")[0].strip().removeprefix("- "), d.notes.toPlainText())
         self.assertEqual(len(d.tool_rows), len(self.ctx.registry.tools))
         d.tool_filter.setText("overlap")
         self.assertEqual(sum(not r.isHidden() for r, _h in d.tool_rows), 1)

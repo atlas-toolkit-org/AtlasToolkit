@@ -8,7 +8,7 @@ TOOL = Tool(
     id="mesh-disintegrate",
     name="Disintegrate",
     version="1.2.0",
-    category="mesh",
+    category="mesh", group="fragment",
     icon="cube",
     action="Disintegrate",
     summary="Break a model's surface into loose triangles that drift apart, stage by stage.",

@@ -32,7 +32,10 @@ TOOL = Tool(
     id="mesh-growth",
     name="Reaction-Diffusion Growth",
     version="1.0",
-    category="mesh",
+    category="mesh", group="surface",
+    slow="It often takes a minute or more on dense models, and longer with fine patterns.",
+    draft_note="The draft grows the pattern on a coarser simulation, so its stripes and spots can fall in "
+               "other places.",
     icon="growth",
     action="Grow",
     summary="Grow a living pattern over a model: coral ridges, fingerprint channels, dividing cells or a "

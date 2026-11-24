@@ -3,7 +3,7 @@ atlas-toolkit:mesh-repair."""
 from atlas_toolkit.core import Bool, Choice, Float, Inputs, Int, Output, Section, Tool
 
 TOOL = Tool(
-    id="mesh-repair", name="Repair Mesh", version="1.0.1", category="mesh", icon="mesh-repair", action="Repair",
+    id="mesh-repair", name="Repair Mesh", version="1.0.1", category="mesh", group="prepare", icon="mesh-repair", action="Repair",
     summary="Fix the mesh errors that stop the sculpting tools: holes, debris, non-manifold edges, flipped faces.",
     tagline="Run it once on a damaged model; every tool then takes the result as it is.",
     description=(

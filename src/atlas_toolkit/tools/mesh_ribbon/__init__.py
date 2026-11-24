@@ -38,7 +38,7 @@ TOOL = Tool(
     name="Ribbon Wrap",
     version="1.0.1",
     optional=(("blender", "Settle in Blender: a cloth simulation drapes the ribbon over the model"),),
-    category="mesh",
+    category="mesh", group="surface",
     icon="ribbon",
     action="Wrap",
     summary="Wrap a model in a ribbon of silk, satin, velvet or cotton: a bandage, parcel bands or a loose drape, "

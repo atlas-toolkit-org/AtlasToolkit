@@ -58,7 +58,7 @@ TOOL = Tool(
     id="mesh-holes",
     name="Holes",
     version="1.0.2",
-    category="mesh",
+    category="mesh", group="carve",
     icon="holes",
     action="Pierce",
     summary="Pierce a model with tubes, bores, bubbles or wormholes: from a regular perforation to a cheese.",

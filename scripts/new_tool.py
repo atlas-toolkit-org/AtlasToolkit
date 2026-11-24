@@ -32,7 +32,7 @@ TOOL = Tool(
     id="{tool_id}",
     name="{name}",
     version="0.1",
-    category="{category}",
+    category="{category}",          # and group=, a key of core/tool.GROUPS[category]
     icon="{icon}",
     action="Run",
     summary="{summary}",

@@ -11,7 +11,7 @@ TOOL = Tool(
     id="svg-overlap-cleaner",
     name="Overlap Cleaner",
     version="1.2.1",
-    category="svg",
+    category="svg", group="clean",
     icon="layers",
     action="Clean",
     summary="Cut ink drawn twice so every line is plotted once; drop duplicate and collinear vertices.",

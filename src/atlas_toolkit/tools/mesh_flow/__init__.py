@@ -28,7 +28,7 @@ TOOL = Tool(
     id="mesh-flow",
     name="Flow Warp",
     version="1.0",
-    category="mesh",
+    category="mesh", group="deform",
     icon="flow",
     action="Warp",
     summary="Pull a model through turbulent currents: eddies, a vortex and a streaming wind sweep the surface "

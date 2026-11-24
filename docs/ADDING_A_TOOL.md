@@ -28,6 +28,7 @@ TOOL = Tool(
     id="path-simplifier",                     # kebab-case; also the <desc> signature of SVG outputs
     name="Path Simplifier", version="0.1",
     category="svg",                           # svg | mesh2svg | mesh | image | image2mesh | other
+    group="clean",                            # its subgroup in the tool lists: a key of core/tool.GROUPS[category]
     icon="vector",                            # a studio icon name (ui/theme/icons.json, EXTRA_ICONS)
     action="Simplify",                        # the primary button's verb
     summary="One sentence for the card and the page.",
@@ -47,6 +48,11 @@ TOOL = Tool(
     )],
 )
 ```
+
+Optional notices: `slow="It often takes several minutes, longer on dense models."` when a run at the defaults takes a
+minute or more on a typical model of 100-250k faces (`scripts/dev/tool_times.py` measures it); `draft_note="..."` when
+Preview changes the design and not only its detail. Both are plain sentences; the app adds the icons and the rest of
+the wording. A hosted viewer with a `stage_note() -> (a few words, tooltip) | None` gets a strip under the stage's tabs.
 
 **Parameter types** (`core/params.py`):
 

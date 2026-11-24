@@ -33,7 +33,7 @@ TOOL = Tool(
     id="mesh-strata",
     name="Strata Sculpt",
     version="1.2.0",
-    category="mesh",
+    category="mesh", group="fragment",
     icon="strata",
     action="Sculpt",
     summary="Cut a model into a stack of capped slabs and dislocate them: floating wafers, a spiral of sections, a "

@@ -3,7 +3,7 @@ from atlas_toolkit.core import Bool, Choice, Float, Inputs, Int, Output, Section
 
 
 TOOL = Tool(
-    id="voxelize-fill", name="Voxelize Fill", version="0.1.0", category="mesh",
+    id="voxelize-fill", name="Voxelize Fill", version="0.1.0", category="mesh", group="carve",
     icon="voxel-fill", action="Voxelize",
     summary="Fill a mesh with volumetric blocks, then expose, separate or erode its interior.",
     tagline="Solid cubes, adaptive blocks and long bars for architectural pen drawings.",

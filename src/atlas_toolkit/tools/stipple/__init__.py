@@ -16,7 +16,7 @@ TOOL = Tool(
     id="stipple",
     name="Stipple",
     version="1.2",
-    category="mesh2svg",
+    category="mesh2svg", group="tone",
     icon="stipple",
     action="Draw",
     summary="Draw a 3D model in dots: blue-noise stippling of its light and shade, ray-cast through a camera.",

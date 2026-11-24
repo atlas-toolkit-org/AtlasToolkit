@@ -36,7 +36,8 @@ TOOL = Tool(
     id="mesh-dual",
     name="Dual Fusion",
     version="1.1",
-    category="mesh",
+    category="mesh", group="combine",
+    slow="It often takes a minute or more on dense models, and longer at a high resolution.",
     icon="dual",
     action="Fuse",
     summary="Fuse two models into one sculpture: converge and melt, emerge, split along a seam, interleave, bridge "

@@ -15,7 +15,7 @@ TOOL = Tool(
     id="svg-shape-cutter",
     name="Shape Cutter",
     version="2.0",
-    category="svg",
+    category="svg", group="cut",
     icon="scissors",
     action="Cut",
     summary="Clip a drawing to a shape: keep the lines inside (or outside) a closed outline.",

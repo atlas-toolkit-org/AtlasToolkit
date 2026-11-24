@@ -15,7 +15,7 @@ TOOL = Tool(
     id="mesh-twist",
     name="Twist",
     version="1.1",
-    category="mesh",
+    category="mesh", group="deform",
     icon="twist",
     action="Twist",
     summary="Wring a model: a lateral S-sway, an undulating torsion about its up axis and a spiral ripple.",

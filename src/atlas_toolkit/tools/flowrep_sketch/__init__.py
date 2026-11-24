@@ -7,7 +7,10 @@ TOOL = Tool(
     id="flowrep-sketch",
     name="FlowRep Sketch",
     version="0.3.1",
-    category="mesh2svg",
+    category="mesh2svg", group="lines",
+    slow="It takes about a minute, and several at a high remesh resolution.",
+    draft_note="The draft remeshes to at most 1,500 quads and skips the later passes, so its network of curves "
+               "is a sparser, different one.",
     icon="flowrep-sketch",
     action="Draw",
     summary="Draw a model with sparse curves that describe its form.",

@@ -7,7 +7,7 @@ OPERATIONS = [("intersect", "Keep inside · intersection"), ("subtract", "Cut aw
               ("union", "Add the shape · union"), ("xor", "Both remainders · symmetric difference")]
 
 TOOL = Tool(
-    id="mesh-crop", name="Shape Crop", version="0.1.0", category="mesh", icon="shape-crop", action="Crop",
+    id="mesh-crop", name="Shape Crop", version="0.1.0", category="mesh", group="prepare", icon="shape-crop", action="Crop",
     summary="Keep the part of a model inside a box, sphere, cylinder or pyramid, or cut it away.",
     tagline="Place a shape on the model; keep what is inside it.",
     description=("In the Shape tab, move, rotate and scale the shape with its handles, or draw a box over the view; "

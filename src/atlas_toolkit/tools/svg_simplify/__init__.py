@@ -2,7 +2,7 @@
 from atlas_toolkit.core import Bool, Choice, Float, Inputs, Output, Section, Tool
 
 TOOL = Tool(
-    id="svg-simplify", name="Line Simplify", version="0.1.0", category="svg", icon="line-simplify",
+    id="svg-simplify", name="Line Simplify", version="0.1.0", category="svg", group="clean", icon="line-simplify",
     action="Simplify", summary="Reduce line-art vertices with limits on displacement, gesture and topology.",
     tagline="Fewer points, with control over the character of the drawing.",
     description=("Native Douglas–Peucker or heap-based Visvalingam–Whyatt, with physical error limits. "
