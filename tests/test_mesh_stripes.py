@@ -210,6 +210,30 @@ class NativeTests(unittest.TestCase):
         self.assertIsNotNone(launched[0].poll())
 
 
+    def test_band_sheets_pinched_by_float32_are_separated_not_refused(self):
+        """Plotter broad and dense on Venus de Milo: two sheets met along an edge once vertices were welded (an edge
+        four faces share, no hole), and each coarser simplification only made holes of it."""
+        a = trimesh.creation.box((1., 1., 2.))
+        b = a.copy()
+        b.apply_translation((1., 1., 0.))
+        joined = trimesh.util.concatenate((a, b))
+        pinched = trimesh.Trimesh(joined.vertices, joined.faces)                 # welded along the shared edge
+        self.assertFalse(pinched.is_watertight)
+        split = engine.separated_pinches(pinched, .01)
+        self.assertTrue(split.is_watertight and split.is_winding_consistent)
+        self.assertEqual(len(split.faces), len(pinched.faces))
+        self.assertAlmostEqual(split.volume, 4., delta=.005)         # copies move by 0.1 % of the (large) faces
+        self.assertIs(engine.separated_pinches(pinched, 1e-6), pinched)          # further than allowed: refused
+        with tempfile.TemporaryDirectory() as folder:
+            for suffix in (".stl", ".ply", ".obj"):
+                path = Path(folder)/("split"+suffix)
+                engine.gm.save_mesh(split, path, TOOL)
+                self.assertTrue(engine.gm.load_mesh(path).is_watertight, suffix)
+        opened = a.copy()
+        opened.update_faces(np.arange(len(a.faces)-2))                           # a hole is not a pinch: left alone
+        self.assertIs(engine.separated_pinches(opened, .01), opened)
+
+
 @_isolate.needs_helper(backend.find_backend(), "native stripe helper not built")
 class EngineTests(unittest.TestCase):
     def setUp(self):

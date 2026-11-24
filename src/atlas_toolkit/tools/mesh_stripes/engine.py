@@ -17,6 +17,26 @@ from . import TOOL
 from . import mesh_stripes as stripes
 
 
+def separated_pinches(mesh, within, ctx=None):
+    """Two band sheets can meet along an edge once float32 welds their vertices (Venus de Milo's drapery): no hole,
+    only an edge four faces share, and a coarser simplification made holes of it. Give each sheet its own copy of
+    such an edge, as Repair Mesh does (the copies stay apart through every format's reload). They move by a share of the
+    faces around them, so the split is refused when that is more than `within`; unchanged otherwise."""
+    import trimesh
+    V, F, note = R.split_nonmanifold(np.asarray(mesh.vertices, float), np.asarray(mesh.faces, np.int64))
+    if not note:
+        return mesh
+    split = trimesh.Trimesh(V, F, process=False)
+    if not (split.is_watertight and split.is_winding_consistent):
+        return mesh
+    from scipy.spatial import cKDTree
+    if cKDTree(np.asarray(mesh.vertices)).query(V)[0].max() > within:
+        return mesh
+    if ctx:
+        ctx.log(f"Stripes: {note}")
+    return split
+
+
 def make_sample(folder):
     import trimesh
     path = Path(folder)/"striped ellipsoid.stl"
@@ -117,6 +137,9 @@ def run(ctx, src, dst, p):
         V, F = from_manifold(stable)
         world = np.asarray(frame.inverse(V), dtype=np.float32).astype(np.float64)
         output = stripes.precision_mesh(world, F, tolerance/frame.scale, preserve_shells=stripes_only)
+        if not output.is_watertight and output.is_winding_consistent:
+            # a handful of vertices may move by up to 10% of the finest band detail, the whole mesh by only 5%
+            output = separated_pinches(output, 0.1*min(width, relief if relief > 0 else width)/frame.scale, ctx)
         if output.is_watertight and output.is_winding_consistent and output.volume > 0:
             result_solid = stable
             break

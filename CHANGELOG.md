@@ -43,6 +43,11 @@
   - *Surface Eject*: a fragment no bridge can reach (one from the base of a bust thrown up past the head) floats free
     like an unselected one, and so does one whose joint breaks the fused solid next to the others; the report names
     them. Fine Veins: one floats on each David head, two of 22 on Thinker, seven on the thin-walled skull.
+- **Surface Stripes 0.2.2 makes a solid of sheets that touch.** On Venus de Milo (both sizes) Plotter broad and Plotter
+  dense failed "closed-solid validation": two band sheets met along an edge once float32 welded their vertices (an
+  edge four faces share, no hole), and each coarser simplification only made holes of it. Such an edge is now
+  separated first (Repair Mesh's split, whose copies stay apart through every format's reload); a mesh with a real
+  hole is refused as before.
 
 ## 2.5.0 (unreleased)
 
