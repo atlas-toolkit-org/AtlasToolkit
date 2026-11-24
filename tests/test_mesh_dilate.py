@@ -125,6 +125,64 @@ class DilationTests(unittest.TestCase):
         self.assertFalse(md.intersections(safe, F))
         self.assertTrue(md.valid_faces(V, safe, F))
 
+    def test_intersections_find_every_crossing_and_stop_at_a_limit(self):
+        import igl
+        import trimesh
+        m = trimesh.creation.icosphere(subdivisions=2)
+        V = m.vertices + np.random.default_rng(1).normal(0, .25, m.vertices.shape)
+        F = np.asarray(m.faces)
+        want = set()                                             # every pair, with no broad phase or rejection
+        for i in range(len(F)):
+            for j in range(i + 1, len(F)):
+                if not set(F[i]) & set(F[j]) and igl.tri_tri_intersection_test_3d(
+                        *(p[None, :] for p in (*V[F[i]], *V[F[j]])))[0]:
+                    want.add((i, j))
+        self.assertGreater(len(want), 20)
+        self.assertEqual(md.intersections(V, F, limit=None), want)
+        self.assertEqual(len(md.intersections(V, F, limit=5)), 5)
+        active = np.arange(0, len(F), 7)
+        self.assertEqual(md.intersections(V, F, limit=None, active=active),
+                         {p for p in want if p[0] % 7 == 0 or p[1] % 7 == 0})
+        dirty = frozenset(range(0, len(F), 2))
+        self.assertEqual(md.intersections(V, F, limit=None, ignore_faces=dirty),
+                         {p for p in want if p[0] % 2 or p[1] % 2})
+
+    def test_a_contact_holds_back_only_its_surroundings(self):
+        """A contact that takes many corrections to clear must not freeze the rest of the model."""
+        from unittest import mock
+        import trimesh
+        m = trimesh.creation.icosphere(subdivisions=4)
+        V, F = np.asarray(m.vertices), np.asarray(m.faces)
+        guard = md.ContactGuard(V, F)
+        top = int(np.argmax(V[F].mean(axis=1)[:, 2]))
+        calls = []
+
+        def stubborn(*_args, **_kwargs):
+            calls.append(1)
+            return {(top, top)} if len(calls) <= 20 else set()
+        with mock.patch.object(md, "intersections", stubborn):
+            safe, _alpha = guard.limit(V, V * 1.2)
+        far = V[:, 2] < 0
+        np.testing.assert_allclose(safe[far], V[far] * 1.2)
+        np.testing.assert_allclose(safe[F[top]], V[F[top]], atol=1e-6)
+
+    def test_a_fan_that_closes_a_cut_does_not_stop_the_inflation(self):
+        import tempfile
+        from pathlib import Path
+        import trimesh
+        from atlas_toolkit.core.job import JobContext
+        from atlas_toolkit.core.registry import registry
+        from atlas_toolkit.tools.mesh_dilate.engine import run
+        ball = trimesh.creation.icosphere(subdivisions=4)
+        cut = trimesh.intersections.slice_mesh_plane(ball, [0, 0, 1], [0, 0, -.3], cap=True, engine="earcut")
+        with tempfile.TemporaryDirectory() as tmp:
+            src = Path(tmp) / "cut.stl"
+            cut.export(src)
+            ctx = JobContext(lambda *a: None, lambda: False, "run", tmp)
+            result = run(ctx, src, Path(tmp) / "out.stl", registry().get("mesh-dilate").values({"out_faces": 8_000}))
+            self.assertGreater(result.data["added_volume"][0], 70)
+            self.assertTrue(trimesh.load(Path(tmp) / "out.stl").is_watertight)
+
     def test_nearby_parts_keep_new_triangle_crossings_out(self):
         V, F = sphere()
         W = np.vstack((V - [.8, 0, 0], V + [.8, 0, 0]))

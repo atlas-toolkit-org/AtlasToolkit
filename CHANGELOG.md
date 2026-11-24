@@ -12,6 +12,13 @@
 - **Notices where they help.** A warning by the name of tools that can be slow (a small clock in the lists), an ⓘ
   beside Preview (tools and workflow steps) saying how a draft can differ, and a strip on every Aim tab saying that it
   is a simplified view and the drawing has more detail (it was only "light trace" in the read-out).
+- **Dilate 0.2.0 finishes on dense models, and reaches its inflation.** On the 259k-face David head it ran for over
+  ten minutes; now 1.6, with 79.5 % of the 80 % asked. Three causes: the contact search tested triangle pairs one by
+  one (now a grid, with the same exact test and the same answers) and stopped at the first 128 crossings; the sliver
+  fan that closes a bust's flat base crossed itself at the slightest bend (it is re-triangulated first); and one face
+  left after twelve local corrections held the whole model back (now up to 48, all local). The light David head goes
+  from 30 % to 79 %, Weeping Lady from 28 % to 77 %. Models that met no contact (Spot, Bob) come out byte for byte the
+  same in half the time; those that did now inflate further.
 - For tool authors: `group`, `slow` and `draft_note` in the spec, and an optional `stage_note()` on a viewer
   (docs/ADDING_A_TOOL.md); `scripts/dev/tool_times.py` measures which tools are slow.
 

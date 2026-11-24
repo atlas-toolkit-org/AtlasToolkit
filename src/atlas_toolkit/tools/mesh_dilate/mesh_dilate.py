@@ -79,45 +79,57 @@ def lobe_field(V, height, amount=0.0, size=35.0, seed=0):
     return np.exp(2.0 * float(amount) * field)
 
 
+def _apart(A, B):
+    """Triangles A, B (k, 3, 3) that a plane of either one clearly separates. Only certain cases: the margin is far
+    above rounding, so every pair the exact test could call a hit is kept."""
+    out = np.zeros(len(A), bool)
+    for P, Q in ((A, B), (B, A)):
+        origin = P[:, 0]
+        normal = np.cross(P[:, 1] - origin, P[:, 2] - origin)
+        away = Q - origin[:, None]
+        side = np.einsum("kij,kj->ki", away, normal)
+        margin = 1e-9 * np.linalg.norm(normal, axis=1) * (np.abs(away).max(axis=(1, 2)) + np.abs(P).max(axis=(1, 2)))
+        out |= (side > margin[:, None]).all(axis=1) | (side < -margin[:, None]).all(axis=1)
+    return out
+
+
 def intersections(V, F, ignore=frozenset(), limit=1, check=None, ignore_faces=frozenset(), active=None, verify=None):
-    """Non-adjacent intersecting triangles: R-tree broad phase, libigl exact test.
+    """Non-adjacent intersecting triangles: a grid broad phase (geom/contact), libigl's exact test for the pairs no
+    plane separates. `limit` (None: all) stops the search early.
 
     Shared-vertex pairs are adjacent and excluded. Existing intersections can be
     ignored by stable face index, so dirty inputs are not treated as new damage.
     """
     import igl
-    from rtree import index
+    from atlas_toolkit.geom.contact import box_pairs
+    F = np.asarray(F, np.int64)
     triangles = np.asarray(V, float)[F]
-    bounds = np.hstack((triangles.min(axis=1), triangles.max(axis=1)))
-    prop = index.Property()
-    prop.dimension = 3
-    tree = index.Index(((i, tuple(b), None) for i, b in enumerate(bounds)), properties=prop)
+    lo, hi = triangles.min(axis=1), triangles.max(axis=1)
+    mask = None
+    if active is not None:
+        mask = np.zeros(len(F), bool)
+        mask[active] = True
+    dirty = np.zeros(len(F), bool)
+    dirty[list(ignore_faces)] = True
     found = set()
-    try:
-        scan = range(len(F)) if active is None else active
-        seen = set()
-        for i in scan:
-            b = bounds[i]
-            if check and i % 512 == 0:
+    for first, second in box_pairs(lo, hi, active=mask, check=check):
+        keep = ~(dirty[first] & dirty[second])
+        first, second = first[keep], second[keep]
+        shared = (F[first][:, :, None] == F[second][:, None, :]).any(axis=(1, 2))
+        first, second = first[~shared], second[~shared]
+        near = ~_apart(triangles[first], triangles[second])
+        pairs = np.sort(np.stack([first[near], second[near]], axis=1), axis=1)
+        for n, (i, j) in enumerate(pairs[np.lexsort((pairs[:, 1], pairs[:, 0]))].tolist()):
+            if check and n % 512 == 0:
                 check()
-            candidates = np.fromiter((j for j in tree.intersection(tuple(b))
-                                      if (j > i if active is None else j != i)), dtype=np.int64)
-            if not len(candidates):
+            if (i, j) in ignore:
                 continue
-            shared = (F[candidates, :, None] == F[i, None, :]).any(axis=(1, 2))
-            for j in candidates[~shared]:
-                pair = (min(int(i), int(j)), max(int(i), int(j)))
-                if pair in seen or pair in ignore or (i in ignore_faces and int(j) in ignore_faces):
-                    continue
-                seen.add(pair)
-                a, btri = triangles[i], triangles[j]
-                hit, *detail = igl.tri_tri_intersection_test_3d(*(p[None, :] for p in (*a, *btri)))
-                if hit and (verify is None or verify(a, btri, detail)):
-                    found.add(pair)
-                    if len(found) >= limit:
-                        return found
-    finally:
-        tree.close()
+            a, btri = triangles[i], triangles[j]
+            hit, *detail = igl.tri_tri_intersection_test_3d(*(p[None, :] for p in (*a, *btri)))
+            if hit and (verify is None or verify(a, btri, detail)):
+                found.add((i, j))
+                if limit is not None and len(found) >= limit:
+                    return found
     return found
 
 
@@ -133,10 +145,13 @@ def valid_faces(before, after, F):
     return bool(np.isfinite(after).all() and not np.any(invalid_faces(before, after, F)))
 
 
+ROUNDS = 48     # local relaxations before the whole model is held back: one stubborn face must not freeze it all
+
+
 class ContactGuard:
     def __init__(self, V, F, check=None, verify=None):
         self.F, self.check, self.verify = F, check, verify
-        self.existing = intersections(V, F, limit=4096, check=check, verify=verify)
+        self.existing = intersections(V, F, limit=None, check=check, verify=verify)
         self.edges, _ = mc.edges_of(F)
         self.dirty_faces = set()
         if self.existing:
@@ -154,7 +169,7 @@ class ContactGuard:
         scale = np.ones(len(start))
         delta = proposed - start
         active = None
-        for attempt in range(12):
+        for attempt in range(ROUNDS):
             if self.check:
                 self.check()
             trial = start + scale[:, None] * delta
@@ -162,10 +177,10 @@ class ContactGuard:
                 break
             bad = np.flatnonzero(invalid_faces(start, trial, self.F))
             hits = intersections(trial, self.F, ignore=self.existing, check=self.check,
-                                 ignore_faces=self.dirty_faces, limit=128, active=active, verify=self.verify)
+                                 ignore_faces=self.dirty_faces, limit=None, active=active, verify=self.verify)
             if not len(bad) and not hits and active is not None:
                 hits = intersections(trial, self.F, ignore=self.existing, check=self.check,
-                                     ignore_faces=self.dirty_faces, limit=128, verify=self.verify)
+                                     ignore_faces=self.dirty_faces, limit=None, verify=self.verify)
             if not len(bad) and not hits:
                 if attempt:
                     self.limited += 1
@@ -361,7 +376,7 @@ def warp(base, S, SF, inflated):
     # little jumps that fold the triangles of a detailed scan.
     rotations = mc.rotations(S, inflated, E)
     count = min(32, len(S))
-    distance, indices = cKDTree(S).query(base, k=count)
+    distance, indices = cKDTree(S).query(base, k=count, workers=-1)
     if count == 1:
         distance, indices = distance[:, None], indices[:, None]
     radius = np.maximum(distance[:, -1:] * 1.00001, 1e-12)
