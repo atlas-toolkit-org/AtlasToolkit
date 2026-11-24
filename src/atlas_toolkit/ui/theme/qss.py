@@ -58,12 +58,38 @@ QPushButton[nav="true"]:checked {{ background: {c['accent-softer']}; color: {c['
     border-left: 2px solid {c['highlight']}; }}
 QPushButton[nav="true"][broken="true"] {{ color: {c['danger']}; }}
 QPushButton[nav="true"][rail="true"] {{ text-align: center; padding: 8px 0; }}
+#stageNote {{ background: {c['bg-2']}; border: none; border-top: 1px solid {c['line']};
+    border-bottom: 1px solid {c['line']}; }}
+QLabel[mark="true"] {{ border: 1px solid transparent; border-radius: 4px; }}
+QLabel[mark="true"]:focus {{ border-color: {c['focus']}; }}
+QPushButton[nav="true"][nested="true"] {{ padding-left: 28px; }}
+QPushButton[nav="true"][rail="true"][nested="true"] {{ padding-left: 0; }}
+#subRule {{ background: {c['line-2']}; }}
+QPushButton[navgroup="true"][navsub="true"] {{ min-height: 30px; }}
 QPushButton[navgroup="true"] {{ background: transparent; border: none; border-radius: 6px; padding: 0;
     min-height: 34px; }}
 QPushButton[navgroup="true"]:hover {{ background: {c['bg-2']}; }}
 QPushButton[navgroup="true"] QLabel#navGroupTitle {{ color: {c['text']}; }}
+QPushButton[navsub="true"] QLabel#navGroupTitle {{ color: {c['text-2']}; }}
 QPushButton[navgroup="true"][active="true"] QLabel#navGroupTitle {{ color: {c['highlight']}; }}
 QPushButton[navgroup="true"] QLabel#navGroupCount {{ color: {c['text-3']}; }}
+
+/* the tool list along the top (ui/toolbar.py) */
+#toolbar {{ background: {c['bg-1']}; border-bottom: 1px solid {c['line']}; }}
+QPushButton[toolcat="true"] {{ background: transparent; border: none; border-bottom: 2px solid transparent;
+    border-radius: 0; padding: 0 12px; min-height: 41px; color: {c['text-2']}; font-weight: 500; }}
+QPushButton[toolcat="true"]:hover, QPushButton[toolcat="true"][open="true"] {{ background: {c['bg-2']};
+    color: {c['text']}; }}
+QPushButton[toolcat="true"][current="true"] {{ color: {c['text']}; border-bottom: 2px solid {c['highlight']}; }}
+QPushButton[toolcat="true"]:focus {{ color: {c['text']}; }}
+QPushButton[toolcat="true"][broken="true"] {{ color: {c['danger']}; }}
+#toolPanel {{ background: {c['bg-1']}; border: 1px solid {c['line-3']}; border-top: none;
+    border-bottom-left-radius: 10px; border-bottom-right-radius: 10px; }}
+#toolPanel QScrollArea {{ background: transparent; border: none; }}
+#toolPanelHead {{ color: {c['text']}; }}
+#toolPanelFoot {{ background: transparent; border: none; border-top: 1px solid {c['line']}; }}
+QPushButton[nav="true"][inpanel="true"] {{ border-left: none; border-radius: 6px; padding: 0 10px 0 14px; min-height: 30px; }}
+QPushButton[nav="true"][inpanel="true"]:focus {{ background: {c['bg-3']}; color: {c['text']}; }}
 
 /* ---------------------------------------------------------------- buttons */
 QPushButton, QToolButton {{ background: {c['bg-2']}; border: 1px solid {c['line-2']}; border-radius: 8px;

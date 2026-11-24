@@ -2,7 +2,7 @@
 The Setup window (the gear button, Ctrl+, or "Setup" in the palette): the app's general options, its optional
 components and its folders. A resizable, modeless window with tabs, built like the About window:
 
-    General     theme and artwork at start, interface scale, what opens at start, quitting during a run, preview delay
+    General     theme and artwork at start, side bar or top bar, interface scale, what opens at start, quitting during a run, preview delay
     Outputs     when an output file exists (overwrite / ask / keep both), where a tool's outputs go until it has its
                 own choice, heavy jobs at once, what happens when a run ends
     Components  the optional components (core/runtimes): status, which tools use them, why, how to install
@@ -172,6 +172,12 @@ class SetupDialog(QDialog):
         b.toggled.connect(lambda on, k=key: self._set(k, bool(on)))
         return b
 
+    def show_nav(self) -> None:
+        """The tool list was moved from the main window: the choice here follows."""
+        self.nav_combo.blockSignals(True)
+        self.nav_combo.setCurrentIndex(max(0, self.nav_combo.findData(self.ctx.pref("tool_nav"))))
+        self.nav_combo.blockSignals(False)
+
     def _set(self, key: str, value) -> None:
         self.ctx.set_pref(key, value)
         if key == "theme_start" and value != "last":              # see it now, not only at the next start
@@ -191,6 +197,9 @@ class SetupDialog(QDialog):
                      self.theme_combo)
         self._option(g, "Artwork at start", "Previews on paper or blueprint (the paper button in the top bar).",
                      self._combo("art_start", prefs.ARTS))
+        self.nav_combo = self._combo("tool_nav", prefs.TOOL_NAVS)
+        self._option(g, "Tool list", "A side bar, or a bar along the top whose groups drop down: more width for the "
+                                     "drawing.", self.nav_combo)
         scale = QComboBox()
         scale.setMinimumWidth(240)
         for s in prefs.UI_SCALES:

@@ -22,8 +22,35 @@ from PySide6.QtWidgets import (QFrame, QHBoxLayout, QLabel, QMenu, QPushButton, 
                                QVBoxLayout, QWidget, QWidgetAction)
 
 from ..theme import icon, mono
-from .common import apply_icon, icon_button, label
+from .common import ElidedLabel, Mark, apply_icon, icon_button, label
 from .plot_view import PlotView
+
+
+class StageNote(QFrame):
+    """A slim strip under the stage's tabs: an info glyph and a few words, the whole note in its tooltip."""
+
+    def __init__(self, theme):
+        super().__init__(objectName="stageNote")
+        lay = QHBoxLayout(self)
+        self.setFixedHeight(26)
+        lay.setContentsMargins(12, 0, 12, 0)
+        lay.setSpacing(6)
+        self.mark = Mark("info", "warning", "", theme, 14)
+        self.text = ElidedLabel("")
+        self.text.setProperty("class", "hint")
+        lay.addWidget(self.mark)
+        lay.addWidget(self.text, 1)
+        self.hide()
+
+    def set_note(self, note) -> None:
+        self.setVisible(bool(note))
+        if note:
+            self.text.set_full_text(note[0])
+            self.setToolTip(note[1])
+            self.mark.set_tip(note[1])
+
+    def mouseReleaseEvent(self, e):
+        self.mark.show_tip()
 
 
 class PreviewStage(QFrame):
@@ -75,6 +102,8 @@ class PreviewStage(QFrame):
         bar.addWidget(self.btn_wire)
         bar.addWidget(self.btn_fit)
         lay.addLayout(bar)
+        self.note = StageNote(theme)                     # what a hosted view does not show (its stage_note())
+        lay.addWidget(self.note)
         self.stack = QStackedWidget()
         self.plot = PlotView(theme)
         self.plot.zoomed.connect(self._zoom_text)
@@ -117,6 +146,14 @@ class PreviewStage(QFrame):
         self.plot.show_drawing(None, message=message)
         self.info.setText("")
         self.btn_inspect.setVisible(False)
+        self._note()
+
+    def _note(self) -> None:
+        """What the shown widget says about itself (an optional stage_note() -> (a few words, tooltip) or None)."""
+        i = self.tabs.currentIndex()
+        v = self.views[i] if 0 <= i < len(self.views) else {"kind": ""}
+        get = getattr(v["widget"], "stage_note", None) if v["kind"] == "widget" else None
+        self.note.set_note(get() if get else None)
 
     def _tab_changed(self, _i: int) -> None:
         self._show_current(keep_view=True, follow=True)
@@ -138,7 +175,7 @@ class PreviewStage(QFrame):
         for i, v in enumerate(self.views):
             if v["kind"] == "widget" and getattr(v["widget"], "sets_view", False):
                 self.tabs.setTabIcon(i, icon("aim", self.theme["text-2"], 14))
-                self.tabs.setTabToolTip(i, "Aim sets the drawing's view: what the frame shows is what gets drawn.")
+                self.tabs.setTabToolTip(i, "Aim sets the drawing's view and framing.")
 
     def _show_current(self, keep_view: bool = False, follow: bool = False) -> None:
         i = self.tabs.currentIndex()
@@ -146,6 +183,7 @@ class PreviewStage(QFrame):
             self.clear()
             return
         v = self.views[i]
+        self._note()
         aim = self.aim_widget()
         self.btn_inspect.setVisible(aim is not None and v["kind"] == "mesh")
         if v["kind"] == "widget":
@@ -288,6 +326,7 @@ class PreviewStage(QFrame):
     def _widget_info(self, text: str) -> None:
         if self.stack.currentWidget() is self.sender():
             self.info.setText(text)
+            self._note()                             # what it shows may have changed with it
 
     def current_title(self) -> str:
         return self.tabs.tabText(self.tabs.currentIndex()) if self.tabs.count() else ""
@@ -318,6 +357,7 @@ class PreviewStage(QFrame):
                 w.set_theme(theme)
         for b in (self.btn_travel, self.btn_wire, self.btn_fit):
             apply_icon(b, theme)
+        self.note.mark.retheme(theme)
         self._mark_aim()
 
     def set_art(self, art: str) -> None:

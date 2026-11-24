@@ -1,10 +1,13 @@
 """Small building blocks shared by every page: the Qt counterparts of the ds-* web components."""
 from __future__ import annotations
 
+import html
+import re
+
 from PySide6.QtCore import QEasingCurve, QPointF, QPropertyAnimation, QRectF, QSize, Qt, QTimer, Signal
 from PySide6.QtGui import QColor, QPainter, QPen
 from PySide6.QtWidgets import (QButtonGroup, QFrame, QGraphicsOpacityEffect, QGridLayout, QHBoxLayout, QLabel,
-                               QPushButton, QSizePolicy, QStyle, QStyleOptionButton, QStylePainter, QToolButton,
+                               QPushButton, QSizePolicy, QStyle, QStyleOptionButton, QStylePainter, QToolButton, QToolTip,
                                QVBoxLayout, QWidget)
 
 from ..theme import icon, label_font, mono
@@ -80,6 +83,68 @@ def set_variant(b, variant: str = "") -> None:
     if (b.property("variant") or "") != variant:
         b.setProperty("variant", variant)
         repolish(b)
+
+
+class Mark(QLabel):
+    """A small icon with a tooltip (rich text, wrapped), which a click or Enter also shows: a warning by a tool's
+    name, a note beside a button."""
+
+    def __init__(self, name: str, tone: str, tip: str, theme, size: int = 16):
+        super().__init__()
+        self._icon, self._tone, self._size = name, tone, size
+        self.setFixedSize(size + 4, size + 4)
+        self.setAlignment(Qt.AlignCenter)
+        self.setFocusPolicy(Qt.TabFocus)
+        self.setCursor(Qt.WhatsThisCursor)
+        self.setProperty("mark", "true")
+        self.set_tip(tip)
+        self.retheme(theme)
+
+    def set_tip(self, tip: str) -> None:
+        self.setToolTip(tip)
+        self.setAccessibleName(re.sub(r"<[^>]+>", " ", tip))
+
+    def retheme(self, theme) -> None:
+        self.setPixmap(icon(self._icon, theme[self._tone], self._size).pixmap(self._size, self._size))
+
+    def show_tip(self) -> None:
+        QToolTip.showText(self.mapToGlobal(self.rect().bottomLeft()), self.toolTip(), self)
+
+    def mouseReleaseEvent(self, e):
+        self.show_tip()
+
+    def keyPressEvent(self, e):
+        if e.key() in (Qt.Key_Return, Qt.Key_Enter, Qt.Key_Space):
+            self.show_tip()
+        else:
+            super().keyPressEvent(e)
+
+
+def tip_html(head: str, *paragraphs: str) -> str:
+    """A tooltip with a bold first line; rich text, so that Qt wraps it."""
+    return f"<p><b>{html.escape(head)}</b></p>" + "".join(f"<p>{html.escape(p)}</p>" for p in paragraphs if p)
+
+
+SLOW_ADVICE = "Try it on a lighter model first. You can cancel a run at any time."
+
+
+def draft_tip(tool, workflow: bool = False) -> str:
+    """The note beside a Preview button."""
+    return tip_html("Preview is a quick draft",
+                    "Many tools preview with a lighter model, fewer steps or coarser settings, so the final result can "
+                    "differ, sometimes a lot. Use Preview to judge the general effect; Run makes the final result.",
+                    f"{tool.name}: {tool.draft_note}" if tool.draft_note else "",
+                    "Only this step is a draft: the steps before it run in full." if workflow else "")
+
+
+def slow_mark(text: str, theme) -> Mark:
+    """The quiet clock of a tool that can be slow, for lists (hidden without a text). A click goes to the list."""
+    m = Mark("clock", "text-3", text, theme, 14)
+    m.setFocusPolicy(Qt.NoFocus)
+    m.unsetCursor()
+    m.setAttribute(Qt.WA_TransparentForMouseEvents)              # the card's own tooltip says it too
+    m.setVisible(bool(text))
+    return m
 
 
 def hairline() -> QFrame:

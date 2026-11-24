@@ -5,6 +5,7 @@ outputs that already exist. No Qt: the CLI and the tests use it too.
     on_existing        overwrite (no question) | ask | suffix (keep the old file: name_YYYYMMDD-HHMMSS.ext)
     theme_start        last | dark | light | system            the theme the app opens in
     art_start          last | paper | blueprint
+    tool_nav           side | top                              the tool list: a side bar or a bar along the top
     start_page         home | last                             reopen the last tool or workflow
     default_out_mode   next | folder                           for tools that have no output setting saved yet
     default_out_dir    the folder for "folder"
@@ -32,6 +33,7 @@ ON_EXISTING = {"overwrite": "Overwrite, without asking",
                "suffix": "Keep both: add the date and time to the new file's name"}
 THEMES = {"last": "The last one used", "dark": "Dark", "light": "Light", "system": "Follow the system"}
 ARTS = {"last": "The last one used", "paper": "Paper", "blueprint": "Blueprint"}
+TOOL_NAVS = {"side": "Side bar", "top": "Top bar"}
 START_PAGES = {"home": "Home", "last": "The last tool or workflow"}
 UPDATE_CHECKS = {"ask": "Ask me", "daily": "Check once a day", "never": "Never check"}
 UI_SCALES = (0.85, 1.0, 1.1, 1.25, 1.5)
@@ -41,6 +43,7 @@ DEFAULTS = {
     "on_existing": "overwrite",
     "theme_start": "last",
     "art_start": "last",
+    "tool_nav": "side",
     "start_page": "home",
     "default_out_mode": "next",
     "default_out_dir": "",
@@ -54,13 +57,14 @@ DEFAULTS = {
     "update_check": "ask",
     "catalogue_dir": "",
 }
-CHOICES = {"on_existing": ON_EXISTING, "theme_start": THEMES, "art_start": ARTS, "start_page": START_PAGES,
+CHOICES = {"on_existing": ON_EXISTING, "theme_start": THEMES, "art_start": ARTS, "start_page": START_PAGES, "tool_nav": TOOL_NAVS,
            "update_check": UPDATE_CHECKS,
            "default_out_mode": {"next": "", "folder": ""}}
 RANGES = {"workers": (1, MAX_WORKERS), "preview_delay_ms": (100, 3000), "ui_scale": (UI_SCALES[0], UI_SCALES[-1])}
 # keys of app.json that are not options: what "Reset options" keeps (window layout, recent files, located programs)
 STATE_KEYS = ("theme", "art", "geometry", "sidebar_on", "last_tool", "last_page", "last_workflow", "recent",
-              "workflow_dir", "library_collapsed", "update_last", "update_latest", "update_skip",
+              "workflow_dir", "library_collapsed", "library_folded", "sidebar_folded", "home_folded",
+              "update_last", "update_latest", "update_skip",
               "catalogue_recent", "catalogue_view")
 
 

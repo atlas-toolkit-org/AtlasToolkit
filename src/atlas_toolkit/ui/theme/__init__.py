@@ -18,6 +18,7 @@ _RGBA = re.compile(r"rgba?\(\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)\s*(?:,\s*(
 
 # Toolkit glyphs not in the studio set, same grid and stroke rules (24x24, 1.5, round caps).
 EXTRA_ICONS = {
+    "topbar": '<rect x="3.5" y="4.5" width="17" height="15" rx="2"/><path d="M3.5 9.5h17M7 7h2M11 7h2"/>',
     "skeleton-shell": '<path d="M12 3a4 4 0 0 1 4 4c0 1.8-1 3-2 4l3 2 1 8H6l1-8 3-2c-1-1-2-2.2-2-4a4 4 0 0 1 4-4z"/><path d="m12 3-2 4 2 4 2-4zM7 13l3 4 2-6 2 6 3-4M6 21l4-4 2 4 2-4 4 4"/>',
     "crumble": '<path d="M4 21V5l5-2 2 4-2 3 2 3-2 3 1 5M4 21h16"/><path d="m14 7 3-1 1 3-3 1zM13 13l3 1-1 3-3-1zM18 15l2 1-1 2-2-1z"/>',
     "stairs": '<path d="M3 21v-4h4v-4h4V9h4V5h6M3 21h18V5"/><path d="M7 21v-4M11 21v-8M15 21V9"/>',

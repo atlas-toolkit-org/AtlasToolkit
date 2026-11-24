@@ -60,7 +60,9 @@ src/atlas_toolkit/
     setup.py       the Setup window (gear): options, optional components, folders and housekeeping
     preset_install.py  loading preset files and packs, from anywhere: shows the install plan, asks, installs
     setup_presets.py  Setup › Presets: preset packs (and whether they are Official) and every preset, to manage
-    sidebar.py     the tool list: foldable groups, full or icons only (the Workflows library mirrors it)
+    sidebar.py     the tool list: foldable categories and subgroups (core/tool.GROUPS), full or icons only (the
+                   Workflows library mirrors it)
+    toolbar.py     the same list along the top (preference tool_nav): a button per category, panels of subgroups
     tool_page.py   the generic tool page
     home.py  activity.py  palette.py  bridge.py (runner events → Qt signals)  context.py
     workflow/      the Workflows page: canvas (steps, ports, arrows; left to right or top to bottom), step library,

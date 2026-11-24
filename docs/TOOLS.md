@@ -308,8 +308,8 @@ atlas-toolkit run mesh-disintegrate model.obj --layout final --direction normal 
 
 Every Mesh → SVG tool (Plotter Vision, Hatch Maker, Contour Lines, Sketch Hatching, Stipple, FlowRep Sketch) opens
 on its **Aim** tab, marked with a crosshair. Aim is the one place the drawing's view is set: the paper's drawing
-area is framed, and what is in the frame is what Preview and Draw make. The model shows as a light trace (a copy of
-at most 20 000 faces, its outline and creases, hidden lines removed when you stop), so it turns smoothly whatever
+area is framed, and what is in the frame is what Preview and Draw make. The model shows as a simplified view, as
+the strip under the tabs says (a light trace of a copy of at most 20 000 faces, its outline and creases, hidden lines removed when you stop), so it turns smoothly whatever
 its size, on any display scaling. The copy is made once per file: a new Up, Front or turn only places it again. The real drawing comes from **Preview** or **Draw**, in the Drawing tab.
 
 The **Input** tab beside it is for looking the model over: it turns to the side you are aiming at when you open
@@ -402,10 +402,10 @@ through it, so what is in the frame is what Draw writes, cut at the frame in mm.
 | `F` or double-click | fit the model in the frame (`A`: after every move) |
 | `P` or **Pause lines** | no hidden lines after a move until `P` again |
 | `R` | plotter.vision's start view |
-| `X` or **Exact lines** | the exact drawing instead of the light trace (and back) |
+| `X` or **Exact lines** | the exact drawing instead of the simplified view (and back) |
 | `T` | red-blue stereo (with Exact lines) |
 
-Aim shows the light trace by default (the Sketch preset's look), quick on any model. **Exact lines** draws what
+Aim shows the simplified view by default (the Sketch preset's look), quick on any model. **Exact lines** draws what
 Draw will write, live, as plotter.vision did, with your edge, decimation, depth and stereo settings: it can be slow
 on big models, and it is never saved, so the page always opens on the trace. While you move, the candidate edges
 show in the accent colour (when there are too many to keep up with your hand, the outline and an even share of the
@@ -640,8 +640,16 @@ Mosaic.
     value again) shows it again at once. The last four previews of each file are kept.
 - **Mesh → SVG tools:** aim in the Aim tab (see [Aim](#aim-where-a-drawings-view-is-set)), then **Preview** or
   **Draw**; presets change the lines, never the view. The Input tab is for looking only.
-- **Home** shows the tools as cards or as a one-line **List**; each section (Workflows and each tool group)
-  folds under its header, and **Fold all** folds them together. Saved workflows show by their names.
+- **Home** shows the tools as cards or as a one-line **List**; each section (Workflows, each tool category and its
+  subgroups) folds under its header, and **Fold all** folds them together. Saved workflows show by their names.
+- **The tool list** groups the tools by category and subgroup, as the README does: click a header to fold or unfold it
+  (Mesh → Mesh starts with its six subgroups folded). What you fold is remembered, and opening a tool from elsewhere
+  unfolds its group. The list is a **side bar** (`]`: icons only) or a **top bar**, whose categories drop down as panels
+  with every subgroup in view: point at another category to switch; the arrow keys, Enter and Esc work too. Switch in
+  **Setup › General › Tool list**, with the button at the top of the side bar or the right end of the top bar, or from
+  the search box. `[` shows or hides either.
+- **Notices:** an amber ⚠ by a tool's name says it can be slow (a small clock in the lists). The ⓘ beside **Preview**
+  says how a preview can differ from the final result.
 - A tool whose required program (Blender for Melt, the stripes helper) is missing is **faded** in every list, with an amber ⚠ and the reason in its tooltip; its page shows a notice under its name (Locate, Get, Setup guide) and Run waits. In Workflows its step turns amber at once. An optional program only adds a quiet note on the tool's page. The app looks again whenever its window comes back into focus.
 - **Activity** lists every run. Show an output, or open the tool again with the same file and settings.
 - **Send output to** (right-click a saved file) chains tools, for example Replicator → Grid Slicer.

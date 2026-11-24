@@ -6,6 +6,12 @@
   tools as the README does: Mesh → Mesh (was "Mesh · model prep") in six foldable families, Mesh → SVG and SVG in two
   each. Headers fold with a click and are remembered; Mesh → Mesh starts folded to its six headers, and opening a tool
   from elsewhere unfolds its group. Developable Surfaces moves to Surface and relief.
+- **The tool list can sit along the top.** Setup › General › Tool list (or the button at the top of the side bar)
+  swaps the side bar for a bar whose categories drop down as panels, every subgroup in view: point at another category
+  to switch, arrow keys, Enter and Esc. It switches at once and leaves the whole width to the page.
+- **Notices where they help.** A warning by the name of tools that can be slow (a small clock in the lists), an ⓘ
+  beside Preview (tools and workflow steps) saying how a draft can differ, and a strip on every Aim tab saying that it
+  is a simplified view and the drawing has more detail (it was only "light trace" in the read-out).
 - For tool authors: `group`, `slow` and `draft_note` in the spec, and an optional `stage_note()` on a viewer
   (docs/ADDING_A_TOOL.md); `scripts/dev/tool_times.py` measures which tools are slow.
 

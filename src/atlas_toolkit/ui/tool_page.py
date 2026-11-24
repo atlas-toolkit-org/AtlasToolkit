@@ -41,8 +41,8 @@ from ..core.paths import cache_dir, open_file, reveal
 from ..core.tool import KINDS, InputInfo, Result
 from ..version import __version__
 from .theme import icon, label_font, mono, sans
-from .widgets.common import (ElidedLabel, RuntimeNotice, StatTile, apply_icon, badge, hint, icon_button, label,
-                             repolish)
+from .widgets.common import (SLOW_ADVICE, ElidedLabel, Mark, RuntimeNotice, StatTile, apply_icon, badge, draft_tip,
+                             hint, icon_button, label, repolish, tip_html)
 from .widgets.file_queue import FileQueue
 from .widgets.param_form import ParamForm
 from .widgets.presets import PresetBar
@@ -339,8 +339,13 @@ class ToolPage(QWidget):
         title = QLabel(self.tool.name)
         title.setProperty("class", "tooltitle")
         title.setFont(sans(21, 300))
-        title.setToolTip(f"{self.tool.category_title}  ·  {self.tool.io_badge}")
+        title.setToolTip(f"{self.tool.place}  ·  {self.tool.io_badge}")
         tl.addWidget(title, 0, Qt.AlignVCenter)
+        self.slow_mark = None
+        if self.tool.slow:
+            self.slow_mark = Mark("warn", "warning", tip_html("Can be slow", self.tool.slow, SLOW_ADVICE), self.theme)
+            tl.addSpacing(8)
+            tl.addWidget(self.slow_mark, 0, Qt.AlignVCenter)
         tl.addSpacing(8)
         tl.addWidget(badge(f"v{self.tool.version}"), 0, Qt.AlignVCenter)
         tl.addSpacing(14)
@@ -461,7 +466,10 @@ class ToolPage(QWidget):
         self.btn_cancel.clicked.connect(self.cancel)
         self.btn_open = QPushButton("Open folder")
         self.btn_open.clicked.connect(self.open_output_folder)
+        self.preview_note = Mark("info", "text-3", draft_tip(self.tool), self.theme)
+        self.preview_note.setVisible(not self.tool.live)
         r2.addWidget(self.btn_preview, 1)
+        r2.addWidget(self.preview_note)
         r2.addWidget(self.btn_cancel, 1)
         r2.addWidget(self.btn_open, 1)
         al.addLayout(r2)
@@ -1471,6 +1479,9 @@ class ToolPage(QWidget):
         self.stage.set_theme(theme)
         self.form.retheme(theme)
         self.presets.retheme(theme)
+        for mark in (self.slow_mark, self.preview_note):
+            if mark is not None:
+                mark.retheme(theme)
         for row in self.rows.values():
             self._fill_row(row)
         self._fold_button()

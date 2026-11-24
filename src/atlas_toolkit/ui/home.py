@@ -23,9 +23,9 @@ from PySide6.QtWidgets import (QFrame, QGridLayout, QHBoxLayout, QLabel, QMenu, 
 from ..core.paths import config_dir, reveal
 from ..core.workflow import saved_name
 from ..version import __version__
-from .sidebar import GroupHead
+from .sidebar import GroupHead, SubHead, saved_folds, tool_tip
 from .theme import icon, mono, qcolor, sans
-from .widgets.common import Segmented, apply_icon, badge, label, repolish, section_head
+from .widgets.common import Segmented, apply_icon, badge, label, repolish, section_head, slow_mark
 
 CARD_W = 300
 FLOWS = "Workflows"                     # the workflows section's key, before the tool categories
@@ -49,6 +49,8 @@ class ToolCard(QFrame):
         self.ic = QLabel()
         top.addWidget(self.ic)
         top.addStretch(1)
+        self.slow = slow_mark(getattr(tool, "slow", ""), theme)
+        top.addWidget(self.slow)
         needs = getattr(tool, "needs_short", "")
         top.addWidget(badge(needs, "warning") if needs else badge(tool.io_badge, "accent"))
         lay.addLayout(top)
@@ -71,6 +73,7 @@ class ToolCard(QFrame):
         self.theme = theme
         tone = theme["text-4"] if getattr(self.tool, "needs", "") else theme["highlight"]
         self.ic.setPixmap(icon(self.tool.icon, tone, 22, 1.6).pixmap(22, 22))
+        self.slow.retheme(theme)
 
     def enterEvent(self, e):
         self.setProperty("hover", "true")
@@ -128,6 +131,8 @@ class ToolRow(QFrame):
         self.summary.setProperty("class", "muted")
         self.summary.setMinimumWidth(60)
         hl.addWidget(self.summary, 1)
+        self.slow = slow_mark(getattr(tool, "slow", ""), theme)
+        hl.addWidget(self.slow)
         v = QLabel(getattr(tool, "foot", "") or f"v{tool.version}")
         v.setFont(mono(10.5))
         v.setProperty("class", "mono")
@@ -138,6 +143,7 @@ class ToolRow(QFrame):
     def retheme(self, theme) -> None:
         tone = theme["text-4"] if getattr(self.tool, "needs", "") else theme["highlight"]
         self.ic.setPixmap(icon(self.tool.icon, tone, 18, 1.6).pixmap(18, 18))
+        self.slow.retheme(theme)
 
     def resizeEvent(self, e):               # one line of summary, elided to the room left
         super().resizeEvent(e)
@@ -188,7 +194,8 @@ class HomePage(QScrollArea):
         self.ctx = ctx
         self.theme = ctx.theme
         self.view: str = ctx.settings.get("home_view") or "cards"
-        self.collapsed: set[str] = set(ctx.settings.get("home_collapsed") or [])
+        self.collapsed: set[str] = saved_folds(ctx.settings, "home_collapsed")
+        self.folded: set[str] = set(ctx.settings.get("home_folded") or [])      # subgroups
         self.setWidgetResizable(True)
         self.setObjectName("page")
         body = QWidget()
@@ -239,12 +246,12 @@ class HomePage(QScrollArea):
         bar.addWidget(self.btn_fold)
         lay.addLayout(bar)
 
-        # key -> {"head": GroupHead, "body": QWidget, "items": [...]}
+        # key -> {"head": GroupHead, "body": QWidget, "items": [...], "groups": [(subgroup key, heading, items)]}
         self.sections: dict[str, dict] = {}
         self.cards: list = []                                    # the cards or rows shown now
-        self._section(lay, FLOWS, self._flow_items())
-        for cat, tools in ctx.registry.by_category():
-            self._section(lay, cat, [self._tool_item(t) for t in tools])
+        self._section(lay, FLOWS, [("", "", self._flow_items())])
+        for cat, subs in ctx.registry.by_group():
+            self._section(lay, cat, self._tool_groups(subs))
         if ctx.registry.broken:
             lay.addSpacing(10)
             lay.addWidget(section_head("Tools that failed to load"))
@@ -269,8 +276,12 @@ class HomePage(QScrollArea):
     # ------------------------------------------------------------------ items
     def _tool_item(self, t) -> SimpleNamespace:
         return SimpleNamespace(id=t.id, name=t.name, icon=t.icon, io_badge=t.io_badge, summary=t.summary,
-                               version=t.version, foot="", tip="", needs=self.ctx.needs_text(t),
+                               version=t.version, foot="", tip=tool_tip(t) if t.slow else "", slow=t.slow_text,
+                               needs=self.ctx.needs_text(t),
                                needs_short=self.ctx.needs_short(t), open=lambda tid=t.id: self.ctx.open_tool(tid))
+
+    def _tool_groups(self, subs: list) -> list:
+        return [(key, title, [self._tool_item(t) for t in tools]) for key, title, tools in subs]
 
     def _flow_items(self) -> list:
         """A New workflow item and the most recent saved workflows, by the names stored in them."""
@@ -293,14 +304,15 @@ class HomePage(QScrollArea):
         return items
 
     # ------------------------------------------------------------------ sections
-    def _section(self, lay, key: str, items: list) -> None:
+    def _section(self, lay, key: str, groups: list) -> None:
+        items = [it for _k, _t, its in groups for it in its]
         lay.addSpacing(8)
         head = GroupHead(key, self._count(key, items))
         head.clicked.connect(lambda _=False, k=key: self.toggle(k))
         lay.addWidget(head)
         body = QWidget(objectName="transparent")
         lay.addWidget(body)
-        self.sections[key] = {"head": head, "body": body, "items": items}
+        self.sections[key] = {"head": head, "body": body, "items": items, "groups": groups}
 
     @staticmethod
     def _count(key: str, items: list) -> int:
@@ -319,28 +331,47 @@ class HomePage(QScrollArea):
                     w.deleteLater()
             QWidget().setLayout(old)                             # detach the old layout
         widgets = []
+        sec["subs"] = []                                         # (subgroup key, SubHead, its body)
+        box = QVBoxLayout(sec["body"])
+        box.setContentsMargins(0, 0, 0, 0)
+        box.setSpacing(2)
+        for sub_key, title, items in sec["groups"]:
+            body = QWidget(objectName="transparent")
+            if title:
+                head = SubHead(title, len(items), indent=12)
+                head.clicked.connect(lambda _=False, k=sub_key: self.toggle_sub(k))
+                box.addSpacing(4)
+                box.addWidget(head)
+                sec["subs"].append((sub_key, head, body))
+            box.addWidget(body)
+            widgets += self._fill_body(body, items)
+        for w in widgets:
+            w.clicked.connect(lambda _id, it=w.tool: it.open())
+        sec["widgets"] = widgets
+
+    def _fill_body(self, body: QWidget, items: list) -> list:
+        """One group's cards (three a row) or rows."""
+        widgets = []
         if self.view == "list":
-            box = QVBoxLayout(sec["body"])
-            box.setContentsMargins(0, 2, 0, 0)
-            box.setSpacing(2)
-            for it in sec["items"]:
+            rows = QVBoxLayout(body)
+            rows.setContentsMargins(0, 2, 0, 0)
+            rows.setSpacing(2)
+            for it in items:
                 w = ToolRow(it, self.theme)
-                box.addWidget(w)
+                rows.addWidget(w)
                 widgets.append(w)
         else:
-            grid = QGridLayout(sec["body"])
-            grid.setContentsMargins(0, 4, 0, 0)
+            grid = QGridLayout(body)
+            grid.setContentsMargins(0, 4, 0, 8)
             grid.setHorizontalSpacing(14)
             grid.setVerticalSpacing(14)
-            for i, it in enumerate(sec["items"]):
+            for i, it in enumerate(items):
                 w = ToolCard(it, self.theme)
                 grid.addWidget(w, i // 3, i % 3)
                 widgets.append(w)
             for col in range(3):
                 grid.setColumnStretch(col, 1)
-        for w in widgets:
-            w.clicked.connect(lambda _id, it=w.tool: it.open())
-        sec["widgets"] = widgets
+        return widgets
 
     def apply(self) -> None:
         """The view and the folding, as the settings say."""
@@ -351,6 +382,10 @@ class HomePage(QScrollArea):
             open_ = key not in self.collapsed
             sec["body"].setVisible(open_)
             sec["head"].set_state(open_, False, self.theme)
+            for sub_key, head, body in sec["subs"]:
+                shown = sub_key not in self.folded
+                body.setVisible(shown)
+                head.set_state(shown, False, self.theme)
             sec["head"].count.setText(str(self._count(key, sec["items"])))
         self.cards = [w for sec in self.sections.values() for w in sec["widgets"]]
         folded_all = set(self.sections) <= self.collapsed
@@ -367,26 +402,37 @@ class HomePage(QScrollArea):
         self.collapsed ^= {key}
         self._save()
 
+    def toggle_sub(self, key: str) -> None:
+        self.folded ^= {key}
+        self._save()
+
     def fold_all(self) -> None:
         keys = set(self.sections)
-        self.collapsed = set() if keys <= self.collapsed else keys
+        folded = keys <= self.collapsed
+        self.collapsed = set() if folded else keys
+        if folded:
+            self.folded = set()
         self._save()
 
     def _save(self) -> None:
         self.ctx.settings.set("home_collapsed", sorted(self.collapsed))
+        self.ctx.settings.set("home_folded", sorted(self.folded))
         self.apply()
 
     def refresh_availability(self) -> None:
         """A required program was found or lost: rebuild the tool sections' items."""
-        for cat, tools in self.ctx.registry.by_category():
-            if cat in self.sections:
-                self.sections[cat]["items"] = [self._tool_item(t) for t in tools]
-                self.sections[cat].pop("view", None)
+        for cat, subs in self.ctx.registry.by_group():
+            sec = self.sections.get(cat)
+            if sec is not None:
+                sec["groups"] = self._tool_groups(subs)
+                sec["items"] = [it for _k, _t, its in sec["groups"] for it in its]
+                sec.pop("view", None)
         self.apply()
 
     def refresh_workflows(self) -> None:
         sec = self.sections[FLOWS]
         sec["items"] = self._flow_items()
+        sec["groups"] = [("", "", sec["items"])]
         sec.pop("view", None)                                    # rebuilt by apply()
         self.apply()
 
@@ -428,6 +474,8 @@ class HomePage(QScrollArea):
             c.retheme(theme)
         for sec in self.sections.values():
             sec["head"].set_state(sec["body"].isVisibleTo(self), False, theme)
+            for key, head, _body in sec["subs"]:
+                head.set_state(key not in self.folded, False, theme)
         apply_icon(self.btn_fold, theme)
 
 

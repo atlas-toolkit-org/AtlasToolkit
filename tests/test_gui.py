@@ -665,6 +665,100 @@ class GuiFlowTests(unittest.TestCase):
         self.assertTrue(buttons[0].text().strip())
         self.assertTrue(self.ctx.settings.get("sidebar_on"))
 
+    def test_tool_list_subgroups_fold_and_follow_the_open_tool(self):
+        side = self.win.sidebar
+        self.win.show_home()
+        key, _cat, head, buttons, _line = next(s for s in side.subs if s[0] == "mesh/deform")
+        if key not in side.folded:
+            head.click()
+        self.assertTrue(all(b.isHidden() for b in buttons))
+        self.assertIn(key, self.ctx.settings.get("sidebar_folded"))
+        self.win.open_tool("mesh-twist")                         # from elsewhere: its group unfolds
+        self.assertFalse(side.nav["mesh-twist"].isHidden())
+        head.click()                                             # folded again: the header shows where the tool is
+        self.assertTrue(all(b.isHidden() for b in buttons))
+        self.assertEqual(head.property("active"), "true")
+        self.assertIn("mesh/prepare", self.ctx.registry.folded_at_first())
+        self.assertNotIn("svg/clean", self.ctx.registry.folded_at_first())
+
+    def test_top_bar_layout(self):
+        from PySide6.QtCore import QPointF, Qt
+        from PySide6.QtGui import QEnterEvent
+        from PySide6.QtTest import QTest
+        win, bar = self.win, self.win.toolbar
+        size = win.size()
+        self.addCleanup(lambda: win.resize(size))
+        self.addCleanup(lambda: self.ctx.set_pref("tool_nav", "side"))
+        win.show()
+        self.ctx.set_pref("tool_nav", "top")
+        win.open_tool("mesh-twist")
+        self.assertTrue(win.sidebar.isHidden())
+        self.assertFalse(bar.isHidden())
+        self.assertEqual(bar.place.full_text(), "Deform › Twist")
+        self.assertEqual(bar.cats["Mesh → Mesh"].property("current"), "true")
+        win.resize(1180, 700)
+        self.app.processEvents()
+        root = win.centralWidget()
+        for cat, button in bar.cats.items():                     # every panel stays inside the smallest window
+            button.click()
+            self.app.processEvents()
+            self.assertEqual(bar.opened, cat)
+            self.assertTrue(root.rect().contains(bar.panel.geometry()), cat)
+            button.click()
+            self.assertIsNone(bar.opened)
+        bar.show_panel("Mesh → SVG")                             # pointing at another category switches
+        pt = QPointF(3, 3)
+        self.app.sendEvent(bar.cats["Mesh → Mesh"], QEnterEvent(pt, pt, pt))
+        self.assertEqual(bar.opened, "Mesh → Mesh")
+        first = bar.panel.buttons["Mesh → Mesh"][0]
+        bar.panel._pointed(first)
+        self.assertIn(first.tool.summary[:20], bar.panel.note._full)
+        for _ in range(2):                                       # past the last column: the next category
+            bar._key(Qt.Key_Escape)
+            self.assertIsNone(bar.opened)
+            bar.show_panel("Image → SVG")
+        bar.panel.focus_first()
+        bar._beside(1)
+        self.assertEqual(bar.opened, "Image → Mesh")
+        bar.panel.buttons["Image → Mesh"][0].click()             # opens the tool and closes
+        self.assertIsNone(bar.opened)
+        self.assertEqual(win.current_tool, bar.panel.buttons["Image → Mesh"][0].tool.id)
+        bar.show_panel("Mesh → SVG")
+        QTest.mouseClick(win.stack.currentWidget(), Qt.LeftButton)   # so does a click elsewhere
+        self.assertIsNone(bar.opened)
+        win.open_workflow()
+        self.assertTrue(bar.isHidden() and win.sidebar.isHidden())
+        win.show_home()
+        win.toggle_sidebar()
+        self.assertTrue(bar.isHidden() and win.sidebar.isHidden())
+        win.toggle_sidebar()
+        self.assertFalse(bar.isHidden())
+        bar.btn_side.click()                                     # back to the side
+        self.assertEqual(self.ctx.pref("tool_nav"), "side")
+        self.assertFalse(win.sidebar.isHidden())
+        self.assertTrue(bar.isHidden())
+
+    def test_notices_slow_tools_previews_and_aim(self):
+        page = self.win.open_tool("mesh-developable")
+        self.assertIn("several minutes", page.slow_mark.toolTip())
+        self.assertIn("several minutes", self.win.sidebar.nav["mesh-developable"].toolTip())
+        self.assertIn("quick draft", page.preview_note.toolTip())
+        self.assertIn("500 faces", page.preview_note.toolTip())
+        live = self.win.open_tool("svg-overlap-cleaner")         # live tools have no Preview
+        self.assertTrue(live.preview_note.isHidden())
+        self.assertIsNone(live.slow_mark)
+        page = self.win.open_tool("contour-lines")
+        page.stage.show_views([{"title": "Aim", "kind": "widget", "widget": page.viewer}])
+        self.assertFalse(page.stage.note.isHidden())
+        self.assertIn("more detail", page.stage.note.text.full_text())
+        page.stage.clear()
+        self.assertTrue(page.stage.note.isHidden())
+        vision = self.win.open_tool("plotter-vision").viewer
+        vision.set_exact(True)
+        self.assertIn("Exact lines", vision.stage_note()[0])
+        vision.set_exact(False)
+        self.win.show_home()
+
     def assert_tabs_fit_smallest(self, d):
         """Every tab of a tabbed window fits it at its minimum size: nothing wider than the window, cut off."""
         was = d.tabs.currentIndex()
@@ -975,6 +1069,7 @@ class GuiFlowTests(unittest.TestCase):
         from unittest import mock
         from atlas_toolkit.core import runtimes
         from atlas_toolkit.ui.home import FLOWS
+        from PySide6.QtCore import Qt
         from atlas_toolkit.ui.workflow.library import NEEDS
         real = runtimes.find
         needs_blender = [t for t in self.ctx.registry.ordered() if "blender" in t.requires]
@@ -1002,8 +1097,7 @@ class GuiFlowTests(unittest.TestCase):
             nid = flows.add_entry(f"tool:{melt.id}")
             card = flows._card(flows.wf.nodes[nid])
             self.assertEqual((card.level, card.chip), ("warning", "needs Blender"))
-            lib_items = [flows.library.tree.topLevelItem(i).child(j) for i in range(flows.library.tree.topLevelItemCount())
-                         for j in range(flows.library.tree.topLevelItem(i).childCount())]
+            lib_items = flows.library.tree.findItems("", Qt.MatchContains | Qt.MatchRecursive)
             self.assertTrue(any(it.data(0, NEEDS) for it in lib_items))
         self.ctx.refresh_runtimes()                                 # found again: everything clears
         if real("blender"):

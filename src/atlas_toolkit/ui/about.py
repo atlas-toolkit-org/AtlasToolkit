@@ -565,7 +565,8 @@ class AboutDialog(QDialog):
         w, lay = _page((0, 14, 0, 24), 4)
         self.tool_rows: list[tuple[QWidget, str]] = []
         self.tool_heads: list[tuple[QWidget, list]] = []
-        for cat, tools in self.ctx.registry.by_category():
+        for cat, tools in ((f"{cat} · {title}" if title else cat, tools)
+                           for cat, subs in self.ctx.registry.by_group() for _key, title, tools in subs):
             head = QWidget(objectName="transparent")
             hl = QHBoxLayout(head)
             hl.setContentsMargins(0, 12, 0, 4)
@@ -615,6 +616,10 @@ class AboutDialog(QDialog):
         for rt, what in tool.optional:
             b = badge(f"optional {runtimes.RUNTIMES[rt].label}")
             b.setToolTip(what)
+            top.addWidget(b)
+        if tool.slow:
+            b = badge("can be slow")
+            b.setToolTip(tool.slow_text)
             top.addWidget(b)
         top.addStretch(1)
         col.addLayout(top)
