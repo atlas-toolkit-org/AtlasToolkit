@@ -7,6 +7,9 @@
   ball: 3 h 44 → 42 min). Sketch Hatching and Stipple now report their travel before ordering too, and Depth Hatching
   uses the shared tiles. The estimate counts the travel only, not lifts saved by joining, so it never overstates the
   saving. A "was" that reads the same as the value (ordering off) is left out.
+- **A preset saved before a parameter was renamed keeps its value.** Loading one put the new parameter's default in
+  first, so the old name was never read: a Hatch Maker 7.0 preset with *Everything on one pen* loaded as a layer per
+  pen, without a word. Saved settings and workflows already converted; presets now do too.
 
 ## 2.5.0 (unreleased)
 

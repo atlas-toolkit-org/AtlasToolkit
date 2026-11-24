@@ -77,6 +77,15 @@ class SchemaChanges(unittest.TestCase):
         self.assertEqual((values["width"], values["mode"]), (5.0, "a"))
         self.assertEqual(len(problems), 2)
 
+    def test_apply_converts_a_renamed_key(self):
+        """A preset saved before a rename keeps its value (the default must not hide the former key)."""
+        tool = demo_tool(params=[Choice("mode", "Mode", "a", ["a", "b"], former=("style",), former_values={"old": "b"}),
+                                 Float("width", "Width", 4.0, min=0, max=20, former=("breadth",))])
+        values, problems = P.apply(tool, P.Preset("Old", "demo", {"style": "old", "breadth": 7}))
+        self.assertEqual((values["mode"], values["width"], problems), ("b", 7.0, []))
+        values, _ = P.apply(tool, P.Preset("Both", "demo", {"mode": "a", "style": "b"}))
+        self.assertEqual(values["mode"], "a")                                               # the new key wins
+
     def test_migrate_hook_sees_the_writing_version(self):
         seen = []
 
