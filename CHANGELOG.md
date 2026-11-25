@@ -2,6 +2,11 @@
 
 ## 2.5.3 (unreleased)
 
+- **A welcome window opens with the app.** It says that Atlas is still under development and what that means (unexpected
+  issues, your own risk, tools that can be slow or give strange results), with buttons for feedback on GitHub and support
+  on Ko-fi; then what's new in the latest versions, and tips, three at a time, the next three at each start. **Don't show
+  this window at start** turns it off, as does Setup › General › Welcome window; the search box (Help on macOS) opens
+  it at any time. Opening the app with a file, a tool or a page goes straight there.
 - **The repair messages say where Repair Mesh is now.** A tool that needs a closed solid pointed to "Mesh · Prepare and
   cut", the list's name before 2.5.2; it now says Mesh → Mesh › Prepare and cut.
 

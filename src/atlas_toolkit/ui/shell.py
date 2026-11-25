@@ -35,6 +35,7 @@ from .theme.qss import stylesheet
 from .tool_page import ToolPage
 from .toolbar import ToolBar
 from .updates import UpdateBar
+from .welcome import WelcomeDialog
 from .workflow import WorkflowPage
 from .widgets.common import Toaster, apply_icon, badge, icon_button, label, set_badge
 
@@ -79,7 +80,9 @@ def build_menu_bar(win, bar) -> None:
     action(view, "Home", win.show_home)
     action(view, "Activity", win.show_activity)
     action(view, "Workflows", win.open_workflow)
-    bar.addMenu("Help").addAction(f"{APP_NAME} Help", lambda: win.show_help("about"))
+    help_menu = bar.addMenu("Help")
+    help_menu.addAction(f"{APP_NAME} Help", lambda: win.show_help("about"))
+    help_menu.addAction("Welcome Window", lambda: win.show_welcome())
 
 
 class MainWindow(QMainWindow):
@@ -91,6 +94,7 @@ class MainWindow(QMainWindow):
         self.current_tool: str | None = None
         self.about: AboutDialog | None = None
         self.setup: SetupDialog | None = None
+        self.welcome: WelcomeDialog | None = None
         self._start_page = ctx.settings.get("last_page", "home")   # before show_home() below overwrites it
         self._sidebar_on = bool(ctx.settings.get("sidebar_on", True))
         self.setWindowTitle(APP_NAME)
@@ -310,6 +314,7 @@ class MainWindow(QMainWindow):
             ("Load presets or a preset pack", ".atlaspreset, .atlaspack or a .zip holding them", "folder",
              lambda: self.show_setup("presets").presets_panel.import_files()),
             ("About Atlas Toolkit", "version, system, diagnostics", "info", self.show_help),
+            ("Welcome window", "notes before you start, what's new, tips", "star", self.show_welcome),
             ("Keyboard shortcuts", "help", "info", lambda: self.show_help("shortcuts")),
             ("Changelog", "what's new in each version", "clock", lambda: self.show_help("changelog")),
             ("All tools", "every tool with its icon and summary", "process", lambda: self.show_help("tools")),
@@ -606,6 +611,20 @@ class MainWindow(QMainWindow):
         self.setup.activateWindow()
         return self.setup
 
+    def show_welcome(self) -> WelcomeDialog:
+        """The welcome window (modeless; one at a time): at start (ui/app.py), and from the search box."""
+        if self.welcome is None:
+            self._open_welcome()
+        self.welcome.raise_()
+        self.welcome.activateWindow()
+        return self.welcome
+
+    def _open_welcome(self, tip_page: int | None = None) -> None:
+        dialog = self.welcome = WelcomeDialog(self.ctx, self, tip_page)
+        dialog.finished.connect(lambda _r: setattr(self, "welcome", None))
+        dialog.setAttribute(Qt.WA_DeleteOnClose)
+        dialog.show()
+
     def _pref_changed(self, key: str) -> None:
         if key == "update_check":
             self.updatebar.pref_changed()
@@ -613,6 +632,11 @@ class MainWindow(QMainWindow):
             self._show_nav()
             if self.setup is not None:
                 self.setup.show_nav()
+        elif key == "show_welcome":
+            if self.welcome is not None:
+                self.welcome.show_pref()
+            if self.setup is not None:
+                self.setup.show_welcome_pref()
         elif key == "workers":
             self.ctx.bridge.runner.process.set_workers(self.ctx.pref("workers"))
         elif key == "preview_delay_ms":
@@ -667,6 +691,11 @@ class MainWindow(QMainWindow):
             self.setup.close()
             self.setup = None
             self.show_setup(tab).setGeometry(geo)
+        if self.welcome is not None:             # and the welcome window, on the same tips
+            page, geo = self.welcome.tip_page, self.welcome.geometry()
+            self.welcome.close()
+            self._open_welcome(page)
+            self.welcome.setGeometry(geo)
         self.home.retheme(theme)
         self.activity.retheme(theme)
         for p in self.pages.values():
@@ -678,6 +707,8 @@ class MainWindow(QMainWindow):
         self.btn_art.setChecked(art == "blueprint")
         self.btn_art.blockSignals(False)
         apply_icon(self.btn_art, self.ctx.theme, "blueprint" if art == "blueprint" else "paper")
+        if self.welcome is not None:
+            self.welcome.plate.update()
         for p in self.pages.values():
             p.set_art(art)
         self.workflows.set_art(art)

@@ -7,5 +7,6 @@ LICENSE_ID = "GPL-3.0-or-later"     # SPDX; pyproject.toml, packaging and the Ab
 COPYRIGHT = "© 2026 João Gonçalves (sci.co.plot) and contributors"
 HOMEPAGE = "https://atlas-toolkit.org"
 SOURCE_URL = "https://github.com/atlas-toolkit-org/AtlasToolkit"
+FEEDBACK_URL = f"{SOURCE_URL}/issues/new/choose"     # bug reports, ideas and questions
 SUPPORT_URL = "https://ko-fi.com/atlas_toolkit"   # donations, preset packs and early-access builds
 PRESETS_URL = "https://atlas-toolkit.org/presets/"   # the official packs: Basic (free), Essentials, Complete

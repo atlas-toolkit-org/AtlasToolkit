@@ -30,6 +30,9 @@ from .context import AppContext
 from .theme import load_fonts, logo_icon, sans
 
 
+WELCOME_DELAY_MS = 350       # once the main window is up and drawn
+
+
 def _parse(argv: list) -> argparse.Namespace:
     ap = argparse.ArgumentParser(prog="atlas-toolkit", add_help=False)
     ap.add_argument("files", nargs="*")
@@ -44,6 +47,11 @@ def _parse(argv: list) -> argparse.Namespace:
     ap.add_argument("--draft", action="store_true", help="run Preview on the selected file first (snapshot)")
     a, _unknown = ap.parse_known_args(argv)
     return a
+
+
+def welcomes(args) -> bool:
+    """The app was opened on its own, not to open something or to take a screenshot: the welcome window may show."""
+    return not (args.snapshot or args.files or args.tool or args.page or args.workflow)
 
 
 def is_preset_file(path) -> bool:
@@ -86,6 +94,7 @@ class FileOpener(QObject):
         super().__init__()
         self.win = None
         self.waiting: list = []
+        self.opened = False              # the system has handed something over
         self.already_open = {os.path.realpath(f) for f in on_command_line}
 
     def eventFilter(self, obj, ev) -> bool:
@@ -95,6 +104,7 @@ class FileOpener(QObject):
         if path in self.already_open:
             self.already_open.discard(path)
             return True
+        self.opened = True
         self.waiting.append(ev.file())
         if self.win is not None:
             QTimer.singleShot(0, self.flush)
@@ -254,6 +264,10 @@ def run_app(argv: list) -> int:
     elif ctx.pref("start_page") == "last" and not (args.files or args.tool or args.page or args.workflow
                                                    or args.snapshot):
         win.restore_last_page()
+
+    if welcomes(args) and ctx.pref("show_welcome"):
+        # a file the system hands over meanwhile (macOS) is what the person wants to see instead
+        QTimer.singleShot(WELCOME_DELAY_MS, lambda: None if opener.opened else win.show_welcome())
 
     if args.snapshot:
         _arm_snapshot(app, win, ctx, Path(args.snapshot), args.view, args.draft)

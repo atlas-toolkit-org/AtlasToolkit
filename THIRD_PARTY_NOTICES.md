@@ -65,6 +65,7 @@ Each of these leaves a small piece of itself in the installer: the Inno Setup in
 | Asset | Licence |
 |---|---|
 | Geist and Geist Mono fonts (Vercel) | SIL Open Font License 1.1 (`ui/theme/fonts/OFL-LICENSE.txt`) |
+| The welcome window's drawing (`ui/theme/welcome.svg`), made with Atlas from a CC0 model of the catalogue (Nefertiti for 2.5) | CC0-1.0 source (`licenses/catalogue-models.txt`) |
 | Twelve Surface Texture heightmaps (ambientCG, TextureCan) | CC0-1.0 (`licenses/surface-texture-assets.txt`) |
 | Model catalogue: scanned and modelled works (museums via Wikimedia Commons, the Smithsonian, Keenan Crane's repository and others), their thumbnails, and the starter set shipped in the app; the rest download on use from the catalogue release | Per model: CC0-1.0, CC-BY-4.0, CC-BY-SA-4.0 or public domain, each credited with its source and changes (`licenses/catalogue-models.txt`; texts in `licenses/CC0-1.0.txt`, `CC-BY-4.0.txt`, `CC-BY-SA-4.0.txt`). Generated shapes: CC0-1.0 |
 

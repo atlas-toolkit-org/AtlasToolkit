@@ -664,10 +664,16 @@ buttons above the list fold every group and switch to **icons only**, a narrow r
 lines. The button at the top left of the window (or `[`) hides the list. The Workflows step list works the same
 way. All of it is remembered.
 
+**The welcome window** opens with the app: a notice that Atlas is still under development, with **Leave feedback on GitHub**
+and **Support on Ko-fi**; the headlines of the latest versions; and tips, three at a time (each start shows the next
+three). **Don't show this window at start** turns it off, and **Setup › General › Welcome window** turns it on or off
+later. Search for *Welcome window* (or Help on macOS) to open it at any time. It stays away when the app is started to
+open something: a file, a tool, a page or a workflow.
+
 **Setup** (the gear, top right, or `Ctrl+,`): the app's own options, saved as they change.
 
 - **General:** the theme and artwork the app opens in (the last one used, dark, light or the system's), the interface
-  scale (next start), what opens at start (Home, or the tool or workflow it was closed on), asking before quitting
+  scale (next start), what opens at start (Home, or the tool or workflow it was closed on), the welcome window, asking before quitting
   during a run, the preview delay, and **New versions**: ask me, check once a day, or never check, with this
   version, when it last checked and **Check now** under it (see [Updates](#updates)).
 - **Outputs:** when an output file exists, for tools and workflows alike: **overwrite** without asking (the default),

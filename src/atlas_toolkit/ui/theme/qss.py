@@ -14,6 +14,8 @@ def stylesheet(t: Theme) -> str:
     dark = t.dark
     inset = c["bg-2"]                    # fields and tracks sit one step above their panel
     hover = c["bg-3"]
+    amber = t.q("warning")
+    warn = f"{amber.red()}, {amber.green()}, {amber.blue()}"
     return f"""
 * {{ color: {c['text']}; outline: none; }}
 QMainWindow, #root, #page {{ background: {c['bg']}; }}
@@ -198,7 +200,8 @@ QTextBrowser {{ font-family: "Geist"; font-size: 13px; }}
 /* ---------------------------------------------------------------- surfaces */
 #card {{ background: {c['bg-1']}; border: 1px solid {c['line']}; border-radius: 14px; }}
 QLabel[class="h3"] {{ color: {c['text']}; font-size: 14px; font-weight: 500; }}
-QDialog#aboutDialog, QDialog#setupDialog, QDialog#catalogueDialog {{ background: {c['bg']}; }}
+QDialog#aboutDialog, QDialog#setupDialog, QDialog#catalogueDialog,
+QDialog#welcomeDialog {{ background: {c['bg']}; }}
 #aboutHead {{ background: {c['bg-1']}; border-bottom: 1px solid {c['line']}; }}
 #aboutFoot {{ background: {c['bg-1']}; border-top: 1px solid {c['line']}; }}
 #aboutTabs QTabBar {{ background: {c['bg-1']}; }}
@@ -217,6 +220,12 @@ QDialog#aboutDialog, QDialog#setupDialog, QDialog#catalogueDialog {{ background:
     padding: 0 8px; }}
 #releaseList::item:selected {{ background: {c['accent-softer']}; color: {c['text']}; }}
 #releaseNotes {{ padding: 14px 18px; color: {c['text-2']}; }}
+#welcomeNotice {{ background: rgba({warn}, 0.08); border: 1px solid rgba({warn}, 0.42);
+    border-left: 4px solid {c['warning']}; border-radius: 6px; }}
+#warnTile {{ background: rgba({warn}, 0.14); border: 1px solid rgba({warn}, 0.5); border-radius: 12px; }}
+#warnDot {{ color: {c['warning']}; font-weight: 700; }}
+#welcomeNews {{ background: transparent; border: none; padding: 0; }}
+QLabel[class="labelNo"] {{ color: {c['highlight']}; }}
 #card[hover="true"] {{ background: {c['bg-2']}; border-color: {c['line-3']}; }}
 #panel {{ background: {c['bg-1']}; border: 1px solid {c['line']}; border-radius: 12px; }}
 #stat {{ background: {c['bg-1']}; border: 1px solid {c['line']}; border-radius: 10px; }}

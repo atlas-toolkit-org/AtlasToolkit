@@ -178,6 +178,12 @@ class SetupDialog(QDialog):
         self.nav_combo.setCurrentIndex(max(0, self.nav_combo.findData(self.ctx.pref("tool_nav"))))
         self.nav_combo.blockSignals(False)
 
+    def show_welcome_pref(self) -> None:
+        """The welcome window's own box was changed: the choice here follows."""
+        self.welcome_check.blockSignals(True)
+        self.welcome_check.setChecked(bool(self.ctx.pref("show_welcome")))
+        self.welcome_check.blockSignals(False)
+
     def _set(self, key: str, value) -> None:
         self.ctx.set_pref(key, value)
         if key == "theme_start" and value != "last":              # see it now, not only at the next start
@@ -215,6 +221,9 @@ class SetupDialog(QDialog):
         g = self._grid()
         self._option(g, "Open at start", "Home, or the tool, workflow or page the app was closed on.",
                      self._combo("start_page", prefs.START_PAGES))
+        self.welcome_check = self._check("show_welcome", "Show it when the app opens")
+        self._option(g, "Welcome window", "Notes before you start, what's new and tips. The search box opens it at any "
+                                          "time.", self.welcome_check)
         self._option(g, "Quitting during a run", "", self._check("confirm_quit", "Ask before stopping it"))
         cl.addLayout(g)
         lay.addWidget(card)

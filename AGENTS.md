@@ -46,6 +46,10 @@ One PySide6 app for pen-plotter tools, in its own repository. `README.md` is the
   `LEFT_OUT`). Preset packs are separate works with their own licence: **paid preset values never enter this
   repository** (specs, tests, docs, workflows, scripts); `scripts/dev/preset_leak_check.py` checks, locally. Only
   Basic-tier presets may appear in docs and examples.
+- **Every X.Y version gets a new welcome plate.** When the second number of X.Y.Z changes, redraw the drawing in the
+  welcome window (`ui/theme/welcome.svg`) so it shows what changed in that version: edit `RECIPE` in
+  `scripts/dev/welcome_art.py` (a CC0 model the app ships, the new tools and settings, the caption), keep the contour
+  style (Contour Lines draws last), look at it in the window, then `--publish`. `test_welcome` fails until it is done.
 - **Every tool has its own icon.** Never reuse another tool's `icon`: draw a new glyph in `EXTRA_ICONS`
   (`src/atlas_toolkit/ui/theme/__init__.py`; 24x24 grid, stroke 1.5, round caps) and name it in the spec.
   `test_contract` fails on duplicates. Check this for tools written by other assistants too.

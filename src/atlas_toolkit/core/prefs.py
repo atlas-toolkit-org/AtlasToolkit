@@ -7,6 +7,7 @@ outputs that already exist. No Qt: the CLI and the tests use it too.
     art_start          last | paper | blueprint
     tool_nav           side | top                              the tool list: a side bar or a bar along the top
     start_page         home | last                             reopen the last tool or workflow
+    show_welcome       the welcome window when the app opens (ui/welcome.py)
     default_out_mode   next | folder                           for tools that have no output setting saved yet
     default_out_dir    the folder for "folder"
     reveal_after_run   show the first output in its folder when a run ends
@@ -45,6 +46,7 @@ DEFAULTS = {
     "art_start": "last",
     "tool_nav": "side",
     "start_page": "home",
+    "show_welcome": True,
     "default_out_mode": "next",
     "default_out_dir": "",
     "reveal_after_run": False,
@@ -65,7 +67,7 @@ RANGES = {"workers": (1, MAX_WORKERS), "preview_delay_ms": (100, 3000), "ui_scal
 STATE_KEYS = ("theme", "art", "geometry", "sidebar_on", "last_tool", "last_page", "last_workflow", "recent",
               "workflow_dir", "library_collapsed", "library_folded", "sidebar_folded", "home_folded",
               "update_last", "update_latest", "update_skip",
-              "catalogue_recent", "catalogue_view")
+              "catalogue_recent", "catalogue_view", "welcome_tip")
 
 
 def max_workers() -> int:
@@ -125,7 +127,7 @@ def plan(paths: dict, policy: str, mark: str | None = None) -> tuple[dict, list]
 BUNDLE = "atlas-toolkit-settings"
 # app.json keys that belong to this computer or this session: never exported, never imported
 LOCAL_KEYS = ("geometry", "recent", "last_workflow", "workflow_dir", "update_last", "update_latest", "update_skip",
-              "catalogue_dir", "catalogue_recent", "catalogue_view")
+              "catalogue_dir", "catalogue_recent", "catalogue_view", "welcome_tip")
 
 
 def _local_keys() -> set:

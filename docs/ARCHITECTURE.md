@@ -57,6 +57,8 @@ src/atlas_toolkit/
     app.py         start-up, splash, snapshot mode
     shell.py       main window: top bar, sidebar, pages, footer, log, shortcuts, palette
     about.py       the About window: tools, command line, shortcuts, changelog, credits, diagnostics
+    welcome.py     the welcome window at start: the development notice, what's new, tips (its plate is
+                   theme/welcome.svg, drawn by scripts/dev/welcome_art.py)
     setup.py       the Setup window (gear): options, optional components, folders and housekeeping
     preset_install.py  loading preset files and packs, from anywhere: shows the install plan, asks, installs
     setup_presets.py  Setup › Presets: preset packs (and whether they are Official) and every preset, to manage
