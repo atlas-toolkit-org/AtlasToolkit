@@ -81,6 +81,65 @@ def solid_split(mesh, origin, normal) -> tuple | None:
     return out[0], out[1]
 
 
+def solid_pieces(mesh, samples: int = 24) -> list[tuple[int, object]]:
+    """The connected pieces of a closed mesh as solids, [(index among its shells, piece)]. A shell that is inside out
+    is the wall of a hollow (a bubble within one layer, a void a layer closes off), not material of its own: it goes
+    with the smallest shell that holds it and has the volume for it, so both can be moved as one. One that nothing
+    holds bounds no material and is left out. Without hollows these are simply the shells."""
+    import trimesh
+    shells = list(mesh.split(only_watertight=False))
+    walls = [s for s in shells if s.is_watertight and s.volume < 0]
+    if not walls:
+        return list(enumerate(shells))
+    solids = {i: [s] for i, s in enumerate(shells) if not (s.is_watertight and s.volume < 0)}
+    room = {i: float(group[0].volume) for i, group in solids.items()}
+    for wall in sorted(walls, key=lambda s: s.volume):
+        points = _hollow_points(wall, samples)
+        lo, hi = points.min(axis=0), points.max(axis=0)
+        holders = [i for i, group in solids.items()
+                   if room[i] > -wall.volume and (group[0].bounds[0] <= hi).all() and (group[0].bounds[1] >= lo).all()
+                   and np.mean(winding(group[0], points) > 0.5) > 0.5]
+        if holders:
+            owner = min(holders, key=lambda i: solids[i][0].volume)
+            solids[owner].append(wall)
+            room[owner] += float(wall.volume)
+    return [(i, trimesh.util.concatenate(group) if len(group) > 1 else group[0]) for i, group in solids.items()]
+
+
+def winding(mesh, points) -> np.ndarray:
+    """How many times a closed mesh goes around each point (1 inside a solid, 0 outside, -1 within an inside-out shell)."""
+    out = np.empty(len(points))
+    triangles = np.asarray(mesh.triangles, dtype=np.float64)
+    for k, q in enumerate(points):
+        a, b, c = (triangles - q).transpose(1, 0, 2)
+        la, lb, lc = (np.linalg.norm(x, axis=1) for x in (a, b, c))
+        out[k] = np.arctan2(np.einsum("ij,ij->i", a, np.cross(b, c)),
+                            la * lb * lc + np.einsum("ij,ij->i", a, b) * lc + np.einsum("ij,ij->i", b, c) * la
+                            + np.einsum("ij,ij->i", c, a) * lb).sum() / (2 * np.pi)
+    return out
+
+
+def folds_through_itself(mesh, samples: int = 400) -> bool:
+    """Whether a closed piece crosses itself so that part of it is inside out: just outside some of its faces it goes
+    -1 times around, which never happens around a simple solid. The sign of such a piece's volume says nothing."""
+    ids = np.unique(np.linspace(0, len(mesh.faces) - 1, samples).astype(int))
+    off = mesh.triangles_center[ids] + mesh.face_normals[ids] * 0.004 * float(mesh.extents.min())
+    return bool((winding(mesh, off) < -0.5).any())
+
+
+def _hollow_points(wall, samples):
+    """Points in the hollow an inside-out shell bounds: off its faces, which face into it. The wall itself would not
+    do, a layer's cap lies in the plane of the shell that holds it."""
+    ids = np.unique(np.linspace(0, len(wall.faces) - 1, samples).astype(int))
+    centres, normals = wall.triangles_center[ids], wall.face_normals[ids]
+    for step in (0.1, 0.02, 0.004):
+        points = centres + normals * step * float(wall.extents.min())
+        within = points[winding(wall, points) < -0.5]
+        if len(within) >= 3:
+            return within
+    return centres
+
+
 def span(mesh, normal) -> tuple[float, float]:
     """The range of a mesh's vertices along `normal`."""
     d = np.asarray(mesh.vertices, dtype=np.float64) @ np.asarray(normal, dtype=np.float64)

@@ -152,7 +152,8 @@ def sculpt(mesh, p, ctx):
         for j, cell in cells:
             ctx.check_cancel()
             # Split disconnected limbs before finding their leading fronts.
-            for component_index, piece in enumerate(cell.split(only_watertight=False)):
+            # A hollow's wall is swept with the piece around it.
+            for component_index, piece in cutting.solid_pieces(cell):
                 # Section planes through existing edges can leave an isolated,
                 # zero-area cap triangle. Do not delete degenerate bridge faces
                 # from closed components: they retain the cap's shared topology.
@@ -190,7 +191,10 @@ def sculpt(mesh, p, ctx):
                 total_faces += len(f)
                 if total_faces > p.max_faces:
                     raise FaceBudget("Motion output exceeds Maximum faces. Reduce layers, bars or wake resolution.")
-                if not np.isfinite(v).all() or not part.is_watertight or not part.is_winding_consistent or part.volume <= 0:
+                # A piece that crosses itself is inside out in part before any wake, which stretches each part by its
+                # own amount: the sign of the sum is no test of it.
+                turned = part.volume <= 0 and not cutting.folds_through_itself(piece)
+                if not np.isfinite(v).all() or not part.is_watertight or not part.is_winding_consistent or turned:
                     raise OpenPiece("A motion piece could not be kept closed and oriented. Repair the input or use fewer layers.")
                 parts.append(part)
                 max_reach = max(max_reach, length)

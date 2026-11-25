@@ -9,6 +9,12 @@
   it at any time. Opening the app with a file, a tool or a page goes straight there.
 - **The repair messages say where Repair Mesh is now.** A tool that needs a closed solid pointed to "Mesh · Prepare and
   cut", the list's name before 2.5.2; it now says Mesh → Mesh › Prepare and cut.
+- **Motion Sculpture 0.6.3 sweeps models with hollows.** A closed hollow within one layer (a bubble in a sphere, the
+  sinuses of Human skull) was taken for a piece that had not stayed closed, and the model was refused. The wall of a
+  hollow is now swept with the piece around it, so it stays inside; one that no piece holds bounds no material and is
+  left out. A model whose bones or folds cross themselves was refused too when the part that is inside out came to
+  outweigh the rest under the wake; such a piece is now kept as it is. Any other model comes out exactly as before
+  (`geom/cutting.py`: `solid_pieces`, `folds_through_itself`).
 
 ## 2.5.2 (2026-11-25)
 

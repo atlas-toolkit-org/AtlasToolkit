@@ -90,6 +90,72 @@ class MotionTests(unittest.TestCase):
         self.assertAlmostEqual(out.volume, self.mesh.volume, places=8)
         self.assertTrue(out.is_watertight)
 
+    def test_a_hollow_within_one_layer_is_swept_with_the_piece_around_it(self):
+        """Human skull refused Quiet acceleration, Held portrait and Shattered slipstream: a hollow that a layer closes
+        off is a shell of its own, inside out, and was taken for a piece that did not stay closed."""
+        bubble = trimesh.creation.icosphere(subdivisions=2, radius=.08)
+        bubble.apply_translation((0., 0., .17))                          # inside layer 4 of 6
+        bubble.invert()
+        self.mesh = trimesh.creation.icosphere(subdivisions=3)
+        plain, plain_info = self.sculpt()
+        rest = dict(reach=0., curl=0., taper=0., gap=0.)
+        solid_volume = self.sculpt(**rest)[0].volume
+        self.mesh = trimesh.util.concatenate((self.mesh, bubble))
+        still, _ = self.sculpt(**rest)
+        self.assertAlmostEqual(still.volume, solid_volume + bubble.volume, places=9)
+        out, info = self.sculpt(curl=20.)
+        self.assertEqual(info["pieces"], plain_info["pieces"])           # a wall is not a piece
+        self.assertTrue(out.is_watertight and out.is_winding_consistent)
+        shells = out.split(only_watertight=False)
+        wall = [s for s in shells if s.volume < 0]
+        self.assertEqual(len(wall), 1)
+        self.assertTrue(any(s.volume > 0 and s.contains(wall[0].vertices).all() for s in shells))
+        out, _ = self.sculpt(structure="splinters", lanes=3)             # the middle bar holds it
+        self.assertEqual(sum(s.volume < 0 for s in out.split(only_watertight=False)), 1)
+
+    def test_a_hollow_wall_goes_with_the_smallest_shell_that_holds_it(self):
+        from atlas_toolkit.geom import cutting
+
+        def ball(radius, x, inside_out=False):
+            mesh = trimesh.creation.icosphere(subdivisions=2, radius=radius)
+            mesh.apply_translation((x, 0., 0.))
+            if inside_out:
+                mesh.invert()
+            return mesh
+        big, small, wall, loose = ball(1., 0.), ball(.4, .2), ball(.1, .2, True), ball(.1, 5., True)
+        pieces = cutting.solid_pieces(trimesh.util.concatenate((big, small, wall, loose)))
+        self.assertEqual(sorted(round(piece.volume, 9) for _, piece in pieces),
+                         sorted((round(small.volume + wall.volume, 9), round(big.volume, 9))))
+        both = trimesh.util.concatenate((big, small))
+        for (_, piece), shell in zip(cutting.solid_pieces(both), both.split(only_watertight=False), strict=True):
+            np.testing.assert_array_equal(piece.vertices, shell.vertices)
+            np.testing.assert_array_equal(piece.faces, shell.faces)
+
+    def test_a_piece_that_crosses_itself_is_swept_and_one_turned_inside_out_is_not(self):
+        """Human skull refused Glass runner: a piece crossing itself is inside out in part, and the wake made that part
+        the larger one."""
+        from unittest import mock
+        from atlas_toolkit.geom import cutting
+        from atlas_toolkit.tools.mesh_motion import mesh_motion
+        # A bow tie, two blocks meeting in a line where the walls cross: the trailing one is inside out and smaller.
+        outline = np.array([[1., -.5], [1., .5], [-.8, -.4], [-.8, .4]])
+        v = np.vstack([np.column_stack((outline, np.full(4, z))) for z in (-.3, .3)])
+        f = [(0, 1, 5), (0, 5, 4), (1, 2, 6), (1, 6, 5), (2, 3, 7), (2, 7, 6), (3, 0, 4), (3, 4, 7),
+             (0, 2, 1), (0, 3, 2), (4, 5, 6), (4, 6, 7)]
+        tie = trimesh.Trimesh(v, f, process=False)
+        self.assertTrue(tie.is_watertight and tie.is_winding_consistent and tie.volume > 0)
+        self.assertTrue(cutting.folds_through_itself(tie))
+        self.assertFalse(cutting.folds_through_itself(trimesh.creation.torus(1., .3)))
+        # A long wake makes the inside-out part the larger one.
+        values = TOOL.values(dict(layers=2, resolution=8, hold_base=0., variation=0., gesture="stream", curl=0.,
+                                  taper=0., reach=120., preserve=40.))
+        with mock.patch.object(mesh_motion, "partition", lambda mesh, *a, **k: [(0, mesh)]):
+            out, info = sculpt(tie, values, context())
+            self.assertLess(out.volume, 0)
+            self.assertTrue(out.is_watertight and out.is_winding_consistent)
+            with mock.patch.object(cutting, "folds_through_itself", return_value=False),                     self.assertRaises(mesh_motion.OpenPiece):
+                sculpt(tie, values, context())
+
     def test_region_can_disable_sweep(self):
         a, _ = self.sculpt(influence="sphere", sphere_centre=(100., 100., 100.), sphere_radius=1., feather=0.)
         b, _ = self.sculpt(reach=0., taper=0., curl=0.)
