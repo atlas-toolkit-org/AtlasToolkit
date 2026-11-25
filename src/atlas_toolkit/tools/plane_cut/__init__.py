@@ -2,7 +2,7 @@
 from atlas_toolkit.core import Choice, Float, Inputs, Output, Section, Tool, Vec3
 
 TOOL = Tool(
-    id="plane-cut", name="Plane Cut", version="0.1.1", category="mesh", group="prepare", icon="plane-cut", action="Cut",
+    id="plane-cut", name="Plane Cut", version="0.1.2", category="mesh", group="prepare", icon="plane-cut", action="Cut",
     summary="Draw and position a cutting plane, discard one side or keep both pieces.",
     tagline="Draw the plane, refine its position, choose what stays.",
     description=("In the Plane tab, draw a line through the current view, then drag the XYZ arrows or rotation rings. "

@@ -8,7 +8,7 @@ from atlas_toolkit.core import Bool, Choice, Float, Inputs, Int, Output, Section
 TOOL = Tool(
     id="cube-grid-slicer",
     name="Grid Slicer",
-    version="3.1.1",
+    version="3.2.0",
     category="mesh", group="fragment",
     icon="slice",
     action="Slice",

@@ -263,3 +263,42 @@ def tube(path, radius, taper, irregularity, phase, segments):
     outline = np.c_[np.cos(angles), np.sin(angles)]
     v, f = sweep_mesh(outline, path, radii, np.zeros(len(path)))
     return from_arrays(v, f)
+
+
+def file_safe(mesh, ctx=None):
+    """The closed shells of a mesh as a float32 file can hold them: (mesh, pieces made safe, pieces that could not
+    be). A cut or a wake leaves a few triangles thinner than float32 resolves, and dropping those on load can open a
+    shell. Only a shell that does not come through intact is changed, by `stabilize` (closed, same pieces, volume to
+    one part per million); every other one keeps its exact vertices and faces. The walls of a cavity stay inside out."""
+    from atlas_toolkit.geom import repair
+    from atlas_toolkit.geom.mesh import clean
+    V, F = np.asarray(mesh.vertices, float), np.asarray(mesh.faces, np.int64)
+    if not len(F):
+        return mesh, 0, 0
+    _, labels = repair._components(F)
+    height = float(np.ptp(V, axis=0).max())
+    order = np.argsort(labels, kind="stable")
+    vertices, faces, offset, safe, unsafe = [], [], 0, 0, 0
+    for ids in np.split(order, np.cumsum(np.bincount(labels))[:-1]):
+        if ctx:
+            ctx.check_cancel()
+        used, local = np.unique(F[ids], return_inverse=True)
+        v, f = V[used], local.reshape(-1, 3)
+        wall = trimesh.Trimesh(v, f, process=False).volume < 0
+        outward = f[:, ::-1] if wall else f
+        copy = clean(trimesh.Trimesh(v.astype(np.float32).astype(float), outward.copy(), process=False))
+        if len(copy.faces) != len(f) or not copy.is_volume:
+            try:
+                solid, _ = stabilize(from_arrays(v, outward), height)
+                fixed = to_mesh(solid)
+                v, f = np.asarray(fixed.vertices), np.asarray(fixed.faces)
+                f = f[:, ::-1] if wall else f
+                safe += 1
+            except ValueError:
+                unsafe += 1
+        vertices.append(v)
+        faces.append(f + offset)
+        offset += len(v)
+    if not safe:
+        return mesh, 0, unsafe
+    return trimesh.Trimesh(np.vstack(vertices), np.vstack(faces), process=False), safe, unsafe

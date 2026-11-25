@@ -19,6 +19,11 @@
   left after twelve local corrections held the whole model back (now up to 48, all local). The light David head goes
   from 30 % to 79 %, Weeping Lady from 28 % to 77 %. Models that met no contact (Spot, Bob) come out byte for byte the
   same in half the time; those that did now inflate further.
+- **Cuts stay closed.** A cap that the triangulation left with a gap made a block or layer an open shell: Grid Slicer
+  left most of the blocks of an intricate model open, and Strata's connectors refused Doryphoros. The cut is now made
+  again by manifold3d, which keeps a solid closed; a cut that already closed is unchanged (`geom/cutting.py`). Each
+  block and layer is also checked as a float32 file holds it. Grid Slicer 3.2.0 (also keeps the hole of a ring-shaped
+  section), Strata Sculpt 1.2.1, Plane Cut 0.1.2 (a cut it refused as not closed).
 - For tool authors: `group`, `slow` and `draft_note` in the spec, and an optional `stage_note()` on a viewer
   (docs/ADDING_A_TOOL.md); `scripts/dev/tool_times.py` measures which tools are slow.
 

@@ -8,9 +8,10 @@ import trimesh
 from atlas_toolkit.core.job import JobContext, Cancelled
 from atlas_toolkit.core.selftest import signed
 from atlas_toolkit.geom import mesh as gm
+from atlas_toolkit.geom.solid_connectors import file_safe
 from atlas_toolkit.tools.mesh_motion import TOOL
 from atlas_toolkit.tools.mesh_motion.engine import run, make_sample
-from atlas_toolkit.tools.mesh_motion.mesh_motion import file_safe, sculpt, sculpt_within, wake, basis
+from atlas_toolkit.tools.mesh_motion.mesh_motion import sculpt, sculpt_within, wake, basis
 
 
 def context(mode="run", cancel=False):
@@ -152,6 +153,14 @@ class MotionTests(unittest.TestCase):
         same, safe, _ = file_safe(good)
         self.assertIs(same, good)
         self.assertEqual(safe, 0)
+
+    def test_a_cavity_wall_stays_inside_out(self):
+        outer, inner = trimesh.creation.icosphere(radius=10.), trimesh.creation.icosphere(radius=5.)
+        inner.invert()
+        hollow = trimesh.util.concatenate((outer, inner))
+        same, safe, unsafe = file_safe(hollow)
+        self.assertIs(same, hollow)
+        self.assertEqual((safe, unsafe), (0, 0))
 
     def test_basis_is_orthonormal(self):
         for axis in ("up", "front", "side"):

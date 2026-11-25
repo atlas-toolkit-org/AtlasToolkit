@@ -95,6 +95,11 @@ def run(ctx, src: Path, dst: Path | None, p) -> Result:
                     solid, adjustment = connectors.co.stabilize(solid, height_model)
                     staged = connectors.co.to_mesh(solid)
                     info["precision_model"] = adjustment
+                elif dst is not None and mesh.is_watertight:
+                    staged, _, unsafe = connectors.co.file_safe(staged, ctx)
+                    if unsafe:
+                        ctx.warn(f"stage {i}: {unsafe} thin piece{'s' if unsafe > 1 else ''} may not stay closed in a "
+                                 "file")
             rows.append((i, u, info))
             out.add(i, staged, {"amount": round(u, 6), "label": f"stage {i}"})
             ctx.check_cancel()

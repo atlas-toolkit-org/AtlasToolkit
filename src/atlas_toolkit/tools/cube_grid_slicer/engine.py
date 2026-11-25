@@ -5,6 +5,7 @@ from pathlib import Path
 
 from atlas_toolkit.core import Stat
 from atlas_toolkit.geom import mesh as gm
+from atlas_toolkit.geom.solid_connectors import file_safe
 
 from . import TOOL
 from . import cube_grid_slicer as cgs
@@ -22,6 +23,14 @@ def run(ctx, src: Path, dst: Path | None, p):
         _, cell, gap_abs = cgs.grid(m, p.n, gap, relative)
         cells = cgs.shuffle(parts, cells, cell + gap_abs, cell, p.shuffle / 100.0, p.within, p.shift / 100.0,
                             p.shift_axes, p.seed)
+    if dst is not None and m.is_watertight:
+        ctx.progress(0.9, "checking every block as a file holds it")
+        unsafe = 0
+        for i, part in enumerate(parts):
+            parts[i], _, bad = file_safe(part, ctx)
+            unsafe += bad
+        if unsafe:
+            ctx.warn(f"{unsafe} thin piece{'s' if unsafe > 1 else ''} may not stay closed in a file")
     out = cgs.combine(parts)
     extra = []
     if dst is not None and p.separate:

@@ -5,8 +5,9 @@ from atlas_toolkit.core import Result, Stat
 from atlas_toolkit.geom import frame3d, mesh as gm
 from atlas_toolkit.geom import repair as R
 from atlas_toolkit.geom.mesh_export import publish_meshes
+from atlas_toolkit.geom.solid_connectors import file_safe
 from . import TOOL
-from .mesh_motion import file_safe, sculpt_within
+from .mesh_motion import sculpt_within
 
 
 def run(ctx, src, dst, p):
