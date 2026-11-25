@@ -54,7 +54,8 @@ surface away from the cut. Boundary edges can exceed the target size. A 200,000-
 limit very fine refinement; the report explains when a limit is reached. These are Atlas's fill policies, not
 claims of identical triangulation to Meshmixer.
 
-Closed input models must yield closed pieces when fill is enabled, or the run fails with a useful message.
+Closed input models must yield closed pieces when fill is enabled, or the run fails with a useful message. A cap that
+its triangulation leaves with a gap is made again by manifold3d, which keeps the solid closed (0.1.2).
 Open input models can be cut; only closed section contours can be capped, and existing holes remain open.
 This tool does not repair defective meshes. Move the plane slightly if a degenerate intersection cannot be capped.
 

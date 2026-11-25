@@ -1,7 +1,7 @@
 # Voxelize Fill 0.1.0
 
 Voxelize Fill converts a mesh into a **filled volume of cells**, then builds a
-block sculpture from those cells. Find it under Mesh tools. It is independent of
+block sculpture from those cells. Find it under Mesh → Mesh › *Carve and fill*. It is independent of
 Voxelizer and has its own presets and saved settings. No Blender is required.
 
 The default is a full volume of touching, separate cubes. OBJ is the default

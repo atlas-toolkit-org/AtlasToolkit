@@ -1,6 +1,6 @@
 # Surface Stripes
 
-Surface Stripes (`mesh-stripes`, 0.2.0) adds physical, flat-topped bands to a model or exports closed ribbons on their
+Surface Stripes (`mesh-stripes`, 0.3.0) adds physical, flat-topped bands to a model or exports closed ribbons on their
 own. It computes a camera-independent
 stripe pattern using Geometry Central's implementation of Knöppel et al. (2015), then fuses bands and body into
 a closed solid. Texture coordinates alone are insufficient for the existing Atlas SVG renderers, which draw

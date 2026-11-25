@@ -1,4 +1,4 @@
-# Strata Sculpt 1.1.1
+# Strata Sculpt 1.2.1
 
 Strata Sculpt cuts a mesh into capped slabs, then thins, separates, turns, waves and dislocates them.
 Optional **Connect neighbouring strata** adds real fused supports between facing cut surfaces.

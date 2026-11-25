@@ -1,4 +1,4 @@
-# Motion Sculpture 0.5.0
+# Motion Sculpture 0.6.2
 
 Make a still mesh express motion through layered silhouettes, trailing fins and splintered bars.
 The visual references are stacks of glass rods and elongated bronze or glass laminae. This is a procedural

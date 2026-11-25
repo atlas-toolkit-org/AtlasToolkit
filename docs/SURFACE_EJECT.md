@@ -1,4 +1,4 @@
-# Surface Eject 0.3.3
+# Surface Eject 0.5.0
 
 Surface Eject lifts actual pieces of a model out of matching cavities. It keeps a recognizable body between
 the cuts and preserves the orientation and sculpted skin of every fragment. Mesh Shatter partitions the
