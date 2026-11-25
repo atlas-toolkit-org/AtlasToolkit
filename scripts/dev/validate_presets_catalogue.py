@@ -71,8 +71,17 @@ def peak_memory_mb() -> float:
 def mesh_health(path: Path) -> dict:
     from atlas_toolkit.geom import repair
     d = repair.diagnose(repair.load_raw(path))
-    return {"faces": int(d.faces), "solid": bool(d.solid), "pieces": int(d.pieces), "holes": int(d.holes),
-            "nonmanifold": int(d.nonmanifold_edges), "problems": "; ".join(d.problems())[:300]}
+    out = {"faces": int(d.faces), "solid": bool(d.solid), "pieces": int(d.pieces), "holes": int(d.holes),
+           "nonmanifold": int(d.nonmanifold_edges), "problems": "; ".join(d.problems())[:300]}
+    if not d.solid:            # the raw file, as any program reads it; and what Atlas makes of it (its loader cleans)
+        import numpy as np
+
+        from atlas_toolkit.geom import mesh as gm
+        m = gm.load_mesh(path)
+        a = repair.diagnose_arrays(np.asarray(m.vertices, float), np.asarray(m.faces, np.int64))
+        out.update(loaded_solid=bool(a.solid), loaded_open=int(a.boundary_edges), loaded_nonmanifold=int(a.nonmanifold_edges),
+                   loaded_problems="; ".join(a.problems())[:300])
+    return out
 
 
 def drawing_health(path: Path) -> dict:
@@ -186,7 +195,7 @@ def plan(a, reg) -> list[dict]:
         parts = a.select.split(":")
         slow = float(parts[2]) if len(parts) > 2 else SLOW_S     # "not solid" alone is a note on the tool, not a rerun
         flagged = {(r["tool"], r["preset"]) for r in load_rows(parts[1])
-                   if set(flags(r, slow)) - {"not solid"}}
+                   if set(flags(r, slow)) - {"not solid", "raw not solid"}}
     presets = devpaths._dev_presets()
     models = [m for m in a.models.split(",") if m]
     cases = []
@@ -244,7 +253,7 @@ def flags(r: dict, slow: float = SLOW_S) -> list[str]:
             elif c["faces"] > FACES_MAX:
                 out.append(f"{c['faces'] / 1e6:.1f}M faces")
             if not c.get("solid") and r.get("input_solid") and r.get("category") == "mesh":
-                out.append("not solid")
+                out.append("raw not solid" if c.get("loaded_solid") else "not solid")
         if "strokes" in c:
             if c["strokes"] == 0:
                 out.append("empty drawing")
