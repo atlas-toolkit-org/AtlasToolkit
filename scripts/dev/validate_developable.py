@@ -18,7 +18,7 @@ def main():
     ap=argparse.ArgumentParser(description=__doc__)
     ap.add_argument('--out',type=Path,required=True)
     ap.add_argument('--models',nargs='+',default=['sphere','bunny','head'])
-    ap.add_argument('--presets',nargs='+',default=['Balanced','Sculpture','Broad folds','Clean rulings','Abstract form'])
+    ap.add_argument('--presets',nargs='+',default=['Fine folds','Crisp planes','Carved','Chiselled','Hewn','Soft mask','Drapery','Monolith'])
     ap.add_argument('--resume',action='store_true')
     ap.add_argument('--iterations',type=int,help='Explicit per-level override for shorter preset comparisons')
     args=ap.parse_args();args.out.mkdir(parents=True,exist_ok=True)

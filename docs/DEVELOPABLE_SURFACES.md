@@ -8,9 +8,16 @@ Preprocessing: https://odedstein.com/projects/developability/preprocessing.html 
 
 ## Use
 
-Choose **Developable Surfaces** (Mesh → Mesh › *Surface and relief*), load a model, select **Balanced**, and Preview or Develop.
-Use **Sculpture** for more identity, **Broad folds** for larger regions, **Clean rulings** to discourage
-branching, or **Abstract form** for a strongly transformed cage. Draft previews use at most 500 initial
+Choose **Developable Surfaces** (Mesh → Mesh › *Surface and relief*), load a model, select **Carved**, and Preview or Develop.
+From the most faithful to the most abstract, the official presets are **Fine folds** (the model's own triangles),
+**Crisp planes**, **Carved**, **Chiselled**, **Hewn** (angular facets), **Soft mask**, **Drapery** and **Monolith**.
+
+Two settings shape the result most. The initial face target (or keeping the input triangulation) decides how much
+detail survives; the iterations decide how far it is flattened, and the first few dozen do most of it. The energy
+matters less: combinatorial is the quickest and gives the cleanest facets, but with Keep input triangulation it can
+throw long spikes. Each refinement level makes four times the faces and takes about four times as long, for a smoother
+version of the same form: 0 or 1 is enough at a high face target. Fine, thin or touching parts (fingers, drapery) can
+still grow spikes: raise the face target, or use the combinatorial energy. Draft previews use at most 500 initial
 triangles, one subdivision and 100 iterations per level. Keep-input preparation retains its original face
 count in a draft; use remeshing for fast previews of dense inputs.
 
@@ -37,7 +44,7 @@ They use the batch input location for final files. Intermediate results stay in 
 
 ```powershell
 atlas-toolkit describe mesh-developable
-atlas-toolkit run mesh-developable model.obj --preset "Balanced"
+atlas-toolkit run mesh-developable model.obj --preset "Carved"
 atlas-toolkit run mesh-developable model.obj --preparation keep --subdivisions 1 --iterations 200
 atlas-toolkit run plotter-vision model_developable.stl --preset "Developable rulings" --paper A3
 ```
@@ -59,10 +66,11 @@ iteration limit or a stalled search; the last valid solution is retained and its
 1-to-4 subdivision refines between levels. It does not project back to the original detailed mesh.
 
 Defaults: 2,000 initial faces, two subdivisions, 1,000 iterations per level, gradient RMS tolerance 1e-6,
-and a 250,000-face ceiling. Sculpture starts at 5,000 faces, Broad folds at 800, Abstract form at 400.
+and a 250,000-face ceiling.
 The report separates each level's energy change; raw energy cannot be compared across energy types.
 Displacement is sampled one-way distance from the output surface to the input, in source units.
-Runs target a few minutes but have deterministic iteration bounds rather than a wall-clock cutoff.
+The official presets take well under two minutes whatever the model, except Fine folds, whose time grows with the
+model's faces. Runs have deterministic iteration bounds rather than a wall-clock cutoff.
 Cancellation stops the native child. Cached results include geometry, settings and the executable hash;
 corrupt results are recomputed. Output files are published atomically after validation.
 
@@ -92,7 +100,7 @@ A3 SVG/PNG comparisons for the supplied sphere/bunny and a local head, without w
 ## Validation for the initial release
 
 The full Atlas suite passed 530 tests; 11 focused tests cover this solver's numerical and integration behavior.
-All five presets produced checked A3 line drawings on the supplied sphere/bunny and a local sculpture head
+All five presets of that release produced checked A3 line drawings on the supplied sphere/bunny and a local sculpture head
 (100 iterations per level for the comparison matrix). Default Balanced runs at 1,000 iterations per level took
 319.3 s (sphere), 311.5 s (head) and 346.5 s (bunny), during concurrent build/validation activity. These reached
 the iteration bound and are approximate results, not proof of convergence. Sculpture's larger face budget can

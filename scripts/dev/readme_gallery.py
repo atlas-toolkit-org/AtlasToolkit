@@ -135,7 +135,7 @@ RECIPES = [
     Recipe("mesh-dilate", VENUS, "Rotund Bronze", draw=sketch()),
     Recipe("mesh-compress", DAVID, "Hydraulic Press", draw=sketch()),
     Recipe("mesh-motion", VENUS, "Wind-carved bronze", draw=edges()),
-    Recipe("mesh-developable", DAVID, "Sculpture", draw=edges()),
+    Recipe("mesh-developable", DAVID, "Carved", draw=edges()),
     # Surface and relief
     Recipe("mesh-texture", VENUS, "Cobble Mosaic", ("--element-size", 9, "--relief", 1.2, "--max-faces", 500000),
            draw=hatch()),
