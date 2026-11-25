@@ -10,6 +10,7 @@ import numpy as np
 from atlas_toolkit.geom import cutting, influence
 
 MIN_WORKING_FACES = 5000        # Simplify to fit goes no lower: the layers would lose the model's form
+FINER = (1, 2, 4, 8)            # times Wake resolution, for a piece so thin that the wake turns it inside out
 
 
 class FaceBudget(ValueError):
@@ -167,22 +168,28 @@ def sculpt(mesh, p, ctx):
                 length = p.reach*.02 * amount * rhythm * variability
                 curl = p.curl*.02 * amount * rhythm
                 budget = p.max_faces-total_faces
-                if amount > 0 and (length > 0 or curl != 0 or p.taper > 0):
-                    lower, upper = cutting.span(piece, h)
-                    v, f = refine(piece.vertices, piece.faces, h, max(upper-lower, 1e-10),
-                                  p.resolution, budget, ctx)
-                    v = wake(v, h, side, n, centre, length, curl, p.taper/100*amount, p.preserve/100)
-                else:
-                    v, f = np.array(piece.vertices), np.array(piece.faces)
-                # Compress about layer and cell centres; preserves disjoint layer intervals.
-                layer_centre = lo+(k+.5)*pitch
-                v -= np.outer((v@n-layer_centre) * p.gap/100*p.amount, n)
-                if bar_pitch:
-                    v -= np.outer((v@side-float(centre@side)) * p.bar_gap/100*p.amount, side)
+                swept = amount > 0 and (length > 0 or curl != 0 or p.taper > 0)
+                for finer in FINER if swept else (1,):
+                    if swept:
+                        lower, upper = cutting.span(piece, h)
+                        v, f = refine(piece.vertices, piece.faces, h, max(upper-lower, 1e-10),
+                                      p.resolution*finer, budget, ctx)
+                        v = wake(v, h, side, n, centre, length, curl, p.taper/100*amount, p.preserve/100)
+                    else:
+                        v, f = np.array(piece.vertices), np.array(piece.faces)
+                    # Compress about layer and cell centres; preserves disjoint layer intervals.
+                    layer_centre = lo+(k+.5)*pitch
+                    v -= np.outer((v@n-layer_centre) * p.gap/100*p.amount, n)
+                    if bar_pitch:
+                        v -= np.outer((v@side-float(centre@side)) * p.bar_gap/100*p.amount, side)
+                    part = trimesh.Trimesh(v, f, process=False)
+                    # The wake never turns material inside out, but its straight edges can: they cut the corners of the
+                    # curl by more than a thin piece's thickness. Shorter edges follow it.
+                    if part.volume > 0:
+                        break
                 total_faces += len(f)
                 if total_faces > p.max_faces:
                     raise FaceBudget("Motion output exceeds Maximum faces. Reduce layers, bars or wake resolution.")
-                part = trimesh.Trimesh(v, f, process=False)
                 if not np.isfinite(v).all() or not part.is_watertight or not part.is_winding_consistent or part.volume <= 0:
                     raise OpenPiece("A motion piece could not be kept closed and oriented. Repair the input or use fewer layers.")
                 parts.append(part)

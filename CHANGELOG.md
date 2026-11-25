@@ -34,6 +34,10 @@
   by default) works on a lighter copy of it, as Disintegrate and Motion Sculpture do, and the report says so; a model
   that fits is unchanged. Stripes splits the copy's longest edges first, so the budget goes where the surface is
   coarsest. A painted region is never simplified.
+- **Motion Sculpture 0.6.2 sweeps thin slivers.** One sliver a cut left could turn inside out under the curl and stop
+  the whole sculpture (Shattered slipstream on Doryphoros, Laocoön and Discobolus): the wake's straight edges cut its
+  bend by more than the sliver's thickness. Such a piece is swept with shorter edges; every other one is unchanged.
+  The check that a shell stays closed in a file, shared with Grid Slicer and Strata Sculpt, also fixes a few more.
 - For tool authors: `group`, `slow` and `draft_note` in the spec, and an optional `stage_note()` on a viewer
   (docs/ADDING_A_TOOL.md); `scripts/dev/tool_times.py` measures which tools are slow.
 

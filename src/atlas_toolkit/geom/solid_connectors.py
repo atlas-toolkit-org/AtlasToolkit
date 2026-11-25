@@ -265,6 +265,22 @@ def tube(path, radius, taper, irregularity, phase, segments):
     return from_arrays(v, f)
 
 
+def as_stored(solid, height):
+    """A solid as a float32 file holds it after the same bounded simplification as `stabilize`: for one that only comes
+    through with a face or two of no area fewer. Closed, same pieces, volume to one part per million, or ValueError."""
+    from atlas_toolkit.geom.mesh import clean
+    for tolerance in (height * 1e-8, height * 5e-8, height * 2e-7):
+        raw = to_mesh(solid.simplify(tolerance))
+        stored = clean(trimesh.Trimesh(raw.vertices.astype(np.float32).astype(np.float64), raw.faces.copy(),
+                                       process=False))
+        if stored.is_volume and stored.nondegenerate_faces().all():
+            kept = from_arrays(stored.vertices, stored.faces)
+            if (len(kept.decompose()) == len(solid.decompose())
+                    and abs(kept.volume() - solid.volume()) <= solid.volume() * 1e-6):
+                return stored
+    raise ValueError("A shell could not be kept closed at file precision.")
+
+
 def file_safe(mesh, ctx=None):
     """The closed shells of a mesh as a float32 file can hold them: (mesh, pieces made safe, pieces that could not
     be). A cut or a wake leaves a few triangles thinner than float32 resolves, and dropping those on load can open a
@@ -289,8 +305,11 @@ def file_safe(mesh, ctx=None):
         copy = clean(trimesh.Trimesh(v.astype(np.float32).astype(float), outward.copy(), process=False))
         if len(copy.faces) != len(f) or not copy.is_volume:
             try:
-                solid, _ = stabilize(from_arrays(v, outward), height)
-                fixed = to_mesh(solid)
+                solid = from_arrays(v, outward)
+                try:
+                    fixed = to_mesh(stabilize(solid, height)[0])
+                except ValueError:
+                    fixed = as_stored(solid, height)
                 v, f = np.asarray(fixed.vertices), np.asarray(fixed.faces)
                 f = f[:, ::-1] if wall else f
                 safe += 1

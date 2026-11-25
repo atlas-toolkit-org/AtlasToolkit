@@ -126,6 +126,23 @@ class MotionTests(unittest.TestCase):
         self.assertIsNone(worked)
         np.testing.assert_array_equal(same.vertices, light.vertices)
 
+    def test_a_blade_thinner_than_the_wakes_edges_follow_is_swept_finer(self):
+        """Shattered slipstream refused Doryphoros, Laocoön and Discobolus for one sliver the curl turned inside out."""
+        from unittest import mock
+        from atlas_toolkit.tools.mesh_motion import mesh_motion
+        values = TOOL.values(dict(layers=2, resolution=4, hold_base=0., variation=0., gesture="stream", curl=40.))
+        for seed in (1, 3, 6):
+            with self.subTest(seed=seed):
+                blade = trimesh.convex.convex_hull(np.random.default_rng(seed).random((8, 3)) * [1, .004, .4])
+                with mock.patch.object(mesh_motion, "FINER", (1,)), self.assertRaises(mesh_motion.OpenPiece):
+                    sculpt(blade, values, context())
+                out, _ = sculpt(blade, values, context())
+                self.assertTrue(all(piece.is_volume for piece in out.split(only_watertight=False)))
+        with mock.patch.object(mesh_motion, "FINER", (1,)):
+            plain, _ = self.sculpt()
+        same, _ = self.sculpt()                                  # nothing turned inside out: nothing changes
+        np.testing.assert_array_equal(plain.vertices, same.vertices)
+
     def test_a_shell_float32_would_open_is_made_safe_and_the_others_kept_exactly(self):
         """Shattered slipstream on Thinker saved a shell with a hole: float32 flattened a few of its triangles."""
         good = trimesh.creation.icosphere(subdivisions=2, radius=1000.)
@@ -150,6 +167,14 @@ class MotionTests(unittest.TestCase):
         stored = gm.clean(trimesh.Trimesh(out.vertices.astype(np.float32), out.faces.copy(), process=False))
         self.assertEqual(len(stored.faces), len(out.faces))
         self.assertTrue(stored.is_watertight)
+        from unittest import mock
+        from atlas_toolkit.geom import solid_connectors
+        with mock.patch.object(solid_connectors, "stabilize", side_effect=ValueError("not as it is")):
+            out, safe, unsafe = file_safe(both)              # the copy the file holds, when that one is closed
+        self.assertEqual((safe, unsafe), (1, 0))
+        stored = gm.clean(trimesh.Trimesh(out.vertices.astype(np.float32), out.faces.copy(), process=False))
+        self.assertTrue(stored.is_volume)
+        self.assertAlmostEqual(stored.volume / both.volume, 1., places=6)
         same, safe, _ = file_safe(good)
         self.assertIs(same, good)
         self.assertEqual(safe, 0)

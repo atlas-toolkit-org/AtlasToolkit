@@ -36,7 +36,8 @@ Manifold bisection, preserving closed boundaries and section holes. Splinters ma
 each layer. Disconnected components are handled independently, so a leg's front does not depend on another leg.
 
 Each piece is refined with shared-edge midpoint triangulation until longitudinal edges span no more than
-1 / Wake resolution of its travel extent. Vertices at the front remain fixed. Let x point toward travel,
+1 / Wake resolution of its travel extent. A piece so thin that the curl would turn it inside out
+gets shorter edges. Vertices at the front remain fixed. Let x point toward travel,
 t be normalized distance into the unprotected trailing part and q = smoothstep(t). The transformation is:
 
     x' = x − length q
