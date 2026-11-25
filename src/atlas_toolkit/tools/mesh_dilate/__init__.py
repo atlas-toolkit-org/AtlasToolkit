@@ -4,7 +4,7 @@ from atlas_toolkit.core import (Choice, Float, Inputs, Int, Output, Section, See
 
 
 TOOL = Tool(
-    id="mesh-dilate", name="Dilate", version="0.2.0", category="mesh", group="deform",
+    id="mesh-dilate", name="Dilate", version="0.2.1", category="mesh", group="deform",
     slow="It takes under a minute on light models and a few minutes on dense or intricate ones.",
     icon="dilate", action="Dilate",
     summary="Inflate a model with pressure, round its volumes, or swell a feathered region into a sculptural bulge.",

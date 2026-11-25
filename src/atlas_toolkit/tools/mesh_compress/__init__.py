@@ -31,7 +31,7 @@ SHAPE_CHOICES = [("cube", "Cube / box"), ("sphere", "Sphere / ellipsoid"), ("cyl
 TOOL = Tool(
     id="mesh-compress",
     name="Compress",
-    version="0.1.0",
+    version="0.1.1",
     category="mesh", group="deform",
     draft_note="A physical draft has fewer faces and load steps, so its folds are fewer and fall in other "
                "places.",

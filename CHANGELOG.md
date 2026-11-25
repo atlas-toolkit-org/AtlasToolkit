@@ -24,6 +24,11 @@
   again by manifold3d, which keeps a solid closed; a cut that already closed is unchanged (`geom/cutting.py`). Each
   block and layer is also checked as a float32 file holds it. Grid Slicer 3.2.0 (also keeps the hole of a ring-shaped
   section), Strata Sculpt 1.2.1, Plane Cut 0.1.2 (a cut it refused as not closed).
+- **Compress 0.1.1 and Dilate 0.2.1 keep a dense model closed.** Simplifying to the Output face limit pinched thin
+  parts of Laocoön and Discobolus together, so the result had edges four faces share, and Dilate took the model for
+  an open one. The pinches are separated; where nothing was pinched the simplified model is the same as before.
+  Where it was, the result changes: Dilate now inflates those models by volume, up to where they touch (it swelled
+  their surface instead), and Compress's morph smooths over a coarse copy that stays closed.
 - For tool authors: `group`, `slow` and `draft_note` in the spec, and an optional `stage_note()` on a viewer
   (docs/ADDING_A_TOOL.md); `scripts/dev/tool_times.py` measures which tools are slow.
 

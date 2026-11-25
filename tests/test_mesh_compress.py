@@ -69,6 +69,27 @@ class ShapeTests(unittest.TestCase):
             np.testing.assert_allclose(m.from_unit(m.to_unit(V, s0), s0), V, atol=1e-12)
 
 
+class DetailMeshTests(unittest.TestCase):
+    def test_a_closed_model_stays_closed_when_decimation_pinches_it(self):
+        """Laocoön and Discobolus: 400,000 faces left zero-volume sheets and edges four faces share."""
+        from unittest import mock
+        from atlas_toolkit.geom import repair
+        cube = trimesh.creation.box(extents=(12, 10, 40))
+        other = cube.copy()
+        other.apply_translation((12, 10, 0))
+        pinched = trimesh.Trimesh(*(lambda m: (m.vertices, m.faces))(trimesh.util.concatenate((cube, other))))
+        ball = trimesh.creation.icosphere(subdivisions=3)
+        with mock.patch.object(gm, "simplify_faces", return_value=(pinched.vertices, pinched.faces)):
+            V, F = mc.detail_mesh(ball.vertices, ball.faces, 1e3, 100)
+            self.assertTrue(repair.is_solid(V, F))
+            open_V, open_F = mc.detail_mesh(ball.vertices, ball.faces[1:], 1e3, 100)
+            np.testing.assert_array_equal(open_F, pinched.faces)           # an open model is decimated as before
+        V, F = mc.detail_mesh(ball.vertices, ball.faces, 1e3, 400)
+        want = gm.simplify_faces(ball.vertices, ball.faces, 400)
+        np.testing.assert_array_equal(F, want[1])
+        np.testing.assert_array_equal(V, want[0])
+
+
 class SolverTests(unittest.TestCase):
     def test_edges_and_bending_pairs(self):
         V, F = sphere(2)
