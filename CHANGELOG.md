@@ -1,6 +1,10 @@
 # Changelog
 
-## 2.5.2 (unreleased)
+## 2.5.2 (2026-11-25)
+
+**The first public release since 2.4.7.** It also brings 2.5.0 and 2.5.1 (below), which were never published on their
+own: the new Shape Crop, Save pens as, the side-by-side workflow layout, and a much quicker FlowRep Sketch. This
+version groups the tool lists and makes the sculpting tools work on dense models.
 
 - **Tools come in subgroups.** The side bar, Home, the Workflows step list, About and `atlas-toolkit list` group the
   tools as the README does: Mesh → Mesh (was "Mesh · model prep") in six foldable families, Mesh → SVG and SVG in two
@@ -41,7 +45,7 @@
 - For tool authors: `group`, `slow` and `draft_note` in the spec, and an optional `stage_note()` on a viewer
   (docs/ADDING_A_TOOL.md); `scripts/dev/tool_times.py` measures which tools are slow.
 
-## 2.5.1 (unreleased)
+## 2.5.1 (2026-11-24, first released in 2.5.2)
 
 - **Plot time shows what stroke ordering saved.** Every Mesh → SVG tool that orders its strokes now shows the plot
   time the drawing would take unordered as "was …" next to **Plot time**, as Pen-up travel already did (Stipple on a
@@ -115,7 +119,7 @@
   only when it is one closed solid of the same volume. At 0.25 mm that relief has 6.5 million faces, so it still
   needs a larger export budget or a coarser pitch.
 
-## 2.5.0 (unreleased)
+## 2.5.0 (2026-11-23, first released in 2.5.2)
 
 **Shape Crop: keep the part of a model inside a box, sphere, cylinder or pyramid, quickly, even on large scans**
 - **Shape Crop** 0.1.0 (Mesh · Prepare and cut), a new tool. Place a box, sphere, cylinder or pyramid on a model and

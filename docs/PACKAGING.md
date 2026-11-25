@@ -129,7 +129,8 @@ computer. You review between them:
 
 Step 5 reads `[release]` in `dev.local.toml` (`site` = the website's checkout, `ssh` = the server); without them it
 prints the commands instead. The install guides name only the current version's files: their sizes are on the
-release page, so nothing in them goes stale between releases. The changelog entry is the release notes.
+release page, so nothing in them goes stale between releases. The changelog entry is the release notes. A version
+that was never published on its own is headed `(date, first released in X.Y.Z)`, and its entry joins X.Y.Z's notes.
 
 ## A draft release
 

@@ -108,6 +108,10 @@ class Scripts(unittest.TestCase):
     def test_release_notes_hold_the_changelog_entry_and_every_installer(self):
         notes = script("release_notes").notes(f"v{__version__}")
         self.assertIn(script("release_notes").changelog_entry(__version__), notes)
+        # and the entries of versions that were never published on their own, whose headings name this one
+        text = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
+        for old in re.findall(rf"^## (\S+) \([^)\n]*first released in {re.escape(__version__)}\)", text, re.M):
+            self.assertIn(f"## From {old}\n\n" + script("release_notes").changelog_entry(old), notes)
         for name in (f"AtlasToolkit-{__version__}-windows-x64-setup.exe", f"atlas-toolkit_{__version__}_amd64.deb",
                      f"atlas-toolkit-{__version__}-1.x86_64.rpm", f"AtlasToolkit-{__version__}-linux-x86_64.AppImage",
                      f"AtlasToolkit-{__version__}-macos-arm64.dmg"):

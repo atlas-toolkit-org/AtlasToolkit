@@ -27,6 +27,15 @@ def changelog_entry(version: str) -> str:
     return found[1].strip() if found else ""
 
 
+def brought_along(version: str) -> str:
+    """The entries of the versions that were never published on their own, whose headings say so:
+    '## 2.5.1 (2026-11-24, first released in 2.5.2)'."""
+    text = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
+    found = re.findall(rf"^## (\S+) \([^)\n]*first released in {re.escape(version)}\)[^\n]*\n(.*?)(?=^## |\Z)", text,
+                       re.M | re.S)
+    return "".join(f"\n\n## From {v}\n\n{body.strip()}" for v, body in found)
+
+
 def document(path: str, tag: str) -> str:
     server, repository = os.environ.get("GITHUB_SERVER_URL"), os.environ.get("GITHUB_REPOSITORY")
     return f"[{path}]({server}/{repository}/blob/{tag}/{path})" if server and repository else f"`{path}`"
@@ -45,7 +54,7 @@ def notes(tag: str) -> str:
             ("Any Linux x86-64, glibc 2.34+", f"AtlasToolkit-{version}-linux-x86_64.AppImage", "docs/install/linux.md"),
             ("macOS 15+, Apple Silicon", f"AtlasToolkit-{version}-macos-arm64.dmg", "docs/install/macos.md"))
     table = "\n".join(f"| {system} | `{name}` | {document(guide, tag)} |" for system, name, guide in rows)
-    return f"""{entry}
+    return f"""{entry}{brought_along(version)}
 
 ## Installing
 
