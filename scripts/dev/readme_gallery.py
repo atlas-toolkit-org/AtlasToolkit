@@ -169,7 +169,7 @@ RECIPES = [
 ]
 
 SVG_TOOLS = ("svg-overlap-cleaner", "svg-smooth", "svg-simplify", "svg-shape-cutter", "svg-shape-outline")
-SHOT_PATH_ROW = (300, 811, 500, 829)    # the 1440 x 900 --snapshot of Sketch Hatching: its report's output row
+SHOT_PATH_ROW = (300, 797, 506, 817)    # the 1440 x 900 --snapshot of Sketch Hatching: its report's output row
 HERO = ("sketch-hatching", "mesh-twist", "mesh-peel", "dpt-hatching")
 
 

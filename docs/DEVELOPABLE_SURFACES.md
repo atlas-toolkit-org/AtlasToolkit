@@ -8,7 +8,7 @@ Preprocessing: https://odedstein.com/projects/developability/preprocessing.html 
 
 ## Use
 
-Choose **Developable Surfaces** under Mesh, load a model, select **Balanced**, and Preview or Develop.
+Choose **Developable Surfaces** (Mesh → Mesh › *Surface and relief*), load a model, select **Balanced**, and Preview or Develop.
 Use **Sculpture** for more identity, **Broad folds** for larger regions, **Clean rulings** to discourage
 branching, or **Abstract form** for a strongly transformed cage. Draft previews use at most 500 initial
 triangles, one subdivision and 100 iterations per level. Keep-input preparation retains its original face

@@ -6,7 +6,7 @@ the tool fills the volume with paths, not with a continuous solid.
 
 ## Start
 
-Choose **Pipe Fill** under Mesh, add a model, select **Plotter organic** and Preview.
+Choose **Pipe Fill** (Mesh → Mesh › *Carve and fill*), add a model, select **Plotter organic** and Preview.
 Choose **Architectural pipes** for the second reference's straight-run pipe maze.
 Preview computes the same paths and geometry as Run. Large results use a display
 proxy; that proxy does not replace the exported geometry.
