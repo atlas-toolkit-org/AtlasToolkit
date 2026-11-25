@@ -112,6 +112,27 @@ class BandGeometryTests(unittest.TestCase):
 
 
 @_isolate.needs_helper(backend.find_backend(), "native stripe helper not built")
+class LongestFirstTests(unittest.TestCase):
+    def test_a_tight_budget_goes_to_the_widest_triangles(self):
+        """A bust's flat base: a whole pass would exceed the budget, so nothing at all was split."""
+        ball = trimesh.creation.icosphere(subdivisions=3)
+        fan = trimesh.creation.cylinder(1., .2, sections=64)
+        fan.apply_translation((0, 0, 4))
+        body = trimesh.util.concatenate((ball, fan))
+        phase = body.vertices[body.faces, 1]*2*np.pi/.5
+        data = dict(synthetic_curves([[-.8, 0, 1], [.8, 0, 1]], [[0, 1]]), mesh_vertices=body.vertices.tolist(),
+                    mesh_faces=body.faces.tolist())
+        data["families"][0]["corner_phase"] = phase.tolist()
+        seen = []
+        real = ms.cut_and_raise
+        with patch.object(ms, "cut_and_raise", lambda surface, *a, **k: seen.append(surface) or real(surface, *a, **k)):
+            for longest in (False, True):
+                ms.raised_bands(body, data, .2, .04, .5, max_faces=24000, longest_first=longest)
+        before, after = (m.edges_unique_length.max() for m in seen)
+        self.assertLess(after, before/2)
+        self.assertLessEqual(len(seen[1].faces), 6000)
+
+
 class NativeTests(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory(prefix="atlas stripes ")
@@ -348,6 +369,35 @@ class EngineTests(unittest.TestCase):
             self.run_engine()
         res = self.run_engine(repair=True, repair_resolution=48, spacing=30., solve_faces=1500)
         self.assertTrue(res.data["repaired"])
+
+    def test_a_model_too_dense_for_its_budget_is_banded_on_a_lighter_copy(self):
+        """Laocoön and Discobolus were refused: their surface is over a quarter of the Band face budget."""
+        dense = trimesh.creation.icosphere(subdivisions=5, radius=20.)
+        dense.vertices *= [.75, .6, 1.2]
+        dense.export(self.src)
+        tight = dict(spacing=30., relief=1., max_faces=40000)            # 20,480 faces: the surface may take 10,000
+        with self.assertRaisesRegex(ValueError, "band face budget"):
+            self.run_engine(fit=False, **tight)
+        ctx = context()
+        with patch.object(ctx, "note") as note:
+            res = engine.run(ctx, self.src, None, TOOL.values(dict(self.values, **tight)))
+        self.assertIn("from 20,480 to", note.call_args[0][0])
+        self.assertIn("simplified surface retained", res.report)
+        self.assertLessEqual(res.stat("faces").value, 40000)
+        self.assertGreater(res.stat("added").value, 0)
+        real, calls = ms.precision_mesh, []
+
+        def opened(*args, **kw):            # every attempt at the first lighter copy welds two sheets into a hole
+            out = real(*args, **kw)
+            if len(calls) < 4:
+                calls.append(1)
+                out.update_faces(np.arange(len(out.faces)) > 0)
+            return out
+        with patch.object(ms, "precision_mesh", opened), patch.object(ctx, "note") as note:
+            engine.run(ctx, self.src, None, TOOL.values(dict(self.values, **tight)))
+        self.assertLess(int(note.call_args[0][0].split(" to ")[1].split(" faces")[0].replace(",", "")), 7600)
+        with patch.object(engine.R, "simplified_solid", side_effect=AssertionError("it fits")):
+            self.assertIn("original surface retained", self.run_engine(spacing=30., relief=1.).report)
 
     def test_cancelled_job_writes_nothing(self):
         ctx = JobContext(lambda k, a: None, lambda: True, "run")

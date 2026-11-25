@@ -175,7 +175,9 @@ Preview computes the same final geometry as Run. Dense combined previews simplif
 retaining complete fragments and connectors; the Connectors tab retains its full geometry. Saved geometry
 always uses the validated boolean assembly.
 
-Maximum faces applies to the input and combined output. Constraint failures and cancellation publish nothing.
+Maximum faces applies to the input and combined output. When a dense model's pieces would exceed it, **Simplify to
+fit** (on by default) works on a lighter copy, which softens the finest detail; the report says so. A painted region
+belongs to the model's own faces, so it is never simplified. Constraint failures and cancellation publish nothing.
 Excessive extraction that would remove the whole body is rejected. No input artwork is overwritten.
 
 ## Pen-plotter recipes

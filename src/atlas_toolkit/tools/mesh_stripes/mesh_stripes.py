@@ -48,6 +48,10 @@ def precision_mesh(vertices, faces, tolerance, *, preserve_shells=False):
     return clean(trimesh.Trimesh(V, F, process=False))
 
 
+class FaceBudget(ValueError):
+    """The bands would exceed the Band face budget (Simplify to fit retries on a lighter copy)."""
+
+
 def working_mesh(mesh, spacing, budget, check=lambda: None):
     """Conforming refinement; never modifies the source body or invents a new geometric surface."""
     import trimesh
@@ -209,7 +213,7 @@ def cut_and_raise(mesh, scalar, relief, max_faces=2000000, *, stripes_only=False
     if not len(band_faces) and stripes_only:
         raise ValueError("no stripe patches remain; adjust spacing or band width")
     if len(out_faces) > max_faces:
-        raise ValueError("band face budget exceeded; increase spacing or Band face budget")
+        raise FaceBudget("band face budget exceeded; increase spacing or Band face budget")
     out = trimesh.Trimesh(np.vstack([V, V+normals*relief]), out_faces, process=False)
     out.remove_unreferenced_vertices()
     if not out.is_watertight or not out.is_winding_consistent:
@@ -218,9 +222,11 @@ def cut_and_raise(mesh, scalar, relief, max_faces=2000000, *, stripes_only=False
     return out
 
 
-def raised_bands(mesh, data, width, relief, spacing, *, stripes_only=False, max_faces=2000000, check=lambda: None,
-                 progress=lambda f, m: None):
-    """Raise a shared surface partition of the periodic phase; return its solid boundary and diagnostics."""
+def raised_bands(mesh, data, width, relief, spacing, *, stripes_only=False, max_faces=2000000, longest_first=False,
+                 check=lambda: None, progress=lambda f, m: None):
+    """Raise a shared surface partition of the periodic phase; return its solid boundary and diagnostics.
+    `longest_first` (for a copy simplified to fit): split the longest edges first, so the budget goes to the widest
+    triangles rather than to none when a whole pass would exceed it."""
     import manifold3d as m3d
     import trimesh
     from atlas_toolkit.tools.mesh_flow.mesh_flow import refine
@@ -237,12 +243,13 @@ def raised_bands(mesh, data, width, relief, spacing, *, stripes_only=False, max_
     target = min(width/3., spacing/12.)
     budget = max_faces//4
     if len(F) > budget:
-        raise ValueError("source surface exceeds the band face budget; raise the budget or simplify the input")
-    for _ in range(10):
-        check()
-        V, F, done = refine(V, F, target, budget, passes=1)
-        if not done:
-            break
+        raise FaceBudget("source surface exceeds the band face budget; raise the budget or simplify the input")
+    for factor in (64., 32., 16., 8., 4., 2.8, 2., 1.4, 1.) if longest_first else (1.,):
+        for _ in range(10):
+            check()
+            V, F, done = refine(V, F, target*factor, budget, passes=1)
+            if not done:
+                break
     surface = trimesh.Trimesh(V, F, process=False)
     unresolved = int(np.count_nonzero(surface.edges_unique_length > target*1.001))
     progress(.25, f"Sampling stripe phase on {len(V)} surface vertices")

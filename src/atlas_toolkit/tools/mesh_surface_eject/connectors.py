@@ -219,7 +219,7 @@ def build(extraction, p, height, ctx=None):
                                 and len(joined.decompose()) == 1)
                     if fits:
                         if fixed_faces + joined.num_tri() > p["max_faces"]:
-                            raise ValueError("Branches exceed Maximum faces. Reduce Pieces / Extra branches / Curved shape segments.")
+                            raise se.FaceBudget("Branches exceed Maximum faces. Reduce Pieces / Extra branches / Curved shape segments.")
                         candidate = joined
                         branch_solids.append(branch)
                         paths.append(branch_path)
@@ -263,7 +263,7 @@ def build(extraction, p, height, ctx=None):
                         "branch_count_mode": p.get("connector_branch_count", "fixed"),
                         "branch_placement": p.get("connector_branch_placement", "split")})
         if sum(s.num_tri() for s in connectors) + sum(s.num_tri() for s in extraction.parts) + extraction.body.num_tri() > p["max_faces"]:
-            raise ValueError("Connectors exceed Maximum faces. Reduce Pieces / Extra branches / Curved shape segments.")
+            raise se.FaceBudget("Connectors exceed Maximum faces. Reduce Pieces / Extra branches / Curved shape segments.")
     if ctx:
         ctx.check_cancel()
     try:
@@ -296,7 +296,9 @@ def assemble(extraction, selected, unreachable, connectors, records, p, height, 
     loose = [part for index, part in enumerate(extraction.parts) if index not in selected]
     combined = union([joined, *loose]) if loose else joined
     expected_components = len(joined.decompose()) + len(loose)
-    if (combined.status() != mf.Error.NoError or combined.is_empty() or combined.num_tri() > p["max_faces"]
+    if combined.num_tri() > p["max_faces"]:
+        raise se.FaceBudget("Connectors exceed Maximum faces. Reduce Pieces / Extra branches / Curved shape segments.")
+    if (combined.status() != mf.Error.NoError or combined.is_empty()
             or len(combined.decompose()) != expected_components):
         raise ValueError("Connector assembly lost a selected joint or an unselected floating piece.")
     return stabilize(combined, height)

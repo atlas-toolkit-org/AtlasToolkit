@@ -29,6 +29,11 @@
   an open one. The pinches are separated; where nothing was pinched the simplified model is the same as before.
   Where it was, the result changes: Dilate now inflates those models by volume, up to where they touch (it swelled
   their surface instead), and Compress's morph smooths over a coarse copy that stays closed.
+- **Surface Stripes 0.3.0 and Surface Eject 0.5.0 take dense models.** A model too dense for the Band face budget
+  (Laocoön, Discobolus) or for Maximum faces once its pieces are cut (Discobolus) was refused. **Simplify to fit** (on
+  by default) works on a lighter copy of it, as Disintegrate and Motion Sculpture do, and the report says so; a model
+  that fits is unchanged. Stripes splits the copy's longest edges first, so the budget goes where the surface is
+  coarsest. A painted region is never simplified.
 - For tool authors: `group`, `slow` and `draft_note` in the spec, and an optional `stage_note()` on a viewer
   (docs/ADDING_A_TOOL.md); `scripts/dev/tool_times.py` measures which tools are slow.
 

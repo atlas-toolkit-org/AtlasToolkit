@@ -227,6 +227,46 @@ class EngineTests(unittest.TestCase):
         self.assertEqual(dst.read_bytes(), b"previous result")
         self.assertFalse(list(self.root.glob("out_parts*")))
 
+    def test_a_model_too_dense_for_maximum_faces_is_worked_on_lighter(self):
+        """Discobolus (1M faces) was refused by every preset: any cavity took it over Maximum faces."""
+        dense = trimesh.creation.icosphere(subdivisions=5)
+        dense.vertices *= [.7, .55, 1.]
+        for limit in (21000, 15000):             # the pieces do not fit; the model itself does not
+            with self.subTest(limit=limit):
+                src, dst = self.root / "dense.stl", self.root / f"out{limit}.stl"
+                dense.export(src)
+                values = dict(count=4, segments=16, max_faces=limit)
+                with self.assertRaisesRegex(ValueError, "Maximum faces"):
+                    engine.run(context(), src, dst, TOOL.values(dict(values, fit=False)))
+                self.assertFalse(dst.exists())
+                ctx = context()
+                with patch.object(ctx, "note") as note:
+                    result = engine.run(ctx, src, dst, TOOL.values(values))
+                self.assertIn("simplified from 20,480 to", note.call_args[0][0])
+                self.assertIn("simplified surface", result.report)
+                saved = gm.load_mesh(dst)
+                self.assertTrue(saved.is_volume)
+                self.assertLessEqual(len(saved.faces), limit)
+        with patch.object(engine.R, "simplified_solid", side_effect=AssertionError("it fits")):
+            engine.run(context(), src, dst, TOOL.values(dict(values, max_faces=100000)))
+
+    def test_a_painted_selection_is_never_simplified(self):
+        dense = trimesh.creation.icosphere(subdivisions=4)
+        src = self.root / "painted.stl"
+        dense.export(src)
+        loaded = gm.load_mesh(src)
+        text = se.encode_selection(loaded, loaded.triangles_center[:, 2] > 0)
+        p = TOOL.values(dict(count=2, segments=16, region="paint", selection=text, max_faces=10000))
+        with patch.object(engine.R, "simplified_solid", side_effect=AssertionError("painted")):
+            engine.run(context(), src, None, p)
+            for limit in (5200, 5130):
+                p["max_faces"] = limit
+                with self.assertRaisesRegex(ValueError, "Maximum faces"):
+                    engine.run(context(), src, None, p)
+            p["max_faces"] = 5000
+            with self.assertRaisesRegex(ValueError, "Input exceeds Maximum faces"):
+                engine.run(context(), src, None, p)
+
     def test_dry_run_ignores_destination_and_input_cannot_be_replaced(self):
         dst = self.root / "ignored.stl"
         engine.run(context("draft"), self.src, dst, TOOL.values(dict(count=2)))
