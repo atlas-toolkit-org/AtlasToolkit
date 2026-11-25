@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.5.3 (unreleased)
+
+- **The repair messages say where Repair Mesh is now.** A tool that needs a closed solid pointed to "Mesh · Prepare and
+  cut", the list's name before 2.5.2; it now says Mesh → Mesh › Prepare and cut.
+
 ## 2.5.2 (2026-11-25)
 
 **The first public release since 2.4.7.** It also brings 2.5.0 and 2.5.1 (below), which were never published on their

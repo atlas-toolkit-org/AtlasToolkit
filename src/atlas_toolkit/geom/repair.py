@@ -24,6 +24,7 @@ from ..core.errors import ToolError
 
 REPAIR_TOOL = "mesh-repair"
 REPAIR_TOOL_NAME = "Repair Mesh"
+REPAIR_TOOL_PLACE = "Mesh → Mesh › Prepare and cut"    # where the tool list has it (test_repair_guidance checks)
 CRUMB_SHARE = 0.002          # loose pieces below this share of the largest piece's faces are debris
 TIDY_HOLE_EDGES = 8          # tidy closes holes of at most this many edges (pin-holes, a missing triangle or two)
 
@@ -1189,7 +1190,7 @@ class NeedsRepair(ToolError):
         found = diagnosis.summary()
         who = tool_name or "This tool"
         message = f"{who} needs {what}, and this model is not one: {found}."
-        hint = (f"Fix it with {REPAIR_TOOL_NAME} (Mesh · Prepare and cut): open this model there, run it with its "
+        hint = (f"Fix it with {REPAIR_TOOL_NAME} ({REPAIR_TOOL_PLACE}): open this model there, run it with its "
                 f"default settings, then use the repaired file here.")
         if tool_option:
             hint += f" Or turn on “{tool_option}” in this tool's settings (it can soften fine detail)."
@@ -1236,7 +1237,7 @@ def needs_repair(mesh, tool, option: str | None = None, need: str = "solid", pai
     e = NeedsRepair(diagnose(mesh), need, option if not painted else None, getattr(tool, "name", None))
     if painted:
         e.hint = (f"Painting is tied to the model's exact faces, so the tool cannot repair it for you. Run "
-                  f"{REPAIR_TOOL_NAME} (Mesh · Prepare and cut) on this model, save it, then open the repaired file "
+                  f"{REPAIR_TOOL_NAME} ({REPAIR_TOOL_PLACE}) on this model, save it, then open the repaired file "
                   f"here and paint it again.")
     return e
 

@@ -49,6 +49,15 @@ class Guidance(unittest.TestCase):
         cls.open = cls.dir / "open.ply"
         trimesh.Trimesh(*opening(V, F), process=False).export(cls.open)
 
+    def test_the_messages_say_where_the_list_has_repair_mesh(self):
+        from atlas_toolkit.core.tool import CATEGORIES, GROUPS
+        tool = self.reg.get(R.REPAIR_TOOL)
+        place = f"{CATEGORIES[tool.category][0]} › {dict(GROUPS[tool.category])[tool.group]}"
+        self.assertEqual(R.REPAIR_TOOL_PLACE, place)
+        mesh = trimesh.load(self.open, process=False)
+        for painted in (False, True):
+            self.assertIn(f"({place})", R.needs_repair(mesh, tool, painted=painted).hint)
+
     def run_tool(self, tool_id, src, mode="draft"):
         tool = self.reg.get(tool_id)
         values = dict(tool.values(dict(tool.test_values)))
