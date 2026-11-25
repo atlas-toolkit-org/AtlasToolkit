@@ -61,9 +61,6 @@ def render(mesh, p, progress=None, log=None, bounds=None) -> dict:
             pls = order_polylines(pls)
         final_travel += travel(pls)
         layer.polylines = pls
-    if p.one_layer and len(layers) > 1:
-        merged = [pl for layer in layers for pl in layer.polylines]
-        layers = [Layer("drawing", order_polylines(merged) if p.optimise else merged, "#000000", p.hatch_width)]
     if log:
         log(f"{scene.rays:,} visibility rays".replace(",", " "))
     return {"layers": [l for l in layers if l.polylines], "sheet": scene.sheet, "scene": scene,

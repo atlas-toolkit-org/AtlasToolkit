@@ -12,6 +12,14 @@ import numpy as np
 MAX_TOTAL_FACES = 2_000_000
 BATCH_FACES = 4096
 MAX_STEPS = 8
+FIT_MIN_FACES = 500        # Simplify to fit stops here: a coarser stage 0 would no longer read as the model
+
+
+def fitting_faces(steps: int, budget: int | None = None) -> int:
+    """The most faces an input may have so that it and all `steps` stages fit the budget: 4^0 + ... + 4^steps
+    copies of it, (4^(steps+1) - 1) / 3."""
+    budget = MAX_TOTAL_FACES if budget is None else budget
+    return budget * 3 // (4 ** (int(steps) + 1) - 1)
 
 
 def face_counts(faces: int, steps: int, budget: int | None = None) -> list[int]:
@@ -27,7 +35,8 @@ def face_counts(faces: int, steps: int, budget: int | None = None) -> list[int]:
         advice = (f"Largest supported step count: {safe[-1]}." if safe else
                   "Even stage 0 exceeds the budget; use a smaller input mesh.")
         raise ValueError(f"{steps} steps need {sum(counts):,} faces across all stages "
-                         f"(budget {budget:,}). {advice} The input was not simplified.")
+                         f"(budget {budget:,}). {advice} The input was not simplified (Simplify to fit is off, "
+                         f"or it would need fewer than {FIT_MIN_FACES} faces).")
     return counts
 
 

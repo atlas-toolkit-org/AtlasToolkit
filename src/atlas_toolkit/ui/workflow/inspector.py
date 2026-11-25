@@ -19,7 +19,8 @@ from ...core import workflow as W
 from ...core.params import ParamError, Section
 from ...core.tool import KINDS
 from ..theme import icon, sans
-from ..widgets.common import RuntimeNotice, Segmented, badge, hint, label, section_head
+from ..widgets.common import (SLOW_ADVICE, Mark, RuntimeNotice, Segmented, badge, draft_tip, hint, label,
+                              section_head, tip_html)
 from ..widgets.param_form import ParamForm
 from ..widgets.presets import PresetBar
 
@@ -49,7 +50,7 @@ class NodeInspector(QWidget):
         tool = reg.tools.get(node.tool) if node.type == W.TOOL else None
         top = QHBoxLayout()
         if node.type == W.TOOL:
-            top.addWidget(label(tool.category_title if tool else "missing tool"))
+            top.addWidget(label((tool.group_title or tool.category_title) if tool else "missing tool"))
             if tool:
                 top.addWidget(badge(tool.io_badge, "accent"))
         else:
@@ -58,7 +59,14 @@ class NodeInspector(QWidget):
         if tool:
             top.addWidget(badge(f"v{tool.version}"))
         lay.addLayout(top)
-        lay.addWidget(_title(W.label_of(node, reg)))
+        head = QHBoxLayout()
+        head.setSpacing(6)
+        head.addWidget(_title(W.label_of(node, reg)))
+        if tool and tool.slow:
+            head.addWidget(Mark("warn", "warning", tip_html("Can be slow", tool.slow, SLOW_ADVICE), self.theme), 0,
+                           Qt.AlignVCenter)
+        head.addStretch(1)
+        lay.addLayout(head)
         self.name = QLineEdit(node.label)
         self.name.setPlaceholderText(W.label_of(W.Node("", node.type, tool=node.tool, kind=node.kind), reg))
         self.name.setToolTip("The step's name on the canvas (and {node} in Save file names).")
@@ -152,6 +160,8 @@ class NodeInspector(QWidget):
                        "the settings back with “Back to workflow”.")
         aim.clicked.connect(lambda: self.page.aim(n.id))
         row.addWidget(prev, 1)
+        if not tool.live:
+            row.addWidget(Mark("info", "text-3", draft_tip(tool, workflow=True), self.theme))
         row.addWidget(aim, 1)
         self.lay.addLayout(row)
         keep = QPushButton("Save this step's file")

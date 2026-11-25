@@ -152,6 +152,44 @@ constraints are solved together at shared vertices. Snapping displacement and su
 are bounded by half the average input edge length. Coverage is rechecked using interpolated
 reference-surface normals; a violating regularization is rolled back.
 
+### Speed (2.5.1)
+
+Profiling the sculpted head at 10k quads (cProfile; 658 s in all) showed where the time goes: 38 s
+in clustering and 611 s in simplification. Removing one flowline reshapes every region along it, so
+the simplifier measured 1.45 million regions; most of them it had measured before. The changes:
+
+- **Region measures are cached** under a key of exactly what a measure reads: the region's faces,
+  which edges round its vertices are blocked, and which of its flowlines count as crossing (positions
+  and normals are fixed until regularization, which clears the cache). The key is two order-free sums
+  of 64-bit hashes, computed for all of a proposal's regions at once. Whole assessments (the regions
+  a proposal makes from the affected faces) are cached the same way. A measure no longer allocates
+  arrays the size of the mesh, and partitions read only the affected faces' edges.
+- **The local search's energy is incremental.** Each flowline's removal cost records the vertices it
+  looked at (the flowlines its shortening examined and the regions it reshaped); a swap stamps the
+  vertices of the edges it changes, and only costs that read a stamped vertex are recomputed.
+- **Vertex degrees are kept with the edge counts**, not counted again for every proposal, and a
+  flowline's range change is cut by index arithmetic.
+- **The edge-affinity graph is built with array operations** (the same arcs and weights, in the same
+  order), and clustering refinement passes count with arrays.
+- **Kernighan-Lin refinement works on a window.** For each pair of neighbouring clusters, only the
+  nodes where they touch, grown by two arcs into each, may move (`KL_DEPTH`); their neighbours outside
+  still count in the gains. Refining over both whole clusters made a pass cost the size of a cluster
+  times the number of its neighbours, which grew as faces^1.5 (86 s at 20k quads, 9 s now). Moves far
+  from the interface never paid off: on the head at 20k the window's objective is the full refinement's
+  (edges: 30510.27 both; flowlines: 2515.65 against 2514.73).
+- **Clustering reports progress** in its own steps (merging, then each refinement pass), instead of
+  holding the bar at "building signed edge-affinity graph" for the whole step.
+- **Uniform meshes load with array operations.** When every face has the same number of corners (scans,
+  sculpts, STL), welding, duplicate and sliver removal, the non-manifold checks and orientation are
+  computed for all faces at once, with exactly the general path's result and messages. Anything else
+  (mixed polygons, a polygon that loses a corner, touching sheets to split) takes the general path.
+  Loading the 524k-triangle head went from 32 s to 2 s.
+
+Everything but the window is exact: with full refinement the networks are identical to before,
+bit for bit (checked on the head at 3k and on every benchmark model whose drawing changed). The window
+changes a few networks slightly (4 of 14 benchmark models at 6000 quads; the other 10 drawings are
+byte-identical); see Validation.
+
 ### Interpretations of inconsistent printed formulas
 
 These choices are tested and should be preserved when porting:
@@ -242,8 +280,9 @@ than the reserved fitting tolerance.
 - The paper uses dmax = 20° for design shapes and 30° for organic ones (dog head, phone). On sculpted
   organic models, 20° keeps many parallel flowlines, because without sharp features nothing else
   bounds the regions; 25-30° is closer to the paper's look there.
-- Sparse Python optimization is slower than the authors' C++ implementation on complex meshes.
-  Camera-only redraws reuse the cached extraction and avoid that cost.
+- Sparse Python optimization is slower than the authors' C++ implementation on complex meshes, though
+  since 2.5.1 its time grows about linearly with the remesh resolution (Speed, above). Camera-only
+  redraws reuse the cached extraction and avoid that cost.
 
 The evaluation report compares both networks through the same renderer. Sampled curve distance
 measures agreement with an author network; it is not a surface-reconstruction error or an

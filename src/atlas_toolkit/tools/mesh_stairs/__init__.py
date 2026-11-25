@@ -45,7 +45,7 @@ TOOL = Tool(
     id="mesh-stairs",
     name="Stair Sculpt",
     version="0.1.2",
-    category="mesh",
+    category="mesh", group="carve",
     icon="stairs",
     action="Sculpt",
     summary="Turn a model into a staircase: carve a cavity and build stairs inside, or make the whole body the stair.",

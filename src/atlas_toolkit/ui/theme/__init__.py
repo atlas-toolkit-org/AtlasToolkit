@@ -18,6 +18,7 @@ _RGBA = re.compile(r"rgba?\(\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)\s*(?:,\s*(
 
 # Toolkit glyphs not in the studio set, same grid and stroke rules (24x24, 1.5, round caps).
 EXTRA_ICONS = {
+    "topbar": '<rect x="3.5" y="4.5" width="17" height="15" rx="2"/><path d="M3.5 9.5h17M7 7h2M11 7h2"/>',
     "skeleton-shell": '<path d="M12 3a4 4 0 0 1 4 4c0 1.8-1 3-2 4l3 2 1 8H6l1-8 3-2c-1-1-2-2.2-2-4a4 4 0 0 1 4-4z"/><path d="m12 3-2 4 2 4 2-4zM7 13l3 4 2-6 2 6 3-4M6 21l4-4 2 4 2-4 4 4"/>',
     "crumble": '<path d="M4 21V5l5-2 2 4-2 3 2 3-2 3 1 5M4 21h16"/><path d="m14 7 3-1 1 3-3 1zM13 13l3 1-1 3-3-1zM18 15l2 1-1 2-2-1z"/>',
     "stairs": '<path d="M3 21v-4h4v-4h4V9h4V5h6M3 21h18V5"/><path d="M7 21v-4M11 21v-8M15 21V9"/>',
@@ -35,6 +36,7 @@ EXTRA_ICONS = {
     "mirror-plane": '<path d="M12 3v18" stroke-dasharray="2 2"/><path d="M3 6h5v12H3l3-6zM21 6h-5v12h5l-3-6z"/>',
     "mesh-repair": '<path d="M3 19 12 4l9 15zM7.5 11.5h9M12 4v7.5"/><path d="m9.5 14.5 5 3.5m0-3.5-5 3.5"/>',
     "plane-cut": '<path d="m3 14 7-5 11 2-7 5zM10 9V3m4 13v5M5 5l14 14"/><path d="m16 17 3 2-1-3"/>',
+    "shape-crop": '<path d="M3 7V3h4M17 3h4v4M21 17v4h-4M7 21H3v-4"/><circle cx="10" cy="10" r="4.5"/><rect x="10" y="10" width="7" height="7" rx=".5"/>',
     "developable": '<path d="M3 17 7 5l5 4 5-4 4 12-5 3-4-4-4 4-5-3ZM7 5l1 15m4-11v7m5-11-1 15M3 17l9-1 9 1"/>',
     "scissors": '<circle cx="6" cy="7" r="2.5"/><circle cx="6" cy="17" r="2.5"/><path d="M8.2 8.3 20 17M8.2 15.7 20 7"/>',
     "hatch": '<path d="M4 20 20 4M4 14 14 4M10 20 20 10M4 8l4-4M16 20l4-4"/>',

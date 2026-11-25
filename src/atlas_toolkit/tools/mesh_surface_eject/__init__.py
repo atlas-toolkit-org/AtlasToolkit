@@ -22,7 +22,7 @@ def has_branches(v):
 
 TOOL = Tool(
     needs="solid",
-    id="mesh-surface-eject", name="Surface Eject", version="0.3.3", category="mesh", icon="surface-eject",
+    id="mesh-surface-eject", name="Surface Eject", version="0.5.0", category="mesh", group="fragment", icon="surface-eject",
     action="Eject", summary="Lift actual pieces of a model's surface out of matching cavities, along their outward normals.",
     tagline="A recognizable form, crisp missing patches and floating fragments of its own skin.",
     description=("Intersect surface-aligned solid samplers with the remaining model, keep the actual sampled "
@@ -149,7 +149,11 @@ TOOL = Tool(
             Int("segments", "Curved shape segments", 32, min=12, max=96, step=4, advanced=True,
                 help="Sampler quality and round connector cross-sections (connectors use at most 48 segments)."),
             Int("max_faces", "Maximum faces", 1_000_000, min=10_000, max=2_000_000, step=50_000, advanced=True,
-                help="Hard input/output face budget; failure publishes nothing. Preview computes the same final geometry as Run.")),
+                help="Hard input/output face budget; failure publishes nothing. Preview computes the same final geometry as Run."),
+            Bool("fit", "Simplify to fit", True, advanced=True, visible_if={"region": ("whole", "band")},
+                help="When the pieces of a dense model would exceed Maximum faces, work on a lighter copy of it, which "
+                     "softens its finest detail. The report says when. Off, or with a painted region (it belongs to the "
+                     "model's own faces): such a model is refused.")),
         Section("Model frame", *frame_params(stage_sets=False)),
     ],
     test_values={"count": 4, "segments": 16},

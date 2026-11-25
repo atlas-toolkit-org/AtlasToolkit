@@ -328,10 +328,13 @@ def is_closed(F: np.ndarray) -> bool:
 
 def detail_mesh(V: np.ndarray, F: np.ndarray, edge: float, faces: int, log=None) -> tuple[np.ndarray, np.ndarray]:
     """The model as it is output: simplified to at most `faces`, its long edges split under 0.75 x the simulation
-    edge so large flat triangles can follow the folds (within the same budget)."""
+    edge so large flat triangles can follow the folds (within the same budget). A closed model stays closed: quadric
+    decimation can pinch thin parts together (repair.simplified_solid separates them)."""
     from atlas_toolkit.geom import mesh as gm
+    from atlas_toolkit.geom import repair
     from atlas_toolkit.tools.mesh_flow.mesh_flow import refine
-    V, F = gm.simplify_faces(V, F, int(faces), log)
+    solid = repair.simplified_solid(V, F, int(faces), log) if len(F) > int(faces) and is_closed(F) else None
+    V, F = solid if solid is not None else gm.simplify_faces(V, F, int(faces), log)
     V, F, _ = refine(V, F, 0.75 * edge, int(faces), passes=6)
     return V, F
 

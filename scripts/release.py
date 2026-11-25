@@ -140,6 +140,9 @@ def check(version: str) -> bool:
     good &= say(app_version() == version, f"src/atlas_toolkit/version.py says {app_version()}")
     head = changelog_heading(version)
     good &= say(bool(head), f"CHANGELOG.md has an entry for {version}" + (f": {head[3:]}" if head else ""))
+    waiting = re.findall(r"^## .*\(unreleased\).*$", CHANGELOG.read_text(encoding="utf-8"), re.M)
+    good &= say(not waiting, "no changelog heading says (unreleased)" + (f": {', '.join(waiting)}; date it, or say "
+                f"(date, first released in {version}), which puts its entry in the notes" if waiting else ""))
     public = latest_public()
     for f in INSTALL_DOCS:
         t = f.read_text(encoding="utf-8")

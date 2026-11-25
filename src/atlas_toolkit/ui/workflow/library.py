@@ -21,26 +21,28 @@ from PySide6.QtWidgets import (QAbstractItemView, QFrame, QHBoxLayout, QLineEdit
 from ...core.paths import reveal
 from ...core.tool import KINDS
 from ...core.workflow import saved_name
-from ..sidebar import RAIL_W, group_font
-from ..theme import icon, mono, qcolor
+from ..sidebar import RAIL_W, group_font, saved_folds, saved_subfolds
+from ..theme import icon, mono, qcolor, sans
 from ..widgets.common import apply_icon, icon_button
 from .canvas import MIME
 
 GROUP = Qt.UserRole + 1               # a header's group title
+SUB = Qt.UserRole + 4                 # a subgroup header's key ("mesh/deform")
+SLOW = Qt.UserRole + 5                # a tool that can be slow, for the clock mark
 COUNT = Qt.UserRole + 2               # a header's number of entries
 NEEDS = Qt.UserRole + 3               # a tool's missing required program, for the warning mark
 
 KIND_ICONS = {"mesh": "cube", "svg": "vector", "image": "image"}
 
 
-def entries(reg) -> list[tuple[str, str, str, str, str]]:
-    """(entry, title, subtitle, icon, group) for every step that can be added."""
+def entries(reg) -> list[tuple[str, str, str, str, str, str, str]]:
+    """(entry, title, subtitle, icon, group, subgroup key, subgroup heading) for every step that can be added."""
     out = [(f"input:{k}", f"{badge.capitalize() if k != 'svg' else 'SVG'} input", f"{badge} · the files of a run",
-            KIND_ICONS.get(k, "file"), "Workflow") for k, (_exts, badge) in KINDS.items()]
-    out.append(("save", "Save", "write a step's file to disk", "save", "Workflow"))
-    for cat, tools in reg.by_category():
-        for t in tools:
-            out.append((f"tool:{t.id}", t.name, t.io_badge, t.icon, cat))
+            KIND_ICONS.get(k, "file"), "Workflow", "", "") for k, (_exts, badge) in KINDS.items()]
+    out.append(("save", "Save", "write a step's file to disk", "save", "Workflow", "", ""))
+    for cat, subs in reg.by_group():
+        for key, title, tools in subs:
+            out += [(f"tool:{t.id}", t.name, t.io_badge, t.icon, cat, key, title) for t in tools]
     return out
 
 
@@ -78,6 +80,8 @@ class _Delegate(QStyledItemDelegate):
 
     def sizeHint(self, opt, idx):
         s = super().sizeHint(opt, idx)
+        if idx.data(SUB):
+            return QSize(s.width(), (9 if idx.row() else 0) if self.lib.rail else 30)
         if not idx.parent().isValid():
             return QSize(s.width(), (13 if idx.row() else 4) if self.lib.rail else (40 if idx.row() else 32))
         return QSize(s.width(), 34 if self.lib.rail else max(s.height(), 28))
@@ -85,6 +89,9 @@ class _Delegate(QStyledItemDelegate):
     def paint(self, p: QPainter, opt, idx):
         th = self.lib.theme
         r = opt.rect
+        if idx.data(SUB):
+            self._paint_sub(p, opt, idx)
+            return
         if not idx.parent().isValid():
             p.save()
             if self.lib.rail:
@@ -116,7 +123,12 @@ class _Delegate(QStyledItemDelegate):
             return
         needs = idx.data(NEEDS)
         if not self.lib.rail:
+            if idx.parent().data(SUB):                           # under its subgroup's title
+                opt.rect = r.adjusted(16, 0, 0, 0)
             super().paint(p, opt, idx)
+            if idx.data(SLOW):
+                icon("clock", th["text-3"], 14).paint(p, QRect(r.right() - (42 if needs else 22),
+                                                               r.center().y() - 7, 14, 14))
             if needs:                                            # the warning mark at the right
                 icon("warn", th["warning"], 14).paint(p, QRect(r.right() - 22, r.center().y() - 7, 14, 14))
             return
@@ -139,6 +151,38 @@ class _Delegate(QStyledItemDelegate):
         p.restore()
 
 
+    def _paint_sub(self, p: QPainter, opt, idx) -> None:
+        """A subgroup's header: a quieter line under the category's; a short rule in the rail."""
+        th, r = self.lib.theme, opt.rect
+        p.save()
+        if self.lib.rail:
+            if idx.row():
+                p.setPen(QPen(qcolor(th["line-2"]), 1))
+                c = self.lib.tree.viewport().width() // 2
+                p.drawLine(c - 11, r.center().y(), c + 11, r.center().y())
+            p.restore()
+            return
+        hover = bool(opt.state & QStyle.State_MouseOver)
+        if hover:
+            p.setRenderHint(QPainter.Antialiasing)
+            p.setPen(Qt.NoPen)
+            p.setBrush(qcolor(th["bg-2"]))
+            p.drawRoundedRect(r, 6, 6)
+        icon("down" if self.lib.tree.isExpanded(idx) else "right", th["text-3"], 12).paint(
+            p, QRect(r.left() + 18, r.center().y() - 6, 12, 12))
+        p.setPen(qcolor(th["text-3"]))
+        p.setFont(mono(10.5))
+        count = str(idx.data(COUNT) or "")
+        cw = p.fontMetrics().horizontalAdvance(count)
+        p.drawText(QRect(r.right() - cw - 10, r.top(), cw, r.height()), Qt.AlignVCenter, count)
+        p.setPen(qcolor(th["text" if hover else "text-2"]))
+        p.setFont(sans(12.5, 500))
+        text = QRect(r.left() + 37, r.top(), r.width() - cw - 55, r.height())
+        p.drawText(text, Qt.AlignVCenter, p.fontMetrics().elidedText(idx.data(Qt.DisplayRole), Qt.ElideRight,
+                                                                     text.width()))
+        p.restore()
+
+
 class Library(QWidget):
     add = Signal(str)                 # an entry to add next to the selected step
     open_workflow = Signal(str)       # a saved workflow's path
@@ -150,7 +194,8 @@ class Library(QWidget):
         self.theme = ctx.theme
         self.saved: list[Path] = []
         self.kind: str | None = None  # the selected step's output kind: other tools are dimmed
-        self.collapsed: set[str] = set(ctx.settings.get("library_collapsed") or [])
+        self.collapsed: set[str] = saved_folds(ctx.settings, "library_collapsed")
+        self.folded: set[str] = saved_subfolds(ctx.settings, "library_folded", ctx.registry)
         self.mode: str = ctx.settings.get("library_mode") or "full"
         self._full_w = 250
         self.setObjectName("library")
@@ -229,22 +274,32 @@ class Library(QWidget):
         self._buttons()
 
     def _all_groups(self) -> set[str]:
-        return {g for _e, _t, _s, _i, g in entries(self.ctx.registry)} | ({"Saved workflows"} if self.saved else set())
+        return {g for _e, _t, _s, _i, g, _k, _h in entries(self.ctx.registry)} | ({"Saved workflows"} if self.saved else set())
 
     def fold_all(self) -> None:
         """Fold every group, or unfold them all when they already are."""
         groups = self._all_groups()
-        self.collapsed = set() if groups <= self.collapsed else groups
+        folded = groups <= self.collapsed
+        self.collapsed = set() if folded else groups
+        self.folded = set() if folded else {e[5] for e in entries(self.ctx.registry) if e[5]}
         self._save_collapsed()
 
     def _clicked(self, it: QTreeWidgetItem, _col=0) -> None:
-        if it.parent() is None and not self.rail and not self.search.text().strip():
+        if self.rail or self.search.text().strip():
+            return
+        if it.data(0, SUB):
+            self.folded ^= {it.data(0, SUB)}
+            self._save_collapsed()
+        elif it.parent() is None:
             self.collapsed ^= {it.data(0, GROUP)}
             self._save_collapsed()
 
     def _save_collapsed(self) -> None:
         self.ctx.settings.set("library_collapsed", sorted(self.collapsed))
+        self.ctx.settings.set("library_folded", sorted(self.folded))
+        at = self.tree.verticalScrollBar().value()
         self.refresh()
+        self.tree.verticalScrollBar().setValue(at)               # the list is rebuilt: stay where the click was
         self._buttons()
 
     def _buttons(self) -> None:
@@ -269,27 +324,36 @@ class Library(QWidget):
         th = self.theme
         self.tree.clear()
         groups: dict = {}
+        subs: dict = {}
         reg = self.ctx.registry
-        for entry, title, sub, ic, group in entries(reg):
+        for entry, title, sub, ic, group, key, heading in entries(reg):
             t = reg.tools.get(entry[5:]) if entry.startswith("tool:") else None
-            hay = f"{title} {sub} {group} {entry} {t.summary if t else ''}"
+            hay = f"{title} {sub} {group} {heading} {entry} {t.summary if t else ''}"
             if not matches(q, hay):
                 continue
             head = groups.get(group)
             if head is None:
                 head = self._group(group)
                 groups[group] = head
+            if key and key not in subs:
+                subs[key] = it = QTreeWidgetItem([heading])
+                it.setFlags(Qt.ItemIsEnabled)
+                it.setData(0, SUB, key)
+                it.setToolTip(0, "Fold or unfold this group")
+                head.addChild(it)
             it = QTreeWidgetItem([f"{title}"])
             it.setData(0, Qt.UserRole, entry)
             needs = self.ctx.needs_text(t) if t else ""
             it.setToolTip(0, (f"⚠ {needs}\n\n" if needs else "") + f"{title} · {sub}"
-                          + (f"\n\n{t.summary}" if t else ""))
+                          + (f"\n\n{t.summary}" if t else "")
+                          + (f"\n\n{t.slow_text}" if t and t.slow else ""))
+            it.setData(0, SLOW, bool(t and t.slow))
             it.setData(0, NEEDS, needs)
             fits = (self.kind is None or entry_kind(entry, reg) in (None, self.kind)) and not needs
             it.setIcon(0, icon(ic, th["highlight"] if fits else th["text-4"], 16))
             it.setForeground(0, qcolor(th["text"] if fits else th["text-4"]))
             it.setFlags(Qt.ItemIsEnabled | Qt.ItemIsSelectable | Qt.ItemIsDragEnabled)
-            head.addChild(it)
+            subs.get(key, head).addChild(it)
         if self.saved:
             head = None
             names = {p: saved_name(p) for p in self.saved}
@@ -308,7 +372,12 @@ class Library(QWidget):
         searching = bool(q.strip())
         for i in range(self.tree.topLevelItemCount()):
             head = self.tree.topLevelItem(i)
-            head.setData(0, COUNT, head.childCount())
+            kids = [head.child(j) for j in range(head.childCount())]
+            for k in kids:
+                if k.data(0, SUB):
+                    k.setData(0, COUNT, k.childCount())
+                    k.setExpanded(searching or self.rail or k.data(0, SUB) not in self.folded)
+            head.setData(0, COUNT, sum(k.childCount() if k.data(0, SUB) else 1 for k in kids))
             head.setExpanded(searching or self.rail or head.data(0, GROUP) not in self.collapsed)
 
     def _group(self, title: str) -> QTreeWidgetItem:
@@ -322,8 +391,12 @@ class Library(QWidget):
     def first_entry(self) -> QTreeWidgetItem | None:
         heads = [self.tree.topLevelItem(i) for i in range(self.tree.topLevelItemCount())]
         for head in sorted(heads, key=lambda h: not h.isExpanded()):     # an open group first
-            if head.childCount():
-                return head.child(0)
+            kids = [head.child(j) for j in range(head.childCount())]
+            for k in sorted(kids, key=lambda k: bool(k.data(0, SUB)) and not k.isExpanded()):
+                if not k.data(0, SUB):
+                    return k
+                if k.childCount():
+                    return k.child(0)
         return None
 
     def _activate(self, it: QTreeWidgetItem) -> None:
@@ -352,7 +425,7 @@ class Library(QWidget):
     def eventFilter(self, obj: QObject, e: QEvent) -> bool:
         if obj is self.search and e.type() == QEvent.KeyPress:
             if e.key() in (Qt.Key_Return, Qt.Key_Enter):
-                it = self.tree.currentItem() if (self.tree.currentItem() and self.tree.currentItem().parent()) \
+                it = self.tree.currentItem() if (self.tree.currentItem() and self.tree.currentItem().data(0, Qt.UserRole)) \
                     else self.first_entry()
                 self._activate(it)
                 return True
@@ -410,12 +483,12 @@ class QuickAdd(QFrame):
         th = self.ctx.theme
         reg = self.ctx.registry
         self.list.clear()
-        for entry, title, sub, ic, group in entries(reg):
+        for entry, title, sub, ic, group, _key, heading in entries(reg):
             if entry.startswith("input:") and self.kind is not None:
                 continue
             if self.kind is not None and entry.startswith("tool:") and entry_kind(entry, reg) != self.kind:
                 continue
-            if not matches(text, f"{title} {sub} {group}"):
+            if not matches(text, f"{title} {sub} {group} {heading}"):
                 continue
             t = reg.tools.get(entry[5:]) if entry.startswith("tool:") else None
             needs = self.ctx.needs_short(t) if t else ""

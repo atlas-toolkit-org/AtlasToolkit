@@ -1,6 +1,6 @@
 # Image to Mesh
 
-Atlas Toolkit 1.11.1 · tool 0.1.1 · **Image → Mesh**
+Atlas Toolkit 1.11.1 · tool 0.1.2 · **Image → Mesh**
 
 Convert a photograph, illustration or numeric grayscale heightmap into a physical relief, or an open surface
 for pen-plotter line art. Geographic DEMs belong in [Raster DEM to Mesh](RASTER_DEM_TO_MESH.md).

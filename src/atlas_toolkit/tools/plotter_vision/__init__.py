@@ -5,7 +5,7 @@ Plotter Vision: a 3D model drawn as the edges you can see, through a perspective
 Outputs <name>_vision.svg, signed <desc>plotter-vision</desc> so Atlas links them to this tool.
 """
 from atlas_toolkit.core import (CAMERA_KEYS, CAMERA_NOTE, Bool, Choice, Float, Inputs, Int, Output, Section, Tool, camera_params,
-                                paper_params)
+                                paper_params, pen_output_param)
 
 SIDE_CHOICES = [("auto", "Auto"), ("one", "Front"), ("two", "Both")]
 
@@ -14,11 +14,16 @@ def depth_on(v):
     return int(v.get("depth_layers", 1)) > 1 and not v.get("stereo")
 
 
+def several_pens(v):
+    """An outline pen, a hidden pen, depth pens or the stereo pair: Save pens as matters."""
+    return bool(v.get("outline_layer") or v.get("show_hidden") or v.get("stereo")) or depth_on(v)
+
+
 TOOL = Tool(
     id="plotter-vision",
     name="Plotter Vision",
-    version="1.6.0",
-    category="mesh2svg",
+    version="1.7.0",
+    category="mesh2svg", group="lines",
     icon="eye",
     action="Draw",
     summary="Draw a 3D model as the edges you can see, through a perspective camera, hidden lines removed.",
@@ -57,7 +62,8 @@ TOOL = Tool(
                         "what is behind them and show their back. Auto: both for open meshes."),
             Bool("outline_layer", "Outline on its own pen", False,
                  help="Silhouettes and open borders on a separate layer, e.g. for a thicker pen."),
-            Bool("show_hidden", "Hidden lines (dashed)", False, help="Also draw the hidden lines, dashed, on a layer."),
+            Bool("show_hidden", "Hidden lines (dashed)", False,
+                 help="Also draw the hidden lines, dashed, on a pen of their own."),
             Bool("crossings", "Where parts cross", True,
                  help="Draw the lines where separate parts cut into each other (overlapping spheres, a cone "
                       "through a plate). plotter.vision left them out, so overlapping solids met without a line."),
@@ -80,10 +86,11 @@ TOOL = Tool(
         Section(
             "Depth and stereo",
             Int("depth_layers", "Depth pens", 1, min=1, max=3,
-                help="Split the lines by depth into near / (middle) / far layers, each its own pen."),
+                help="Split the lines by depth into near / (middle) / far, each its own pen."),
             Bool("far_dashed", "Far lines dashed", False, visible_if=depth_on),
             Bool("stereo", "Red/blue stereo", False,
-                 help="plotter.vision's anaglyph: a second eye turned a little further round, red and blue layers."),
+                 help="plotter.vision's anaglyph: a second eye turned a little further round, a red and a blue "
+                      "pen (keep them apart: on one pen the pair no longer reads in 3D)."),
             Float("eye_sep", "Eye separation", 2.0, unit="°", min=0.1, max=6.0, step=0.1, decimals=1,
                   visible_if={"stereo": True}),
         ),
@@ -93,6 +100,7 @@ TOOL = Tool(
             Float("line_width", "Line pen", 0.3, unit="mm", min=0.05, max=3, step=0.05, decimals=2),
             Float("outline_width", "Outline pen", 0.5, unit="mm", min=0.05, max=3, step=0.05, decimals=2,
                   visible_if={"outline_layer": True}),
+            pen_output_param(visible_if=several_pens),
             Bool("optimise", "Order strokes to cut travel", True),
         ),
         Section(

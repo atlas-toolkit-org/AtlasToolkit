@@ -665,6 +665,100 @@ class GuiFlowTests(unittest.TestCase):
         self.assertTrue(buttons[0].text().strip())
         self.assertTrue(self.ctx.settings.get("sidebar_on"))
 
+    def test_tool_list_subgroups_fold_and_follow_the_open_tool(self):
+        side = self.win.sidebar
+        self.win.show_home()
+        key, _cat, head, buttons, _line = next(s for s in side.subs if s[0] == "mesh/deform")
+        if key not in side.folded:
+            head.click()
+        self.assertTrue(all(b.isHidden() for b in buttons))
+        self.assertIn(key, self.ctx.settings.get("sidebar_folded"))
+        self.win.open_tool("mesh-twist")                         # from elsewhere: its group unfolds
+        self.assertFalse(side.nav["mesh-twist"].isHidden())
+        head.click()                                             # folded again: the header shows where the tool is
+        self.assertTrue(all(b.isHidden() for b in buttons))
+        self.assertEqual(head.property("active"), "true")
+        self.assertIn("mesh/prepare", self.ctx.registry.folded_at_first())
+        self.assertNotIn("svg/clean", self.ctx.registry.folded_at_first())
+
+    def test_top_bar_layout(self):
+        from PySide6.QtCore import QPointF, Qt
+        from PySide6.QtGui import QEnterEvent
+        from PySide6.QtTest import QTest
+        win, bar = self.win, self.win.toolbar
+        size = win.size()
+        self.addCleanup(lambda: win.resize(size))
+        self.addCleanup(lambda: self.ctx.set_pref("tool_nav", "side"))
+        win.show()
+        self.ctx.set_pref("tool_nav", "top")
+        win.open_tool("mesh-twist")
+        self.assertTrue(win.sidebar.isHidden())
+        self.assertFalse(bar.isHidden())
+        self.assertEqual(bar.place.full_text(), "Deform › Twist")
+        self.assertEqual(bar.cats["Mesh → Mesh"].property("current"), "true")
+        win.resize(1180, 700)
+        self.app.processEvents()
+        root = win.centralWidget()
+        for cat, button in bar.cats.items():                     # every panel stays inside the smallest window
+            button.click()
+            self.app.processEvents()
+            self.assertEqual(bar.opened, cat)
+            self.assertTrue(root.rect().contains(bar.panel.geometry()), cat)
+            button.click()
+            self.assertIsNone(bar.opened)
+        bar.show_panel("Mesh → SVG")                             # pointing at another category switches
+        pt = QPointF(3, 3)
+        self.app.sendEvent(bar.cats["Mesh → Mesh"], QEnterEvent(pt, pt, pt))
+        self.assertEqual(bar.opened, "Mesh → Mesh")
+        first = bar.panel.buttons["Mesh → Mesh"][0]
+        bar.panel._pointed(first)
+        self.assertIn(first.tool.summary[:20], bar.panel.note._full)
+        for _ in range(2):                                       # past the last column: the next category
+            bar._key(Qt.Key_Escape)
+            self.assertIsNone(bar.opened)
+            bar.show_panel("Image → SVG")
+        bar.panel.focus_first()
+        bar._beside(1)
+        self.assertEqual(bar.opened, "Image → Mesh")
+        bar.panel.buttons["Image → Mesh"][0].click()             # opens the tool and closes
+        self.assertIsNone(bar.opened)
+        self.assertEqual(win.current_tool, bar.panel.buttons["Image → Mesh"][0].tool.id)
+        bar.show_panel("Mesh → SVG")
+        QTest.mouseClick(win.stack.currentWidget(), Qt.LeftButton)   # so does a click elsewhere
+        self.assertIsNone(bar.opened)
+        win.open_workflow()
+        self.assertTrue(bar.isHidden() and win.sidebar.isHidden())
+        win.show_home()
+        win.toggle_sidebar()
+        self.assertTrue(bar.isHidden() and win.sidebar.isHidden())
+        win.toggle_sidebar()
+        self.assertFalse(bar.isHidden())
+        bar.btn_side.click()                                     # back to the side
+        self.assertEqual(self.ctx.pref("tool_nav"), "side")
+        self.assertFalse(win.sidebar.isHidden())
+        self.assertTrue(bar.isHidden())
+
+    def test_notices_slow_tools_previews_and_aim(self):
+        page = self.win.open_tool("mesh-developable")
+        self.assertIn("several minutes", page.slow_mark.toolTip())
+        self.assertIn("several minutes", self.win.sidebar.nav["mesh-developable"].toolTip())
+        self.assertIn("quick draft", page.preview_note.toolTip())
+        self.assertIn("500 faces", page.preview_note.toolTip())
+        live = self.win.open_tool("svg-overlap-cleaner")         # live tools have no Preview
+        self.assertTrue(live.preview_note.isHidden())
+        self.assertIsNone(live.slow_mark)
+        page = self.win.open_tool("contour-lines")
+        page.stage.show_views([{"title": "Aim", "kind": "widget", "widget": page.viewer}])
+        self.assertFalse(page.stage.note.isHidden())
+        self.assertIn("more detail", page.stage.note.text.full_text())
+        page.stage.clear()
+        self.assertTrue(page.stage.note.isHidden())
+        vision = self.win.open_tool("plotter-vision").viewer
+        vision.set_exact(True)
+        self.assertIn("Exact lines", vision.stage_note()[0])
+        vision.set_exact(False)
+        self.win.show_home()
+
     def assert_tabs_fit_smallest(self, d):
         """Every tab of a tabbed window fits it at its minimum size: nothing wider than the window, cut off."""
         was = d.tabs.currentIndex()
@@ -694,7 +788,7 @@ class GuiFlowTests(unittest.TestCase):
         self.assertEqual(d.releases.item(0).data(Qt.UserRole)[0], __version__)   # the changelog is current
         # the notes show the newest entry (its own first heading, so the test holds for every later release)
         newest = next(ln for ln in releases(changelog_text())[0][2].splitlines() if ln.strip())
-        self.assertIn(newest.replace("**", "").split(" (")[0].strip(), d.notes.toPlainText())
+        self.assertIn(newest.replace("**", "").replace("`", "").split(" (")[0].strip().removeprefix("- "), d.notes.toPlainText())
         self.assertEqual(len(d.tool_rows), len(self.ctx.registry.tools))
         d.tool_filter.setText("overlap")
         self.assertEqual(sum(not r.isHidden() for r, _h in d.tool_rows), 1)
@@ -975,6 +1069,7 @@ class GuiFlowTests(unittest.TestCase):
         from unittest import mock
         from atlas_toolkit.core import runtimes
         from atlas_toolkit.ui.home import FLOWS
+        from PySide6.QtCore import Qt
         from atlas_toolkit.ui.workflow.library import NEEDS
         real = runtimes.find
         needs_blender = [t for t in self.ctx.registry.ordered() if "blender" in t.requires]
@@ -1002,8 +1097,7 @@ class GuiFlowTests(unittest.TestCase):
             nid = flows.add_entry(f"tool:{melt.id}")
             card = flows._card(flows.wf.nodes[nid])
             self.assertEqual((card.level, card.chip), ("warning", "needs Blender"))
-            lib_items = [flows.library.tree.topLevelItem(i).child(j) for i in range(flows.library.tree.topLevelItemCount())
-                         for j in range(flows.library.tree.topLevelItem(i).childCount())]
+            lib_items = flows.library.tree.findItems("", Qt.MatchContains | Qt.MatchRecursive)
             self.assertTrue(any(it.data(0, NEEDS) for it in lib_items))
         self.ctx.refresh_runtimes()                                 # found again: everything clears
         if real("blender"):
@@ -1317,6 +1411,9 @@ class GuiFlowTests(unittest.TestCase):
         from atlas_toolkit.core import workflow as W
         page = self.win.open_workflow()
         page._set_workflow(W.Workflow(name=name), None)
+        page.queue.clear()                     # the file list outlives a workflow: start each test without one
+        page.files.clear()
+        page._update_controls()
         return page
 
     def test_workflow_builds_checks_runs_previews_and_reopens(self):
@@ -1385,6 +1482,95 @@ class GuiFlowTests(unittest.TestCase):
         panel._changed()
         self.assertEqual(page.wf.nodes[s].values["num_pieces"], 33)
         self.assertEqual(page.wf.exposed, [(s, "num_pieces")])
+
+    def test_workflow_layouts_fold_and_controls(self):
+        from PySide6.QtCore import QPointF
+        from atlas_toolkit.core import workflow as W
+        from atlas_toolkit.ui.workflow.canvas import HEAD_H, NODE_W
+        page = self.workflow_page("Layouts")
+        self.addCleanup(lambda: (page.set_layout("stacked"), page.set_tabs_folded(False)))
+        page.set_layout("stacked")
+        page.set_tabs_folded(False)
+        a = page.add_entry("input:mesh")
+        s = page.add_entry("tool:mesh-shatter")
+        o = page.add_entry("save")
+        page.layout_graph()
+        # Workflow controls: the next step is the bright button, Check first, then Run
+        self.assertEqual(page.btn_check.property("variant"), "primary")
+        self.assertNotEqual(page.btn_run.property("variant"), "primary")
+        self.assertTrue(page.check())
+        self.assertEqual(page.btn_run.property("variant"), "primary")
+        self.assertEqual(page.btn_check.property("variant"), "")
+        self.assertEqual(page.run_badge.text(), page.state_badge.text())
+
+        # folding: the tabs give way to a rail (remembered); a rail button opens its tab
+        page.set_tabs_folded(True)
+        self.assertTrue(page.tabs_box.isHidden())
+        self.assertFalse(page.rail.isHidden())
+        self.assertTrue(self.ctx.settings.get("workflow_tabs_folded"))
+        page.rail_tabs["Log"].click()
+        self.assertFalse(page.tabs_folded)
+        self.assertIs(page.tabs.currentWidget(), page.logview)
+        # a Check that finds errors brings them back, on Problems
+        page.set_tabs_folded(True)
+        page.delete([], [(o, W.MAIN)])
+        self.assertFalse(page.check())
+        self.assertFalse(page.tabs_folded)
+        self.assertIs(page.tabs.currentWidget(), page.problems)
+        page.undo.undo()
+
+        # side by side: the preview at full height, the pipeline top to bottom, the workflow untouched
+        before, dirty = page.wf.to_dict(), page.dirty
+        page.set_layout("side")
+        self.assertEqual(self.ctx.settings.get("workflow_layout"), "side")
+        self.assertTrue(page.view.vertical)
+        self.assertIs(page.split_root.widget(1), page.preview_box)
+        self.assertEqual((page.wf.to_dict(), page.dirty), (before, dirty))
+        ys = [page.view.nodes[n].pos().y() for n in (a, s, o)]
+        self.assertTrue(ys[0] < ys[1] < ys[2])
+        node = page.view.nodes[s]
+        self.assertLess(node.ports_in[W.MAIN].center().y(), node.port_out.center().y())
+        edge = next(e for e in page.view.edge_items if e.dst is node)
+        self.assertLess(edge.path().pointAtPercent(1.0).y(), node.ports_in[W.MAIN].center().y())
+        x, y = page.view.to_model(page.view.to_scene(123.0, -45.0))
+        self.assertAlmostEqual(x, 123.0)
+        self.assertAlmostEqual(y, -45.0)
+        page.select(None)
+        n = page.add_entry("save", QPointF(500, 700))           # lands where it was dropped
+        self.assertAlmostEqual(page.view.nodes[n].pos().x(), 500 - NODE_W / 2, places=3)
+        self.assertAlmostEqual(page.view.nodes[n].pos().y(), 700 - HEAD_H / 2, places=3)
+        # folded side by side: the pipeline takes the room, and the picker beside the preview selects the file
+        page.set_tabs_folded(True)
+        self.assertTrue(page.tabs_box.isHidden())
+        page.set_layout("stacked")
+        self.assertFalse(page.view.vertical)
+        self.assertIs(page.split_root.widget(0), page.canvas_frame)
+        self.assertTrue(page.tabs_box.isHidden())                # the fold stays across layouts
+
+    def test_workflow_skips_files_its_input_cannot_take(self):
+        from atlas_toolkit.core import samples
+        from atlas_toolkit.core import workflow as W
+        from atlas_toolkit.tools.image_to_mesh.engine import make_sample
+        png = make_sample(self.folder("wf-kind-png"))
+        stl = samples.mesh(self.folder("wf-kind-stl"))
+        page = self.workflow_page("Image first")
+        page.add_entry("input:image")
+        page.add_paths([str(png)])
+        page._set_workflow(W.Workflow(name="Mesh next"), None)     # the file list stays, as it does for the user
+        page.add_entry("input:mesh")
+        h = page.add_entry("tool:stl-hatch-maker")
+        page.add_paths([str(stl)])
+        key_png, key_stl = str(Path(png).resolve()), str(Path(stl).resolve())
+        self.assertEqual(page.run_files(), [key_stl])                # the PNG is listed, not run
+        self.assertEqual(page.files[key_png].text(1), "Not used")
+        self.assertEqual(page.btn_run.text(), "Run  ·  1 file")
+        page.queue.setCurrentItem(page.files[key_png])
+        page.preview_node(h)                                         # says so instead of failing in the worker
+        self.assertIsNone(page.preview_job)
+        page._set_workflow(W.Workflow(name="Image again"), None)
+        page.add_entry("input:image")
+        self.assertEqual(page.files[key_png].text(1), "Ready")      # usable again: the mark goes
+        self.assertEqual(page.files[key_stl].text(1), "Not used")
 
     def test_image_workflow_aim_and_legacy_migration_notice(self):
         from PySide6.QtWidgets import QLabel

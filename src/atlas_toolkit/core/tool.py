@@ -21,14 +21,29 @@ from typing import Any, Callable
 
 from .params import Param, Params, flatten, resolve
 
+
+def rule_matches(rule: dict, values) -> bool:
+    """A `requires_if` / `needs_if` rule: every parameter has the value (or one of the tuple of values) it names."""
+    return all(values.get(k) in expected if isinstance(expected, (tuple, list)) else values.get(k) == expected
+               for k, expected in rule.items())
+
 CATEGORIES = {   # id: (sidebar heading, order)
     "svg": ("SVG · post-process", 10),
     "mesh2svg": ("Mesh → SVG", 20),
-    "mesh": ("Mesh · model prep", 30),
+    "mesh": ("Mesh → Mesh", 30),
     "image": ("Image → SVG", 40),
     "image2mesh": ("Image → Mesh", 45),
     "other": ("Other", 90),
 }
+
+GROUPS = {   # category: its subgroups in order, (key, heading). A category without any lists its tools directly.
+    "svg": (("clean", "Clean up"), ("cut", "Cut and outline")),
+    "mesh2svg": (("lines", "Lines and contours"), ("tone", "Hatching and tone")),
+    "mesh": (("prepare", "Prepare and cut"), ("deform", "Deform"), ("surface", "Surface and relief"),
+             ("carve", "Carve and fill"), ("fragment", "Fragment and separate"),
+             ("combine", "Multiply and combine")),
+}
+UNGROUPED = "More tools"     # the heading of a category's tools with no group (plug-ins), after its subgroups
 
 KINDS = {   # input/output kinds: extensions and badge text
     "svg": ((".svg",), "SVG"),
@@ -161,6 +176,11 @@ class Tool:
     inputs: Inputs
     output: Output
     engine: str                                  # ".module:function", relative to the tool's package
+    group: str = ""                              # its subgroup: a key of GROUPS[category]
+    slow: str = ""                               # a sentence when its runs can take minutes: shown as a warning by
+                                                 # its name ("It often takes several minutes, ...")
+    draft_note: str = ""                         # how its Preview differs from a run, when the design itself changes
+                                                 # and not only the detail; added to the note beside Preview
     params: list = field(default_factory=list)   # Params and Sections (presets are data, never part of a spec:
                                                  # core/presets.py, docs/PRESETS.md)
     signature: str = ""                          # SVG: a desc element holding the id; mesh: "atlas-toolkit:" + id
@@ -196,6 +216,13 @@ class Tool:
     needs: str | None = None                     # what a mesh input must be: "solid" (closed, outward) or "manifold"
                                                  # (clean, openings allowed). Inspecting warns early when it is not,
                                                  # and the engine calls geom.repair.prepare (docs/ADDING_A_TOOL.md)
+    needs_if: tuple = ()                         # (need, {parameter: value or tuple of values}): a need that holds
+                                                 # only for some settings (the requires_if pattern), e.g. Shape Crop's
+                                                 # union needs a solid while its crop takes any surface
+    official_presets: bool = True                # False: the official packs carry no presets for this tool (its
+                                                 # settings belong to each model); users still save their own
+    per_input_label: str = ""                    # what the per-file values are called in the file list's menu
+                                                 # ("shape"); empty: worded from the keys (Aim, plane ...)
     package: str = ""                            # filled by the registry
 
     # ------------------------------------------------------------------ schema
@@ -210,6 +237,36 @@ class Tool:
     def input_keys(self) -> tuple:
         """Keys whose values belong to each input file (Param.per_input): its view, frame, plane or painted area."""
         return tuple(p.key for p in self.param_list if p.per_input)
+
+    def needs_for(self, values=None) -> str | None:
+        """What the mesh input must be with these values: `needs`, else the first `needs_if` rule that matches."""
+        if self.needs:
+            return self.needs
+        values = self.defaults() if values is None else values
+        for need, rule in self.needs_if:
+            if rule_matches(rule, values):
+                return need
+        return None
+
+    @property
+    def strongest_need(self) -> str | None:
+        """The most a mesh input may have to be, whatever the settings ("solid" beats "manifold")."""
+        needs = {self.needs, *(n for n, _ in self.needs_if)} - {None}
+        return "solid" if "solid" in needs else next(iter(needs), None)
+
+    def need_options(self, need: str) -> str:
+        """The settings under which `need` holds, in words: "Operation: union or symmetric difference"."""
+        parts = []
+        for n, rule in self.needs_if:
+            if n != need:
+                continue
+            for key, expected in rule.items():
+                param = self.param(key)
+                wanted = expected if isinstance(expected, (tuple, list)) else (expected,)
+                labels = dict(param.pairs()) if hasattr(param, "pairs") else {}
+                words = [str(labels.get(v, v)).split(" · ")[-1] for v in wanted]
+                parts.append(f"{param.label}: " + (" or ".join(words)))
+        return "; ".join(parts)
 
     def defaults(self) -> Params:
         return resolve(self.param_list, {})
@@ -235,6 +292,27 @@ class Tool:
     @property
     def category_title(self) -> str:
         return CATEGORIES.get(self.category, CATEGORIES["other"])[0]
+
+    @property
+    def group_index(self) -> int:
+        """Its subgroup's place in the category; tools with no group come last."""
+        keys = [k for k, _title in GROUPS.get(self.category, ())]
+        return keys.index(self.group) if self.group in keys else len(keys)
+
+    @property
+    def group_title(self) -> str:
+        """Its subgroup's heading, or "" in a category that has none."""
+        groups = GROUPS.get(self.category, ())
+        return dict(groups).get(self.group, UNGROUPED) if groups else ""
+
+    @property
+    def place(self) -> str:
+        """Where it is listed: "Mesh → Mesh › Deform"."""
+        return f"{self.category_title} › {self.group_title}" if self.group_title else self.category_title
+
+    @property
+    def slow_text(self) -> str:
+        return f"Can be slow. {self.slow}" if self.slow else ""
 
     @property
     def io_badge(self) -> str:

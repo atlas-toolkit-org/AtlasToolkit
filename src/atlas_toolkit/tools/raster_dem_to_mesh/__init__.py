@@ -13,7 +13,7 @@ class LegacySourceMode(Text):
         return value
 
 TOOL = Tool(
-    id='raster-dem-to-mesh', name='Raster DEM to Mesh', version='0.3.1', category='image2mesh',
+    id='raster-dem-to-mesh', name='Raster DEM to Mesh', version='0.3.2', category='image2mesh',
     icon='raster-dem-to-mesh', action='Build mesh',
     summary='Turn a geographic numeric DEM into printable terrain or a drawing surface.',
     tagline='Geographic relief, physical dimensions and a watertight base.',

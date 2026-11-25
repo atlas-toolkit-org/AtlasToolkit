@@ -28,7 +28,7 @@ import time
 
 import numpy as np
 
-from atlas_toolkit.geom.svgout import Layer, join_segments, order_polylines, simplify_all, travel
+from atlas_toolkit.geom.svgout import Layer, dashed, join_segments, order_polylines, simplify_all, travel  # noqa: F401
 
 from . import hidden as hl
 from atlas_toolkit.geom.camera import NEAR, Camera, Frame, camera_from, frame_for  # noqa: F401
@@ -147,26 +147,6 @@ def fit_radius(model: Model, cam: Camera, frame: Frame, margin: float = 1.04) ->
 
 
 # ----------------------------------------------------------------------------- the drawing
-
-def dashed(polylines: list, dash: float, gap: float) -> list:
-    """Polylines cut into dashes (mm)."""
-    out = []
-    period = dash + gap
-    for pl in polylines:
-        P = np.asarray(pl, dtype=float)
-        if len(P) < 2:
-            continue
-        seg = np.hypot(*np.diff(P, axis=0).T)
-        s = np.r_[0.0, np.cumsum(seg)]
-        total = s[-1]
-        a = 0.0
-        while a < total:
-            b = min(a + dash, total)
-            ts = np.r_[a, s[(s > a) & (s < b)], b]
-            out.append([tuple(map(float, xy)) for xy in zip(np.interp(ts, s, P[:, 0]), np.interp(ts, s, P[:, 1]))])
-            a += period
-    return out
-
 
 def _collect(view: View, frame: Frame, p, progress, cancel, hidden: bool):
     """Visible (and hidden) pieces in mm, with depth and outline flags."""

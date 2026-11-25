@@ -81,13 +81,23 @@ def run(ctx, src: Path, dst: Path | None, p) -> Result:
         # an exportable solid survives, respecting the user's total budget; never silently export the pinch.
         target = int(detail)
         chosen = None
+        pinched = []
         while target < len(F) and target * copies <= p.work_faces:
             ctx.progress(0.22, f"simplifying source (target {target:,} faces)")
             reduced = gm.simplify_faces(V, F, target, ctx.log)
             chosen = source_solid(*reduced)
             if chosen is not None:
                 break
+            pinched.append(reduced)
             target *= 2
+        for reduced in pinched if chosen is None else ():
+            # No target gave a solid: decimation left back-to-back sheets and pinched edges where thin parts collapse
+            # (Venus de Milo's drapery). The safe tidy separates them, from the requested detail up. Only now, so a
+            # model that a higher target already served keeps that result.
+            tv, tf, _ = R.tidy_arrays(*reduced)
+            chosen = source_solid(tv, tf) if len(tf) else None
+            if chosen is not None:
+                break
         if chosen is not None:
             model = chosen
         if model.num_tri() > detail * 1.05:

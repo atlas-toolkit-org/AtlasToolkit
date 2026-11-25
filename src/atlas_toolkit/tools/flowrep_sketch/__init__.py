@@ -1,12 +1,16 @@
 """Atlas adapter for FlowRep Sketch. Outputs carry <desc>flowrep-sketch</desc>."""
 from atlas_toolkit.core import (CAMERA_KEYS, CAMERA_NOTE, FRAME_KEYS, Bool, Choice, Float, Inputs, Int,
-                                Output, Section, Tool, camera_params, frame_params, paper_params)
+                                Output, Section, Tool, camera_params, frame_params, paper_params,
+                                pen_output_param)
 
 TOOL = Tool(
     id="flowrep-sketch",
     name="FlowRep Sketch",
-    version="0.2.0",
-    category="mesh2svg",
+    version="0.3.1",
+    category="mesh2svg", group="lines",
+    slow="It takes about a minute, and several at a high remesh resolution.",
+    draft_note="The draft remeshes to at most 1,500 quads and skips the later passes, so its network of curves "
+               "is a sparser, different one.",
     icon="flowrep-sketch",
     action="Draw",
     summary="Draw a model with sparse curves that describe its form.",
@@ -16,7 +20,8 @@ TOOL = Tool(
         "Descriptiveness sets the allowed normal-prediction error: smaller values retain more detail. "
         "Triangle inputs are prepared with Instant Meshes; quad-dominant OBJ files keep their original topology. "
         "The first extraction is cached so camera changes only repeat visibility and SVG layout. "
-        "The drawing includes visible curves and an optional silhouette, with one black pen."),
+        "The drawing has a pen for the sharp features, one for the flowlines, an optional silhouette and optional "
+        "hidden curves (dashed, grey), all the same width; Save pens as keeps them apart or puts them on one pen."),
     inputs=Inputs("mesh"),
     output=Output("{stem}_flowrep.svg", "svg"),
     signature="<desc>flowrep-sketch</desc>",
@@ -36,7 +41,8 @@ TOOL = Tool(
                 Choice("prepare","Mesh preparation","auto",
                        [("auto","Auto"),("preserve","Preserve polygons"),("remesh","Remesh")]),
                 Int("target_faces","Remesh resolution",6000,min=100,max=200000,step=500,
-                    help="Approximate number of quads for triangle inputs."),
+                    help="Approximate number of quads for triangle inputs. 3000-10,000 suits most models (about a minute "
+                         "on a dense sculpt); 20,000 takes 2-3 minutes and 40,000 about 5. Finer rarely adds lines a pen shows."),
                 Float("crease_angle","Sharp feature angle",45.,unit="°",min=1,max=180,step=1,decimals=1,advanced=True),
                 Bool("declutter","Declutter parallel curves",True,
                      help="Remove one of two flowlines running side by side when the shape is still described "
@@ -50,8 +56,11 @@ TOOL = Tool(
                        advanced=True,help="Smooth contours follow the surface between its vertices; mesh edges is the style before 0.2.0."),
                 Float("smoothing","Curve smoothing",0.5,min=0,max=1,step=0.05,decimals=2,
                       help="Smooths the network's curves between junctions and the silhouette. 0 draws the raw quad edges."),
-                Bool("show_hidden","Hidden curves",False,help="A dashed grey layer for construction drawings."),
+                Bool("show_hidden","Hidden curves",False,
+                     help="Dashed grey curves on a pen of their own, for construction drawings. The dashes are drawn "
+                          "strokes, so the plotter draws them dashed too."),
                 Float("line_width","Pen width",0.3,unit="mm",min=0.05,max=2.,step=0.05,decimals=2),
+                pen_output_param(),
                 Float("tolerance","Curve tolerance",0.05,unit="mm",min=0.005,max=0.5,step=0.005,decimals=3,advanced=True),
                 Float("min_length","Shortest stroke",0.5,unit="mm",min=0,max=10,step=0.1,decimals=2,advanced=True)),
         Section("Paper", *paper_params()),

@@ -9,6 +9,17 @@ import math
 import numpy as np
 from atlas_toolkit.geom import cutting, influence
 
+MIN_WORKING_FACES = 5000        # Simplify to fit goes no lower: the layers would lose the model's form
+FINER = (1, 2, 4, 8)            # times Wake resolution, for a piece so thin that the wake turns it inside out
+
+
+class FaceBudget(ValueError):
+    """The output would exceed Maximum faces (Simplify to fit can retry on a lighter copy)."""
+
+
+class OpenPiece(ValueError):
+    """A swept piece did not stay closed (on a simplified copy, a lighter one is tried)."""
+
 
 def smooth(t):
     t = np.clip(t, 0., 1.)
@@ -77,7 +88,7 @@ def refine(v, f, heading, span, resolution, budget, ctx):
             return v, f
         requested = len(f) + int(np.count_nonzero(split[inv]))
         if requested > budget:
-            raise ValueError("Motion refinement exceeds Maximum faces. Reduce wake resolution, layers or bars.")
+            raise FaceBudget("Motion refinement exceeds Maximum faces. Reduce wake resolution, layers or bars.")
         mid = np.full(len(edges), -1, np.int64)
         mid[split] = np.arange(split.sum()) + len(v)
         mids = mid[inv]
@@ -107,7 +118,7 @@ def sculpt(mesh, p, ctx):
     if p.amount == 0:
         return mesh.copy(), {"pieces": 1, "layers": 0, "max_reach": 0.}
     if len(mesh.faces) > p.max_faces:
-        raise ValueError("Input exceeds Maximum faces. Simplify it or raise the budget.")
+        raise FaceBudget("Input exceeds Maximum faces. Simplify it or raise the budget.")
     if p.structure == "splinters" and p.layers * p.lanes > 5000:
         raise ValueError("Use at most 5,000 layer/bar cells. Reduce Layers or Bars per layer.")
     n, a, b = basis(p.layer_axis, p.tilt)
@@ -157,26 +168,62 @@ def sculpt(mesh, p, ctx):
                 length = p.reach*.02 * amount * rhythm * variability
                 curl = p.curl*.02 * amount * rhythm
                 budget = p.max_faces-total_faces
-                if amount > 0 and (length > 0 or curl != 0 or p.taper > 0):
-                    lower, upper = cutting.span(piece, h)
-                    v, f = refine(piece.vertices, piece.faces, h, max(upper-lower, 1e-10),
-                                  p.resolution, budget, ctx)
-                    v = wake(v, h, side, n, centre, length, curl, p.taper/100*amount, p.preserve/100)
-                else:
-                    v, f = np.array(piece.vertices), np.array(piece.faces)
-                # Compress about layer and cell centres; preserves disjoint layer intervals.
-                layer_centre = lo+(k+.5)*pitch
-                v -= np.outer((v@n-layer_centre) * p.gap/100*p.amount, n)
-                if bar_pitch:
-                    v -= np.outer((v@side-float(centre@side)) * p.bar_gap/100*p.amount, side)
+                swept = amount > 0 and (length > 0 or curl != 0 or p.taper > 0)
+                for finer in FINER if swept else (1,):
+                    if swept:
+                        lower, upper = cutting.span(piece, h)
+                        v, f = refine(piece.vertices, piece.faces, h, max(upper-lower, 1e-10),
+                                      p.resolution*finer, budget, ctx)
+                        v = wake(v, h, side, n, centre, length, curl, p.taper/100*amount, p.preserve/100)
+                    else:
+                        v, f = np.array(piece.vertices), np.array(piece.faces)
+                    # Compress about layer and cell centres; preserves disjoint layer intervals.
+                    layer_centre = lo+(k+.5)*pitch
+                    v -= np.outer((v@n-layer_centre) * p.gap/100*p.amount, n)
+                    if bar_pitch:
+                        v -= np.outer((v@side-float(centre@side)) * p.bar_gap/100*p.amount, side)
+                    part = trimesh.Trimesh(v, f, process=False)
+                    # The wake never turns material inside out, but its straight edges can: they cut the corners of the
+                    # curl by more than a thin piece's thickness. Shorter edges follow it.
+                    if part.volume > 0:
+                        break
                 total_faces += len(f)
                 if total_faces > p.max_faces:
-                    raise ValueError("Motion output exceeds Maximum faces. Reduce layers, bars or wake resolution.")
-                part = trimesh.Trimesh(v, f, process=False)
+                    raise FaceBudget("Motion output exceeds Maximum faces. Reduce layers, bars or wake resolution.")
                 if not np.isfinite(v).all() or not part.is_watertight or not part.is_winding_consistent or part.volume <= 0:
-                    raise ValueError("A motion piece could not be kept closed and oriented. Repair the input or use fewer layers.")
+                    raise OpenPiece("A motion piece could not be kept closed and oriented. Repair the input or use fewer layers.")
                 parts.append(part)
                 max_reach = max(max_reach, length)
     if not parts:
         raise ValueError("No solid layers found. Check the input model.")
     return trimesh.util.concatenate(parts), {"pieces": len(parts), "layers": len(slabs), "max_reach": max_reach}
+
+
+def sculpt_within(mesh, p, ctx):
+    """sculpt(), and when the result would exceed Maximum faces and Simplify to fit is on, again on lighter copies of
+    the closed input (half the faces each time) until it fits. A dense model's sections have long outlines, and the
+    cap triangles fanned across them are what the wake refinement multiplies (a 259k-face head: over 2 million
+    faces). A model that fits is never simplified. Returns (mesh, info, faces worked at or None)."""
+    import trimesh
+    from atlas_toolkit.geom import repair
+    try:
+        out, info = sculpt(mesh, p, ctx)
+        return out, info, None
+    except FaceBudget:
+        if not p.fit:
+            raise
+    faces = len(mesh.faces)
+    while True:
+        faces //= 2
+        if faces < MIN_WORKING_FACES:
+            raise FaceBudget("Motion exceeds Maximum faces even on a simplified copy. Reduce wake resolution, layers "
+                             "or bars, or raise Maximum faces.")
+        ctx.progress(.05, f"too many faces: simplifying the model to {faces:,} faces")
+        reduced = repair.simplified_solid(mesh.vertices, mesh.faces, faces)
+        if reduced is None:
+            continue
+        try:
+            out, info = sculpt(trimesh.Trimesh(*reduced, process=False), p, ctx)
+            return out, info, len(reduced[1])
+        except (FaceBudget, OpenPiece):     # a decimated section can leave a piece that will not close: go lighter
+            continue

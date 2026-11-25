@@ -12,7 +12,21 @@ preset packs, loaded separately from the app; see [Presets](PRESETS.md).
 
 ## Tools
 
-**Motion Sculpture 0.5.0** turns a still model into swept laminae or splintered bars, inspired by layered glass
+**Shape Crop 0.1.0** keeps the part of a model inside a box, sphere, cylinder or pyramid that you move, turn and size
+in its Shape tab (handles, a rectangle drawn over the view, or numbers), with the crop shown live whatever the model's
+size. **Cut away** removes the region instead; **Add the shape** unites model and shape (a plinth, a block) and **Both
+remainders** keeps the model without the shape and the shape without the model, as one file or two. Closed models get
+closed cuts (manifold3d booleans); open scans are clipped exactly along the shape and stay open. Sizes are % of the
+model or model units, and each file keeps its own placement; no presets. Built for scans of millions of faces: a
+1.3-million-face crop takes a few seconds, file reading included. Signed `<name>_crop.stl`. See [the guide](SHAPE_CROP.md)
+and the [crop-and-draw workflow](workflows/crop_contours.atlasflow).
+
+**Save pens as** (2.5.0): the six drawing tools that can draw with several pens (Hatch Maker, Plotter Vision, Sketch
+Hatching, Stipple, FlowRep Sketch and Photo Hatching) save them the same way, as you choose: a layer, a group or a
+file per pen, or all on one pen. Dashed pens are drawn as real dashes, so the plotter draws them dashed. See
+[Pens](#pens-how-a-drawing-with-several-pens-is-saved).
+
+**Motion Sculpture 0.6.2** turns a still model into swept laminae or splintered bars, inspired by layered glass
 and wind-carved bronze sculptures. Stream, Pulse, Gust and Vortex fields stretch tapered wakes behind a retained
 leading silhouette. Seven presets, seeded irregularity, layer tilt, base hold, feathered regions and bounded
 conforming refinement. Final-geometry previews and signed STL/OBJ/PLY, original units, UI/CLI/Workflows;
@@ -55,7 +69,7 @@ a staggered order and fall in a built-in rigid-body solver, colliding with each 
 picks the moment shown, from just cracked to settled rubble. Output is loose closed solids or one fused solid. Ten
 presets; seeded; no Blender or new libraries. See [Crumble](CRUMBLE.md).
 
-**Surface Eject 0.3.3** extracts real pieces of the model surface with cube, box, sphere, ellipsoid or cylinder
+**Surface Eject 0.5.0** extracts real pieces of the model surface with cube, box, sphere, ellipsoid or cylinder
 samplers and floats them along the area-weighted outward normal, preserving orientation and leaving matching
 cavities. Independent seeded size/depth/gap ranges, certified full detachment, whole surface / clipped height
 band / visible-face painting in a modal selection editor (shared with Crumble and Stair Sculpt;
@@ -121,7 +135,7 @@ See [preparation, height mapping and examples](IMAGE_TO_MESH.md),
 [Image Relief Contours](workflows/image_contours.atlasflow) and
 [Image Faceted Network](workflows/image_facets.atlasflow).
 
-**Raster DEM to Mesh 0.3.1** focuses on geographic numeric DEMs with a CRS in the source or override.
+**Raster DEM to Mesh 0.3.2** focuses on geographic numeric DEMs with a CRS in the source or override.
 Metric terrain scaling, masks, adaptive TIN, plate fitting and validated STL/OBJ/PLY exports remain available.
 Non-geographic heightmaps now use Image to Mesh; old heightmap workflow steps give a migration message.
 Both tools share physical layout, sampling, solid construction and the same UI/CLI/Workflow contract.
@@ -154,7 +168,7 @@ side, making an adjacent copy. Keep the original or save only the reflection; ex
 or separate files. The live Plane tab shares Plane Cut's drawing, arrows, rings, numeric controls and maximizable
 editor. See [Mirror controls and output behavior](MIRROR.md).
 
-**Plane Cut 0.1.1** trims or splits a mesh with a manually placed plane. Draw a line in the **Plane** tab, then
+**Plane Cut 0.1.2** trims or splits a mesh with a manually placed plane. Draw a line in the **Plane** tab, then
 refine it with XYZ arrows/rings or numeric controls; **Expand** opens a maximizable editor. Choose the kept side,
 flip it, cap the cut or leave it open, and save both halves together or separately. UI, CLI and Workflows use the
 same settings. See [Plane Cut controls and limitations](PLANE_CUT.md).
@@ -166,11 +180,11 @@ C++ helper is bundled, with corresponding source; no Blender or MATLAB is requir
 new **Developable rulings** / **Developable creases** presets or Contour Lines. Works in the UI, CLI and Workflows.
 See [method, setup and examples](DEVELOPABLE_SURFACES.md).
 
-**Dilate 0.1.0** inflates a mesh with pressure or swells a feathered region into a sculptural bulge. Softness,
+**Dilate 0.2.1** inflates a mesh with pressure or swells a feathered region into a sculptural bulge. Softness,
 roundness, retained relief, directional expansion, anchors and seeded broad lobes shape six presets for
 Contour Lines and Plotter Vision. One final mesh per run, available in the UI, CLI and Workflows, without Blender.
 
-**Surface Stripes 0.2.1** adds raised bands to a mesh or exports only closed ribbons, using Crane's stripe-pattern
+**Surface Stripes 0.3.0** adds raised bands to a mesh or exports only closed ribbons, using Crane's stripe-pattern
 method through Geometry Central. Plotter broad and Plotter dense presets cover the form with flowing bands or
 finer stripes. Send its signed STL/OBJ/PLY to Plotter Vision (Features) or Hatch Maker for pen-plotter SVGs.
 See [Surface Stripes](SURFACE_STRIPES.md) for controls, build instructions and limitations.
@@ -181,28 +195,34 @@ See [Surface Stripes](SURFACE_STRIPES.md) for controls, build instructions and l
 | **[Skeleton Shell](SKELETON_SHELL.md)** 0.1.0 | Mesh → mesh | new | A hollow wire or plate sculpture on the model's skin: wire cells, a triangle net, flowing strands, airframe ribs and stringers, or a cut plate, in up to two layers, with optional kept skin and a fused printable result. Eighteen presets. Signed `<name>_skeleton.stl`. |
 | **[Crumble](CRUMBLE.md)** 0.1.1 | Mesh → mesh | new | Part of a model breaks into solid blocks that collapse under gravity with real rigid-body physics, on a side, a patch, a painted area or everywhere, frozen at any moment and leaving a hollow. Ten presets. Signed `<name>_crumble.stl`. |
 | **[Stair Sculpt](STAIR_SCULPT.md)** 0.1.2 | Mesh → mesh | new | Linear, turning or helical stairs, built in a carved or painted cavity (one stair or an ensemble with landings and arches), made from the model's own material as treads, or cut into its body. Fifteen presets. Signed `<name>_stairs.stl`. |
-| **Surface Eject** 0.3.3 | Mesh → mesh | new | Actual surface-volume extraction with five samplers and whole/band/painted regions. Connect 0–100% of fragments; cylinders, bars or organic trees with up to 100 fixed/random extra branches, origin zones, generations, thickness and extent controls. Nineteen presets; combined assemblies or separate body/fragments/connectors in signed STL/OBJ/PLY. |
+| **Surface Eject** 0.5.0 | Mesh → mesh | new | Actual surface-volume extraction with five samplers and whole/band/painted regions. Connect 0–100% of fragments; cylinders, bars or organic trees with up to 100 fixed/random extra branches, origin zones, generations, thickness and extent controls. Nineteen presets; combined assemblies or separate body/fragments/connectors in signed STL/OBJ/PLY. |
 | **Bend** 0.1.0 | Mesh → mesh | new | Arc-length spine bending with transported sections, arcs/S-bends/waves, active range and anchors, spatial sweep and roll, local fold protection, conforming refinement and stage sequences. Signed `<name>_bend.stl` / OBJ / PLY. |
 | **Surface Texture** 0.2.0 | Mesh → mesh | new | Twelve offline CC0 heightmaps or custom PNG/TIFF to real surface relief; surface-following, cylindrical and triplanar mapping, feathered regions, a face budget spent worst-first, local collision protection and plotter presets. Signed `<name>_textured.stl` / OBJ / PLY. |
 | **Voxelize Fill** 0.1.0 | Mesh → mesh | new | Full volumetric occupancy as cubes, adaptive blocks or directional bars; joined boundaries, cutaways, exploded strata, depth bands and seeded erosion. Nine presets. Signed `<name>_voxel-fill.obj` (also PLY or triangulated STL). |
-| **Raster DEM to Mesh** 0.3.1 | Image → mesh | R 3d_DEM prototype | Geographic numeric DEM to faithful, smooth, faceted or terraced terrain. CRS, elevation units and masks; adaptive detail, plate sizing and validated printable solids or open drawing surfaces. `<name>_dem_solid.stl` / `<name>_dem_surface.stl` |
-| **Image to Mesh** 0.1.1 | Image → mesh | DEM heightfield foundation | Non-geographic photos and grayscale images to calibrated relief. Grayscale/channel selection, tonal preparation, alpha masks, neutral placement and seven presets; printable solids or open surfaces for pen drawings. `<name>_image_solid.stl` / `<name>_image_surface.stl` |
+| **Raster DEM to Mesh** 0.3.2 | Image → mesh | R 3d_DEM prototype | Geographic numeric DEM to faithful, smooth, faceted or terraced terrain. CRS, elevation units and masks; adaptive detail, plate sizing and validated printable solids or open drawing surfaces. `<name>_dem_solid.stl` / `<name>_dem_surface.stl` |
+| **Image to Mesh** 0.1.2 | Image → mesh | DEM heightfield foundation | Non-geographic photos and grayscale images to calibrated relief. Grayscale/channel selection, tonal preparation, alpha masks, neutral placement and seven presets; printable solids or open surfaces for pen drawings. `<name>_image_solid.stl` / `<name>_image_surface.stl` |
 | **Remesh/Decimate** 0.2.0 | Mesh → mesh | new | Constrained decimation, uniform/adaptive and directional triangles, aligned quads, native dual cells, planar dissolve and voxel rebuilding. Regional detail, source projection, measured surface error, ten presets. Signed `<name>_remesh.obj` (also PLY or triangulated STL). |
+| **[Shape Crop](SHAPE_CROP.md)** 0.1.0 | Mesh → mesh | new | Keeps the part of a model inside a box, sphere, cylinder or pyramid placed live in the Shape tab, cuts it away, adds the shape or keeps both remainders. Closed models get closed cuts; open scans are clipped exactly and stay open. Quick on millions of faces; no presets (placements belong to each model). Signed `<name>_crop.stl` (also OBJ or PLY). |
+| **[Plane Cut](PLANE_CUT.md)** 0.1.2 | Mesh → mesh | new | Trims or splits a model with a plane drawn and refined in the Plane tab: kept side, capped or open cut, both halves together or apart. Signed `<name>_plane-cut.stl` (also OBJ or PLY). |
+| **[Mirror](MIRROR.md)** 0.1.0 | Mesh → mesh | new | Reflects a whole model through a plane placed in the Plane tab; keeps the original or saves only the reflection, as one file or two. Signed `<name>_mirror.stl` (also OBJ or PLY). |
+| **[Repair Mesh](REPAIR_MESH.md)** 1.0.1 | Mesh → mesh | new | Fixes what stops the sculpting tools: back-to-back faces, crumbs, holes, non-manifold edges and bow-ties, wrongly wound or inside-out faces; rebuilds only if still not a solid. Before/after table and the tools it is ready for. Signed `<name>_repaired.ply` (also STL or OBJ). |
+| **[Pipe Fill](PIPE_FILL.md)** 0.1.1 | Mesh → mesh | new | Replaces a model with tubes throughout its interior: organic repulsive curves or orthogonal pipes with rounded elbows, strands or closed loops, solid or hollow; eight presets. Signed `<name>_pipes.stl` (also OBJ or PLY). |
+| **[Motion Sculpture](MOTION_SCULPTURE.md)** 0.6.2 | Mesh → mesh | new | A still model as swept laminae or splintered bars behind a kept leading silhouette: Stream, Pulse, Gust and Vortex fields, seven presets. Signed `<name>_motion.stl` (also OBJ or PLY). |
 | **Line Simplify** 0.1.0 | SVG → SVG | new | Native distance-based or heap effective-area reduction, physical error cap, corner/reversal/length/area controls and conservative all-pen topology guards. `<name>_simplified.svg` |
 | **Overlap Cleaner** 1.2.1 | SVG → SVG | SVG Overlap Cleaner v1, SVG Join Paths v1/v2, svg_dedup | Cuts ink drawn twice, so every line is plotted once. Optional: join stroke ends, whole-duplicates mode, rect/circle/ellipse, stroke width as part of the pen. `<name>--nooverlap.svg` |
 | **Shape Cutter** 2.0 | SVG → SVG | svg_shape_cutter | Keeps the lines inside (or outside) a closed shape: the element or layer named “shape”, a chosen layer or another SVG. Every island and hole counts. `<name>_cutout.svg` |
 | **Shape Outline** 2.0 | SVG → SVG | SVG_Shape_outline_v1 | One closed outline around a drawing: an envelope that hugs the strokes (bridging gaps under N mm), a concave or a convex hull. All parts or the largest, optional holes, a margin in mm. Written alone on the same sheet (ready as the Shape Cutter's “Another SVG”) or as a new layer. `<name>_outline.svg` |
-| **Hatch Maker** 7.0.0 | Mesh → SVG | STL 3D Hatch Maker v2.1, v3, v5 | Draws a model through an orthographic camera aimed in the Aim tab: seven hatching styles, outlines and creases, hidden lines removed, cut at the paper's frame in mm, one pen per layer, ordered to cut pen travel. `<name>_hatch.svg` |
-| **Plotter Vision** 1.6.0 | Mesh → SVG | plotter.vision (web app, reimplemented) | A model as the edges you can see through a perspective camera, aimed live in the Aim tab: drag to orbit, wheel for distance, 1-5 views, F fit; a light trace while you aim, the exact drawing with E. Edges flatter than an angle left out (0.01° = plotter.vision, a few degrees = clean quads, 30°+ = features; the Sketch preset is the Aim tab's look), lines where parts cross, optional decimation, depth pens, outline and hidden-line pens, red/blue stereo. `<name>_vision.svg` |
+| **Hatch Maker** 7.1.0 | Mesh → SVG | STL 3D Hatch Maker v2.1, v3, v5 | Draws a model through an orthographic camera aimed in the Aim tab: seven hatching styles, outlines and creases, hidden lines removed, cut at the paper's frame in mm, a pen each (saved as [Save pens as](#pens-how-a-drawing-with-several-pens-is-saved) asks), ordered to cut pen travel. `<name>_hatch.svg` |
+| **Plotter Vision** 1.7.0 | Mesh → SVG | plotter.vision (web app, reimplemented) | A model as the edges you can see through a perspective camera, aimed live in the Aim tab: drag to orbit, wheel for distance, 1-5 views, F fit; a light trace while you aim, the exact drawing with E. Edges flatter than an angle left out (0.01° = plotter.vision, a few degrees = clean quads, 30°+ = features; the Sketch preset is the Aim tab's look), lines where parts cross, optional decimation, depth pens, outline and hidden-line pens, red/blue stereo. `<name>_vision.svg` |
 | **Contour Lines** 1.2.0 | Mesh → SVG | new | A model as horizontal slices seen through a camera, hidden lines removed by ray casting: the melting and twisting heads' line language, for any model, without Blender. Spacing in mm on paper, converging lines tapered, strokes chained for few pen lifts. Draws a Twist or Melt stage set with one frame (same scale, position and slice heights on every plate). `<name>_contours.svg` |
-| **Sketch Hatching** 1.1.0 | Mesh → SVG | new | A model as an illustrator's pen sketch: lost-and-found outline, suggestive contours, valleys, creases, and hatching that follows the form in tone bands, with cast shadows and ambient occlusion; a focus point and a portrait light for a face. Two pens. `<name>_sketch.svg` |
-| **Stipple** 1.1 | Mesh → SVG | Digital divide's sphere (`projects/blender3d_project/digital_divide_1`) | A model in dots only: blue-noise stippling of its ray-cast light and shade, an empty highlight, edge darkening instead of an outline, a dot budget. `<name>_stipple.svg` |
-| **FlowRep Sketch** 0.2.0 | Mesh → SVG | new (FlowRep, Gori et al. 2017) | A model as a sparse network of curvature-aligned curves that describe its form, seen through a camera with hidden lines removed, plus an optional silhouette. Triangle meshes are remeshed into quads (Instant Meshes); quad-dominant OBJ/PLY keeps its topology. Descriptiveness sets how many curves remain (presets Clean, Detailed, Sparse; 25-30° suits organic models). As in the paper: only real sharp features become feature curves, side-by-side flowlines are decluttered (*Declutter parallel curves*), and no flowline ends in mid-air. Curves are smoothed between junctions (*Curve smoothing*), the silhouette is a smooth contour, and continuing strokes are joined. The 3D network is cached, so aiming again only redraws. `<name>_flowrep.svg` |
-| **Photo Hatching** 1.1.0 | Image → SVG | the DPT notebooks (a–d) in `google_colab` | Engraving-style hatching of a photo, guided by depth from a transformer (MiDaS 3.1 BEiT-L-512, DPT-Large or Depth Anything V2 Large on the GPU): strokes wrap the forms, ink density follows the tone, crossing layers only in the shadows, occlusion outlines. Also the notebooks' patches (mosaic) and depth contours, fixed. `<name>_photohatch.svg` |
+| **Sketch Hatching** 1.2.0 | Mesh → SVG | new | A model as an illustrator's pen sketch: lost-and-found outline, suggestive contours, valleys, creases, and hatching that follows the form in tone bands, with cast shadows and ambient occlusion; a focus point and a portrait light for a face. Two pens. `<name>_sketch.svg` |
+| **Stipple** 1.2 | Mesh → SVG | Digital divide's sphere (`projects/blender3d_project/digital_divide_1`) | A model in dots only: blue-noise stippling of its ray-cast light and shade, an empty highlight, edge darkening instead of an outline, a dot budget. `<name>_stipple.svg` |
+| **FlowRep Sketch** 0.3.1 | Mesh → SVG | new (FlowRep, Gori et al. 2017) | A model as a sparse network of curvature-aligned curves that describe its form, seen through a camera with hidden lines removed, plus an optional silhouette. Triangle meshes are remeshed into quads (Instant Meshes); quad-dominant OBJ/PLY keeps its topology. Descriptiveness sets how many curves remain (presets Clean, Detailed, Sparse; 25-30° suits organic models). As in the paper: only real sharp features become feature curves, side-by-side flowlines are decluttered (*Declutter parallel curves*), and no flowline ends in mid-air. Curves are smoothed between junctions (*Curve smoothing*), the silhouette is a smooth contour, and continuing strokes are joined. The 3D network is cached, so aiming again only redraws. `<name>_flowrep.svg` |
+| **Photo Hatching** 1.2.0 | Image → SVG | the DPT notebooks (a–d) in `google_colab` | Engraving-style hatching of a photo, guided by depth from a transformer (MiDaS 3.1 BEiT-L-512, DPT-Large or Depth Anything V2 Large on the GPU): strokes wrap the forms, ink density follows the tone, crossing layers only in the shadows, occlusion outlines. Also the notebooks' patches (mosaic) and depth contours, fixed. `<name>_photohatch.svg` |
 | **Cubic Replicator** 3.1 | Mesh → mesh | STL Cubic Replicator v2 | Copies of a model on a 3D grid, mirrored and turned at random (seeded). `<name>_replicated_3x3x1.stl` |
-| **Form Replicator** 1.0.2 | Mesh → mesh | new | Compose one model into planar/spatial crosses and stars, clock rings, rosettes, sea urchins, sunflower spirals, helices, toroidal wreaths, trefoil knots and Möbius bands. Aim, stretch, taper and roll copies with seeded variation; touching copies are always fused into solids. `<name>_forms_star2d.stl` |
-| **Grid Slicer** 3.1.1 | Mesh → mesh | cube_grid_slicer-v2 | Cuts a model into n × n × n capped blocks and pushes them apart; optionally shuffles them (blocks trade places, anywhere, in their layer or column) and shifts them at random. `<name>_grid3.stl` |
-| **[Strata Sculpt](STRATA_SCULPT.md)** 1.1.1 | Mesh → mesh | new | Cuts a model into a stack of capped slabs (horizontal, front to back or side to side, optionally tilted) and dislocates them: thinner wafers lifted apart, a sideways or orbiting wave, a spiral turn, seeded slips and tilts; whole model, a height band or a sphere; one stage or a sequence. Optional randomly spaced cylinders, square bars or organic branching supports fuse neighbouring slabs; independent seeds and three connected presets. Pair with Plotter Vision. `<name>_strata.stl` |
+| **Form Replicator** 1.0.3 | Mesh → mesh | new | Compose one model into planar/spatial crosses and stars, clock rings, rosettes, sea urchins, sunflower spirals, helices, toroidal wreaths, trefoil knots and Möbius bands. Aim, stretch, taper and roll copies with seeded variation; touching copies are always fused into solids. `<name>_forms_star2d.stl` |
+| **Grid Slicer** 3.2.0 | Mesh → mesh | cube_grid_slicer-v2 | Cuts a model into n × n × n capped blocks and pushes them apart; optionally shuffles them (blocks trade places, anywhere, in their layer or column) and shifts them at random. `<name>_grid3.stl` |
+| **[Strata Sculpt](STRATA_SCULPT.md)** 1.2.1 | Mesh → mesh | new | Cuts a model into a stack of capped slabs (horizontal, front to back or side to side, optionally tilted) and dislocates them: thinner wafers lifted apart, a sideways or orbiting wave, a spiral turn, seeded slips and tilts; whole model, a height band or a sphere; one stage or a sequence. Optional randomly spaced cylinders, square bars or organic branching supports fuse neighbouring slabs; independent seeds and three connected presets. Pair with Plotter Vision. `<name>_strata.stl` |
 | **Porous Forms** 1.0 | Mesh → mesh | new | Turns a closed model into a continuous labyrinth inside its own silhouette: gyroid, diamond, Schwarz P or Neovius walls or struts, or seeded Voronoi cells (foam, trabecular bone), cut by the envelope from a signed-distance volume (libigl) and extracted closed (marching cubes). Cell and wall in % of the height, a solid core behind the openings, a protected band or sphere (an intact face), cell grading; one stage or a sequence from solid to porous. Pair with Sketch Hatching, or Plotter Vision's Features. `<name>_porous.stl` |
 | **Holes** 1.0.2 | Mesh → mesh | new | Pierces a closed model with through tubes, blind bores (flat, round or pointed end), bubbles (closed voids, craters where they reach the skin) or wandering, swelling wormholes, on a lattice (one to three axes, square or hex, woven), radially (spokes around an axis or from a point; rings or shells of bubbles), at random or spread over the surface. Circle, polygon, pillow or seeded blob profiles; sizes fixed or drawn from a range (mostly small for cheese); one Irregularity slider from a regular perforation to chaos with the same seed; a minimum wall that shrinks or drops holes. Exact cut (manifold3d), crisp rims. Pair with Sketch Hatching or Contour Lines. `<name>_holes.stl` |
 | **Rods** 1.0 | Mesh → mesh | new | The mirror of Holes: adds rods, hollow pipes, drooping cables or spikes to a closed model in one exact union, Through it (sticking out both ends) or Outward from it (rooted inside). Holes' layouts (lattice, radial, random, surface), profiles (circle, n-sided polygon, pillow, blob) and Irregularity; width and reach in % of the height, fixed or from a range; flat, round, pointed or flared ends; collars; pipe bores open through the model or plugged. Pair with Sketch Hatching or Contour Lines. `<name>_rods.stl` (and `<name>_rods_tubes.stl`, the rods alone) |
@@ -212,12 +232,12 @@ See [Surface Stripes](SURFACE_STRIPES.md) for controls, build instructions and l
 | **Ribbon Wrap** 1.0.1 | Mesh → mesh | new | Wraps a model in a ribbon of silk, satin, velvet, cotton or gauze: a spiral bandage about an axis (full cover to gaps between turns, passes crossing in X's), parcel bands (meridians, rings, seeded planes) or a loose drape walking round the form. The ribbon rides the outer skin, bridges hollows with Tension and stacks in layers where it crosses itself; its start and end tails fall outside the form (Lift, Gravity, Sway, Twist, a corkscrew Curl), rest on the floor and end cut, tapered or frayed. Threads, weave, ripples and pillowed edges are geometry; optional Blender cloth settle. Pair with Sketch Hatching. `<name>_ribbon.stl` |
 | **Reaction-Diffusion Growth** 1.0 | Mesh → mesh | new | Grows a Gray-Scott reaction-diffusion pattern over the surface itself (coral ridges, fingerprint channels, a maze, dividing cells, a honeycomb of pits, pebbles, lichen) and raises or engraves it as relief along the rest normals. Wavelength in % of the height on a mesh fitted to it, so the scale holds across models and densities; channels can wrap around the model or run up it, a second pattern can take over up the height, and the pattern stops at a natural edge outside a band or sphere. One stage or a sequence of moments of one simulation, scattered or creeping from the crown, face or base. Pair with Sketch Hatching or Contour Lines. `<name>_growth.stl` |
 | **Mesh Shatter** 4.1 | Mesh → mesh | Mesh shatter v3 | Breaks the surface into shards along its creases and blows them apart (seeded), optionally tied to a central hub by stems or a branching tree. `<name>_shattered_25pcs.obj` |
-| **Disintegrate** 1.1.0 | Mesh → mesh | new | Progressively subdivides a model and pushes every triangle corner on its own until the surface comes apart into loose triangles (formerly Mesh Morph; `mesh-morph` still works). Seeded, directional controls, final or combined progression, optional stage files. `<name>_disintegrate_progression_2steps.stl` |
+| **Disintegrate** 1.2.0 | Mesh → mesh | new | Progressively subdivides a model and pushes every triangle corner on its own until the surface comes apart into loose triangles (formerly Mesh Morph; `mesh-morph` still works). Seeded, directional controls, final or combined progression, optional stage files. `<name>_disintegrate_progression_2steps.stl` |
 | **Twist** 1.1 | Mesh → mesh | new | Wrings a model: an undulating torsion about its up axis, an S-sway, a (spiral) ripple; one stage or a sequence from intact to full, each stage saved in place for Contour Lines. No Blender needed. `<name>_twist.stl` |
-| **Surface Stripes** 0.2.1 | Mesh → mesh | new (Knöppel et al. 2015) | Flowing surface bands, fused to the body or exported as closed ribbons alone (off by default). Plotter broad and Plotter dense presets, measured skin coverage, spacing, width, thickness, rotation, crossing families and seed. Bundled Geometry Central/Eigen helper. Draw with Plotter Vision (Features) or Hatch Maker. `<name>_stripes.stl` |
-| **Compress** 0.1.0 | Mesh → mesh | new | Compresses a model in one step. Free: two press plates (tilted for a shear press, or onto the floor), a tube tightening around an axis, or pressure from every side. Into a shape: a cube, sphere, cylinder, cone, pyramid, prism, octahedron, icosahedron or dodecahedron mould (any aspect ratio) closes on it, or the model morphs onto the shape with its features in relief. Physical modes are a quasi-static projective-dynamics solve on a near-uniform copy (elastic or plastic skin, bending stiffness, internal pressure that keeps or gives up the volume, friction, approximate self-collision, seeded imperfections) whose motion carries the full-detail model. Pair with Contour Lines or Plotter Vision. `<name>_compress.stl` |
+| **Surface Stripes** 0.3.0 | Mesh → mesh | new (Knöppel et al. 2015) | Flowing surface bands, fused to the body or exported as closed ribbons alone (off by default). Plotter broad and Plotter dense presets, measured skin coverage, spacing, width, thickness, rotation, crossing families and seed. Bundled Geometry Central/Eigen helper. Draw with Plotter Vision (Features) or Hatch Maker. `<name>_stripes.stl` |
+| **Compress** 0.1.1 | Mesh → mesh | new | Compresses a model in one step. Free: two press plates (tilted for a shear press, or onto the floor), a tube tightening around an axis, or pressure from every side. Into a shape: a cube, sphere, cylinder, cone, pyramid, prism, octahedron, icosahedron or dodecahedron mould (any aspect ratio) closes on it, or the model morphs onto the shape with its features in relief. Physical modes are a quasi-static projective-dynamics solve on a near-uniform copy (elastic or plastic skin, bending stiffness, internal pressure that keeps or gives up the volume, friction, approximate self-collision, seeded imperfections) whose motion carries the full-detail model. Pair with Contour Lines or Plotter Vision. `<name>_compress.stl` |
 | **Developable Surfaces** 0.1.1 | Mesh → mesh | Stein, Grinspun & Crane (2018) | Coarse-to-fine developability optimisation; field-aligned remeshing with checked coarsening fallback, fixed open boundaries and five aesthetic presets. `<name>_developable.stl` (also OBJ/PLY). |
-| **Dilate** 0.1.0 | Mesh → mesh | new | Pressure-driven expansion with elastic stretching and bending resistance, per-part volume targets, adjustable softness, roundness and relief, seeded broad lobes, global or feathered local influence, and base/boundary anchors. Open meshes keep their openings and use outward surface swelling with a warning. Triangle contact checks and backtracking limit new crossings. One signed `<name>_dilate.stl` (also OBJ/PLY); pair with Contour Lines or Plotter Vision. |
+| **Dilate** 0.2.1 | Mesh → mesh | new | Pressure-driven expansion with elastic stretching and bending resistance, per-part volume targets, adjustable softness, roundness and relief, seeded broad lobes, global or feathered local influence, and base/boundary anchors. Open meshes keep their openings and use outward surface swelling with a warning. Triangle contact checks and backtracking limit new crossings. One signed `<name>_dilate.stl` (also OBJ/PLY); pair with Contour Lines or Plotter Vision. |
 | **Flow Warp** 1.0 | Mesh → mesh | new | Pulls a model through turbulent currents. Curl-noise eddies, a vortex and a streaming pull carry every vertex along one smooth field (Runge-Kutta), so the surface folds without tearing. Base anchor; whole model, a height band or a sphere; one stage or a sequence on the same trajectories. Pair with Contour Lines. `<name>_flow.stl` |
 | **Melt** 1.1 | Mesh → mesh | new | Melts a model like ice cream or molten metal: softening, sag, a pool at its base, drips and rivulets, up to dissolving; generic or head-aware; one stage or a sequence whose drips grow in place. Runs in the installed Blender (4.2+), in the background. `<name>_melt.stl` |
 | **Voxelizer** 2.0 | Mesh → mesh | Voxelizer tool v1 | Rebuilds a model from cubes, spheres or cylinders, as a shell or filled. `<name>_vox.stl` |
@@ -273,10 +293,11 @@ through the final stage, without layout offsets, in a sibling stages folder (num
 STL, OBJ and PLY are available. Send any saved mesh to **Hatch Maker** to make plotter SVGs.
 
 The **Gentle** preset uses two steps and 1% strength. **Long progression** uses five steps (six stages), 1.5 model
-units and linear growth. **Strong** uses three steps and 3% strength with growth 1.5. Imported geometry is never
-simplified: if all stages together would exceed **2,000,000 faces**, the tool stops before subdivision and reports
-the largest supported step count. For example, 100,000 input faces support one step (500,000 total), while two
-would require 2,100,000. Reduce steps or explicitly prepare a lighter input in another tool.
+units and linear growth. **Strong** uses three steps and 3% strength with growth 1.5. All stages together must fit
+**2,000,000 faces**: 100,000 input faces support one step (500,000 total), while two would need 2,100,000. With
+**Simplify to fit** (on by default) a denser model is simplified just enough to fit, before subdivision: about 95,000
+faces for two steps, 23,500 for three. Stage 0 is then that lighter copy, and the report says so. Off, the tool stops
+before subdivision and reports the largest supported step count.
 
 ```bat
 atlas-toolkit run mesh-disintegrate model.stl --steps 3 --strength 1 --units percent --seed 42
@@ -287,8 +308,8 @@ atlas-toolkit run mesh-disintegrate model.obj --layout final --direction normal 
 
 Every Mesh → SVG tool (Plotter Vision, Hatch Maker, Contour Lines, Sketch Hatching, Stipple, FlowRep Sketch) opens
 on its **Aim** tab, marked with a crosshair. Aim is the one place the drawing's view is set: the paper's drawing
-area is framed, and what is in the frame is what Preview and Draw make. The model shows as a light trace (a copy of
-at most 20 000 faces, its outline and creases, hidden lines removed when you stop), so it turns smoothly whatever
+area is framed, and what is in the frame is what Preview and Draw make. The model shows as a simplified view, as
+the strip under the tabs says (a light trace of a copy of at most 20 000 faces, its outline and creases, hidden lines removed when you stop), so it turns smoothly whatever
 its size, on any display scaling. The copy is made once per file: a new Up, Front or turn only places it again. The real drawing comes from **Preview** or **Draw**, in the Drawing tab.
 
 The **Input** tab beside it is for looking the model over: it turns to the side you are aiming at when you open
@@ -331,6 +352,41 @@ still goes into the settings), and both are off whenever the tab opens. Pause li
 where the black lines take a few seconds after every stop. The Hatch Maker's camera is the same one, always orthographic (the distance sets the size); its Roll
 keeps the hatching level as the model turns.
 
+## Pens: how a drawing with several pens is saved
+
+Six drawing tools can draw with more than one pen: a wider pen for outlines, a dashed or grey one for hidden lines,
+a pen per depth, per hatching direction or per stereo eye.
+
+| Tool | Its pens |
+|---|---|
+| Hatch Maker | hatching, outlines, creases (each with its own width) |
+| Plotter Vision | lines, outline, hidden (dashed), near / middle / far (far optionally dashed), red and blue for stereo |
+| Sketch Hatching | fine (hatching, details) and bold (outline, contours) |
+| Stipple | dots and, with an outline, the outline |
+| FlowRep Sketch | features, flowlines, silhouette and hidden curves (dashed, grey) |
+| Photo Hatching | hatching (or a pen per direction), depth contours, outlines |
+
+Each of them has the same setting in its **Pens** section, **Save pens as**, shown once the settings give more than
+one pen:
+
+- **A layer per pen** (the default): one Inkscape layer per pen, numbered in plotting order (`1 hatching`,
+  `2 silhouettes`, …), each with its own width and colour. Plotter software that works by layer (the AxiDraw
+  extension's layer mode, vpype) can plot them one at a time, with a pen change between.
+- **A group per pen, one layer**: a single layer (`1 drawing`) holding a group per pen, with the same widths and
+  colours. The pens stay apart for selecting and editing, and plot in one pass with one pen.
+- **A file per pen**: the whole drawing, as layers, under the usual name, and beside it each pen alone in a file of
+  its own on the same sheet: `head_sketch-1-fine.svg`, `head_sketch-2-bold.svg`. Every file is signed and carries the
+  settings, so they line up when plotted one after the other. With a single pen only the drawing is written. In a
+  workflow the drawing goes on to the next step and the pen files are kept beside it.
+- **All on one pen**: every stroke in one layer, at the first pen's width, ordered together when *Order strokes to
+  cut travel* is on (so pen-up travel can drop further).
+
+Dashes are drawn strokes, never an SVG dash style: plotters draw a dash style as a solid line, and a dashed pen keeps
+its dashes when it shares one pen with the rest. The preview and the report show the pens as they are saved. Tools
+with a single pen (Contour Lines) have no such setting, and the SVG post-processing tools keep the layers of the file
+they are given. Hatch Maker's former *Everything on one pen* is now *All on one pen*; older settings, presets and
+workflows carry over.
+
 ## Plotter Vision
 
 The **Aim** tab is plotter.vision inside the toolkit. The paper's drawing area is framed: the camera looks
@@ -346,10 +402,10 @@ through it, so what is in the frame is what Draw writes, cut at the frame in mm.
 | `F` or double-click | fit the model in the frame (`A`: after every move) |
 | `P` or **Pause lines** | no hidden lines after a move until `P` again |
 | `R` | plotter.vision's start view |
-| `X` or **Exact lines** | the exact drawing instead of the light trace (and back) |
+| `X` or **Exact lines** | the exact drawing instead of the simplified view (and back) |
 | `T` | red-blue stereo (with Exact lines) |
 
-Aim shows the light trace by default (the Sketch preset's look), quick on any model. **Exact lines** draws what
+Aim shows the simplified view by default (the Sketch preset's look), quick on any model. **Exact lines** draws what
 Draw will write, live, as plotter.vision did, with your edge, decimation, depth and stereo settings: it can be slow
 on big models, and it is never saved, so the page always opens on the trace. While you move, the candidate edges
 show in the accent colour (when there are too many to keep up with your hand, the outline and an even share of the
@@ -584,8 +640,16 @@ Mosaic.
     value again) shows it again at once. The last four previews of each file are kept.
 - **Mesh → SVG tools:** aim in the Aim tab (see [Aim](#aim-where-a-drawings-view-is-set)), then **Preview** or
   **Draw**; presets change the lines, never the view. The Input tab is for looking only.
-- **Home** shows the tools as cards or as a one-line **List**; each section (Workflows and each tool group)
-  folds under its header, and **Fold all** folds them together. Saved workflows show by their names.
+- **Home** shows the tools as cards or as a one-line **List**; each section (Workflows, each tool category and its
+  subgroups) folds under its header, and **Fold all** folds them together. Saved workflows show by their names.
+- **The tool list** groups the tools by category and subgroup, as the README does: click a header to fold or unfold it
+  (Mesh → Mesh starts with its six subgroups folded). What you fold is remembered, and opening a tool from elsewhere
+  unfolds its group. The list is a **side bar** (`]`: icons only) or a **top bar**, whose categories drop down as panels
+  with every subgroup in view: point at another category to switch; the arrow keys, Enter and Esc work too. Switch in
+  **Setup › General › Tool list**, with the button at the top of the side bar or the right end of the top bar, or from
+  the search box. `[` shows or hides either.
+- **Notices:** an amber ⚠ by a tool's name says it can be slow (a small clock in the lists). The ⓘ beside **Preview**
+  says how a preview can differ from the final result.
 - A tool whose required program (Blender for Melt, the stripes helper) is missing is **faded** in every list, with an amber ⚠ and the reason in its tooltip; its page shows a notice under its name (Locate, Get, Setup guide) and Run waits. In Workflows its step turns amber at once. An optional program only adds a quiet note on the tool's page. The app looks again whenever its window comes back into focus.
 - **Activity** lists every run. Show an output, or open the tool again with the same file and settings.
 - **Send output to** (right-click a saved file) chains tools, for example Replicator → Grid Slicer.
@@ -703,8 +767,16 @@ Mesh input → Mesh Shatter → Hatch Maker (Contours) → Overlap Cleaner (Whol
 - **Set up each step** with the same presets and settings as on the tool's page. **Aim in tool…** opens the step's
   input in the tool's page (Hatch Maker's view, Plotter Vision's camera); **Back to workflow** brings the settings
   back. Right-click a setting's name to show it on the workflow's own panel, which appears when no step is selected.
-- **Check, then Run.** Check lists anything that would stop the workflow, both on the canvas and in Problems. Run is
-  enabled once Check passes, and runs once per file in Inputs. Any edit asks for a new Check.
+- **Check, then Run.** The tinted **Workflow controls** panel under the step settings runs the whole workflow, and
+  its bright button is always the next thing to do. Check lists anything that would stop the workflow, both on the
+  canvas and in Problems. Run is enabled once Check passes, and runs once per file in Inputs. Any edit asks for a
+  new Check.
+- **Two layouts.** **Stacked** puts the pipeline across the top, left to right, with the tabs and the preview below.
+  **Side by side** puts the pipeline on the left, drawn top to bottom, with the tabs under it, and the preview on the
+  right at full height. Lay out (L) and Fit (F) follow the layout. Switching never changes the workflow itself.
+- **Fold the tabs away** with the arrow beside Inputs, for a wider preview (Stacked) or a taller pipeline (Side by
+  side). A slim strip keeps one button per tab. While they are folded, a picker beside the preview's title chooses
+  the file to preview. A Check that finds errors brings the tabs back on Problems.
 - **New variation** (under Run, for workflows with seeded steps) runs again with new random seeds and the same
   settings; its files get the date and time, so every variation is kept, and the log lists the seeds drawn.
 - **Only Save writes files.** Intermediate results stay in a cache, so steps that did not change are not run again

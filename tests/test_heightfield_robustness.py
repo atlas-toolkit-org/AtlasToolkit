@@ -69,6 +69,42 @@ class RobustnessTests(unittest.TestCase):
         self.assertIsNot(fixed,mesh)
         check_mesh(fixed)
 
+    def test_a_corner_on_an_edge_is_flipped_away_and_the_solid_stays_closed(self):
+        """Terraced relief on a photo: simplifying planar treads left zero-area triangles (a corner lying on the
+        opposite edge), refused as collapsed at any pitch."""
+        import trimesh
+        from atlas_toolkit.geom.heightfield.precision import flip_caps
+        box=trimesh.creation.box((2.,2.,2.))
+        f=[list(t) for t in box.faces]
+        a,b,x=f[0]
+        i=next(k for k,t in enumerate(f) if k and a in t and b in t)
+        y=next(v for v in f[i] if v not in (a,b))
+        c=len(box.vertices)
+        v=np.vstack((box.vertices,(box.vertices[a]+box.vertices[b])/2))
+        f[i]=[b,c,y]
+        faces=np.array([*f,[c,a,y],[b,a,c]])                                     # the cap closes the split side
+        mesh=trimesh.Trimesh(v,faces,process=False)
+        self.assertTrue(mesh.is_watertight)
+        with self.assertRaisesRegex(ValueError,'Collapsed'):check_mesh(mesh)
+        fixed=flip_caps(mesh)
+        check_mesh(fixed)
+        self.assertEqual(len(fixed.faces),len(faces))
+        self.assertAlmostEqual(fixed.volume,8.)
+        np.testing.assert_allclose(fixed.bounds,mesh.bounds)
+
+    def test_only_loose_specks_are_dropped_from_a_fused_relief(self):
+        import trimesh
+        from atlas_toolkit.geom.heightfield.mesh import without_specks
+        body=trimesh.creation.icosphere(subdivisions=2)
+        tetra=trimesh.Trimesh([[5,0,0],[5.1,0,0],[5,.1,0],[5,0,.1]],[[0,2,1],[0,1,3],[0,3,2],[1,2,3]],process=False)
+        out=without_specks(trimesh.util.concatenate((body,tetra)))
+        check_mesh(out)
+        self.assertEqual(len(out.faces),len(body.faces))
+        other=body.copy()
+        other.apply_translation((5,0,0))
+        both=trimesh.util.concatenate((body,other))                              # a real piece is never dropped
+        self.assertIs(without_specks(both),both)
+
     def test_local_surface_repair_preserves_xy_and_height(self):
         import trimesh
         from atlas_toolkit.geom.heightfield.precision import surface,file_copy

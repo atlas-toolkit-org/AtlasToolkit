@@ -3,7 +3,7 @@ from atlas_toolkit.core import Choice, Float, Inputs, Output, Section, Tool, Vec
 
 
 TOOL = Tool(
-    id="mesh-mirror", name="Mirror", version="0.1.0", category="mesh", icon="mirror-plane", action="Mirror",
+    id="mesh-mirror", name="Mirror", version="0.1.0", category="mesh", group="prepare", icon="mirror-plane", action="Mirror",
     summary="Reflect a model across a plane, with or without the original.",
     tagline="Place the plane; see the reflection move with it.",
     description=("The Plane tab shares Plane Cut's screen-line drawing, XYZ arrows, rotation rings, normal slide, "

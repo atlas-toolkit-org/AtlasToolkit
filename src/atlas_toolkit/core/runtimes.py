@@ -266,11 +266,11 @@ def find(key: str) -> Path | None:
 
 
 def required_keys(tool, values=None):
+    from .tool import rule_matches
     values = tool.defaults() if values is None else values
     keys = list(getattr(tool, 'requires', ()))
     for key, rule in getattr(tool, 'requires_if', ()):
-        if all(values.get(k) in expected if isinstance(expected, (tuple, list)) else values.get(k) == expected
-               for k, expected in rule.items()):
+        if rule_matches(rule, values):
             keys.append(key)
     return tuple(dict.fromkeys(keys))
 

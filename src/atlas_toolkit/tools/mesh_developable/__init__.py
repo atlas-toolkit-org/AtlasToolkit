@@ -3,7 +3,10 @@ from atlas_toolkit.core import Choice, Float, Inputs, Int, Output, Section, Tool
 
 TOOL = Tool(
     needs="manifold",
-    id="mesh-developable", name="Developable Surfaces", version="0.1.1", category="mesh",
+    id="mesh-developable", name="Developable Surfaces", version="0.1.1", category="mesh", group="surface",
+    slow="It often takes several minutes, longer with more refinement levels.",
+    draft_note="The draft starts from at most 500 faces (unless it keeps the input mesh) and takes fewer steps, "
+               "so its seams and folds fall in other places.",
     icon="developable", action="Develop", runs_in="process", preview="mesh", requires=("developable",),
     summary="Evolve a model into flowing, approximately developable surfaces for line art.",
     tagline="Broad folds, smooth seams and nearly straight rulings from a triangle mesh.",

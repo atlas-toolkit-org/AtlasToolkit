@@ -95,6 +95,11 @@ def run(ctx, src: Path, dst: Path | None, p) -> Result:
                     solid, adjustment = connectors.co.stabilize(solid, height_model)
                     staged = connectors.co.to_mesh(solid)
                     info["precision_model"] = adjustment
+                elif dst is not None and mesh.is_watertight:
+                    staged, _, unsafe = connectors.co.file_safe(staged, ctx)
+                    if unsafe:
+                        ctx.warn(f"stage {i}: {unsafe} thin piece{'s' if unsafe > 1 else ''} may not stay closed in a "
+                                 "file")
             rows.append((i, u, info))
             out.add(i, staged, {"amount": round(u, 6), "label": f"stage {i}"})
             ctx.check_cancel()
@@ -143,7 +148,8 @@ def run(ctx, src: Path, dst: Path | None, p) -> Result:
             pairs = info.get("pairs", [])
             fitted = sum(row.get("supports", 0) < row.get("requested", 0) for row in pairs)
             lines.append(f"  stage {i}    {len(records)} fused supports; {achieved}/{requested} extra branches; "
-                         f"{fitted} pairs fitted below requested count; {info.get('components', 1)} solid components")
+                         f"{fitted} pairs fitted below requested count; {info.get('components', 1)} solid components"
+                         + (f"; {info['left_out']} specks left out" if info.get("left_out") else ""))
             for row in records:
                 lines.append(f"    layers {row['lower']+1}–{row['upper']+1}: thickness {row['diameter']/frame.scale:.5g} units; "
                              f"forks {row['branches']}/{row['requested_branches']}; levels {row['branch_levels']}; "

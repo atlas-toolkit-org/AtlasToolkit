@@ -97,6 +97,42 @@ class ConnectorGeometryTests(unittest.TestCase):
         self.assertTrue(all(row["clamped"] for row in a.records))
         self.assertEqual(len(a.combined.decompose()), 1)
 
+    def test_a_fragment_no_bridge_can_reach_floats_and_the_rest_are_joined(self):
+        """Fine Veins on a 259k head threw a fragment from the base of the bust up past the head: every route to
+        it crossed the body, and that stopped the whole run."""
+        import manifold3d as mf
+        real, calls = co.beam, []
+
+        def blocked_first(start, finish, radius, style, segments):
+            calls.append(1)
+            if len(calls) <= 3:                       # every curvature of fragment 1's bridge hits the others
+                return mf.Manifold.cube((8., 8., 8.), True)
+            return real(start, finish, radius, style, segments)
+
+        p = TOOL.values(dict(connectors=True, connector_style="cylinder", count=4))
+        e = se.extract(sphere(), p)
+        ctx = context()
+        with patch.object(co, "beam", side_effect=blocked_first):
+            result = co.build(e, p, 2., ctx)
+        self.assertEqual([row["fragment_index"] for row in result.records], [1, 2, 3])
+        self.assertEqual(len(result.combined.decompose()), 2)              # the body with three, and one free
+        self.assertTrue(se.to_mesh(result.combined).is_volume)
+        self.assertTrue(any("1 fragment (1)" in note and "floats free" in note for note in ctx.notes), ctx.notes)
+
+    def test_the_connector_that_breaks_the_fused_solid_is_found_by_halving(self):
+        class Fake:
+            body, parts = "body", ["p0", "p1", "p2", "p3", "p4"]
+
+        def stabilize(solid, height):
+            if "bad" in solid or "worse" in solid:
+                raise ValueError("Connector joints could not be stabilized for reliable export.")
+            return solid, 0.
+
+        with patch.object(co, "union", side_effect=tuple), patch.object(co, "stabilize", stabilize):
+            self.assertEqual(co.unstable_connectors(Fake(), [0, 1, 2, 3, 4], [], ["c0", "bad", "c2", "worse", "c4"],
+                                                    2.), [1, 3])
+            self.assertEqual(co.unstable_connectors(Fake(), [0, 1, 2], [], ["c0", "c1", "c2"], 2.), [])
+
     def test_unavailable_cavity_and_invalid_controls_fail_before_publication(self):
         p = TOOL.values(dict(connectors=True, count=1))
         e = se.extract(sphere(), p)

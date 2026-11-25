@@ -19,6 +19,30 @@ def centres(parts):
     return np.array([m.bounds.mean(axis=0) for m in parts])
 
 
+class CutTests(unittest.TestCase):
+    def test_ring_sections_keep_their_hole(self):
+        torus = trimesh.creation.torus(10.0, 3.5, major_sections=48, minor_sections=24)
+        parts, _ = cgs.slice_grid(torus, 3, 0.0)
+        self.assertTrue(all(m.is_volume for m in parts))
+        self.assertAlmostEqual(sum(m.volume for m in parts), torus.volume, places=6)
+
+    def test_every_block_is_saved_closed(self):
+        import tempfile
+        from pathlib import Path
+        from atlas_toolkit.core.job import JobContext
+        from atlas_toolkit.geom import mesh as gm
+        from atlas_toolkit.tools.cube_grid_slicer import TOOL, engine
+        ball = trimesh.creation.icosphere(subdivisions=5, radius=50.0)
+        ball.vertices += np.random.default_rng(1).normal(0, .05, ball.vertices.shape) + 3000.0      # float32 welds slivers
+        with tempfile.TemporaryDirectory() as d:
+            src, dst = Path(d) / "ball.ply", Path(d) / "out.stl"
+            ball.export(src)
+            engine.run(JobContext(lambda *_: None, lambda: False, mode="run"), src, dst,
+                       TOOL.values({"n": 4, "gap": 50.0, "gap_mode": "units"}))
+            out = gm.load_mesh(dst)
+        self.assertTrue(all(m.is_volume for m in out.split(only_watertight=False)))
+
+
 class ShuffleTests(unittest.TestCase):
     def test_nothing_asked_nothing_moves(self):
         parts, cells, cell, step = sliced()

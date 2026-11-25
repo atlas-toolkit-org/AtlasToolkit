@@ -230,6 +230,83 @@ class StrataConnectorGeometryTests(unittest.TestCase):
             ms.sculpt(model(), st, np.ones(3), p, ms.draws(3, 0), ctx=context(cancelled=lambda: bool(calls)))
 
 
+class _Slab:
+    def __init__(self, layer, index, lower=None, upper=None, source=0):
+        self.layer, self.index, self.source, self.solid = layer, index, source, f"slab{layer}.{index}"
+        self.caps = {1: (lower, None, 0.), -1: (upper, None, 0.)}
+
+
+def _square(x, y, size):
+    return Polygon([(x, y), (x + size, y), (x + size, y + size), (x, y + size)])
+
+
+class StrataConnectorRecoveryTests(unittest.TestCase):
+    """What a dense head's strata needed (Pinned Strata, Square Supports, Airy Roots on catalogue models)."""
+
+    def test_overlap_points_start_inside_the_facing_caps(self):
+        a = _Slab(3, 1, lower=_square(0, 0, 1))
+        b = _Slab(4, 0, upper=_square(.5, .5, 3))
+        p = TOOL.values(dict(connectors=True))
+        points = connectors.overlap_points(a, b, p, (0, 3, 1, 0))
+        overlap = _square(.5, .5, .5)
+        self.assertGreater(len(points), 8)
+        np.testing.assert_allclose(points[0], (.75, .75), atol=1e-3)       # the most interior point first
+        self.assertTrue(all(overlap.buffer(1e-9).contains(Polygon(_square(x, y, 1e-6))) for x, y in points))
+        np.testing.assert_array_equal(points, connectors.overlap_points(a, b, p, (0, 3, 1, 0)))   # seeded
+
+    def test_only_a_cap_narrower_than_a_few_connectors_is_a_speck(self):
+        p = TOOL.values(dict(connectors=True, connector_diameter_min=.45))
+        self.assertTrue(connectors.is_speck(_Slab(12, 1, upper=_square(0, 0, .013)), -1, p))
+        self.assertFalse(connectors.is_speck(_Slab(6, 1, lower=_square(0, 0, .07)), 1, p))
+        row = dict(source=0, lower=11, lower_component=0, upper=12, upper_component=1)
+        self.assertTrue(connectors.touches(row, _Slab(12, 1)))
+        self.assertFalse(connectors.touches(row, _Slab(12, 0)))
+
+    def test_a_support_that_breaks_the_fused_solid_is_left_out_when_its_gap_keeps_another(self):
+        def union(parts):
+            return tuple(parts)
+
+        def stabilize(solid, height):
+            if "bad" in solid:
+                raise ValueError("Connector joints could not be stabilized for reliable export.")
+            return solid, 0.
+
+        def row(lower):
+            return dict(source=0, lower=lower, lower_component=0, upper=lower + 1, upper_component=0)
+
+        kept = [_Slab(0, 0), _Slab(1, 0), _Slab(2, 0)]
+        with patch.object(connectors.co, "union", union), patch.object(connectors.co, "stabilize", stabilize):
+            supports, trees = ["s0", "s1", "bad", "s3"], [["s0"], ["s1"], ["bad"], ["s3"]]
+            records = [row(0), row(0), row(1), row(1)]
+            combined, _, spare = connectors.without_conflicts(kept, supports, trees, records)
+            self.assertEqual((supports, spare), (["s0", "s1", "s3"], 1))
+            self.assertEqual(combined, ("slab0.0", "slab1.0", "slab2.0", "s0", "s1", "s3"))
+            supports, trees, records = ["s0", "bad"], [["s0"], ["bad"]], [row(0), row(1)]
+            with self.assertRaisesRegex(ValueError, "stabilized"):                # its gap's only support
+                connectors.without_conflicts(kept, supports, trees, records)
+
+    def test_a_joint_that_float32_collapses_is_accepted_as_written(self):
+        """A cut left two vertices that float32 (every export) welds, further apart than simplification may move
+        them: the joint was refused although the file would have been a closed solid."""
+        sphere = trimesh.creation.icosphere(subdivisions=2, radius=1000.)
+        v = (sphere.vertices + 3000.).astype(np.float32).astype(np.float64)   # where float32 steps are 2.4e-4
+        f = sphere.faces
+        a, b = f[0, 0], f[0, 1]
+        on = [i for i, t in enumerate(f) if a in t and b in t]
+        v = np.vstack((v, v[a] + (v[b] - v[a]) / np.linalg.norm(v[b] - v[a]) * 1e-5))
+        faces = [t for i, t in enumerate(f) if i not in on]
+        for i in on:                                                            # split edge a-b at the new vertex
+            t = list(f[i])
+            first, second = t.copy(), t.copy()
+            first[t.index(b)], second[t.index(a)] = len(v) - 1, len(v) - 1
+            faces += [first, second]
+        solid, adjustment = co.stabilize(co.from_arrays(v, np.array(faces)), 2000.)
+        self.assertGreater(adjustment, 0)
+        mesh = co.to_mesh(solid)
+        self.assertEqual(len(mesh.faces), len(faces) - 2)
+        self.assertTrue(mesh.is_volume)
+
+
 class StrataConnectorIntegrationTests(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory(prefix="strata_connectors_")

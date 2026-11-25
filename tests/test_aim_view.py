@@ -144,7 +144,7 @@ class AimViewTests(unittest.TestCase):
     def drag(self, w, dx, dy, mods=None):
         from PySide6.QtCore import QEvent, QPointF, Qt
         from PySide6.QtGui import QMouseEvent
-        x, y = 200, 200
+        x, y = w.rect().center().toTuple()                          # inside the roll ring, whatever the size
         for kind, px, py, btn, held in ((QEvent.MouseButtonPress, x, y, Qt.LeftButton, Qt.LeftButton),
                                         (QEvent.MouseMove, x + dx, y + dy, Qt.NoButton, Qt.LeftButton),
                                         (QEvent.MouseButtonRelease, x + dx, y + dy, Qt.LeftButton, Qt.NoButton)):
@@ -339,7 +339,7 @@ class AimViewTests(unittest.TestCase):
         self.assertEqual(vw._pen(QColor("#000000"), 1.0, dashed=True).capStyle(), Qt.FlatCap)
         _page, v = self.aim_on(stepped_sphere(self.tmp / "stepped.stl"))
         self.assertGreater(v.edges, 5000)                          # a crease-heavy trace, or this proves nothing
-        self.press(v, "press", 200, 200)                           # moving: every candidate edge is drawn
+        self.press(v, "press", *v.rect().center().toTuple())                           # moving: every candidate edge is drawn
         self.assertEqual(v.state, "moving")
         times = []
         for _ in range(3):
@@ -428,7 +428,7 @@ class AimViewTests(unittest.TestCase):
         from atlas_toolkit.tools.plotter_vision.viewer import DRAG_MIN, FRAME_S
         _page, v = self.aim_on(stepped_sphere(self.tmp / "stepped.stl"))
         img = QImage(v.width(), v.height(), QImage.Format_ARGB32_Premultiplied)
-        self.press(v, "press", 200, 200)
+        self.press(v, "press", *v.rect().center().toTuple())
         v._budget = 10 ** 9
         v.render(img)
         self.assertEqual(v.shown, v.edges)

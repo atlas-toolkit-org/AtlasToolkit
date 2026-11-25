@@ -5,7 +5,7 @@ from .image_to_mesh import SOURCE_KEYS
 
 
 TOOL = Tool(
-    id='image-to-mesh', name='Image to Mesh', version='0.1.1', category='image2mesh',
+    id='image-to-mesh', name='Image to Mesh', version='0.1.2', category='image2mesh',
     icon='image-to-mesh', action='Build mesh',
     summary='Prepare a photo or grayscale image and turn its tones into a physical relief or drawing surface.',
     tagline='Image tones to relief, with a calibrated black-to-white height scale.',

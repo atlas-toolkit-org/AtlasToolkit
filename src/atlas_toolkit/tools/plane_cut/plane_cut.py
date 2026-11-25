@@ -68,7 +68,7 @@ def refine_cap(mesh, origin, normal, target, progress=None, limit=200_000):
 
 def cut(mesh, p, progress=None):
     """Return [(side-name, mesh)], plane data and warnings. Never mutates the source."""
-    from atlas_toolkit.geom.cutting import best_engine
+    from atlas_toolkit.geom.cutting import best_engine, solid_split
     origin, normal, _ = plane(mesh.bounds, p)
     warnings = []
     if not mesh.is_watertight and p["fill"] != "none":
@@ -93,6 +93,9 @@ def cut(mesh, p, progress=None):
             crossed = False
         else:
             part = mesh.slice_plane(origin, normal * sign, cap=p["fill"] != "none", engine=best_engine())
+            if p["fill"] != "none" and mesh.is_watertight and (part is None or not part.is_watertight):
+                native = solid_split(mesh, origin, normal * sign)
+                part = native[1] if native is not None else part
             crossed = True
         if part is None or len(part.faces) == 0:
             continue

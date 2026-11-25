@@ -7,7 +7,7 @@ MATERIALS = [('scales','Reptile scales'),('rock','Fractured rock'),('sand','Sand
              ('leather','Leather grain'),('cracks','Cracked earth'),('cobbles','Cobblestones'),('wood','Wood grain')]
 
 TOOL = Tool(
-    id='mesh-texture', name='Surface Texture', version='0.2.0', category='mesh', icon='surface-texture',
+    id='mesh-texture', name='Surface Texture', version='0.2.0', category='mesh', group='surface', icon='surface-texture',
     action='Texture', summary='Wrap a model in raised or engraved texture, over its whole skin or a feathered band.',
     tagline='Scales, veins, bark and masonry: broad relief made to read in a pen drawing.',
     description='Twelve bundled CC0 heightmaps become actual mesh relief, ready for Contour Lines, Sketch Hatching '

@@ -117,7 +117,22 @@ def _sample(lines: list, step: float) -> np.ndarray:
 
 
 def _polygons(g) -> list:
-    return [p for p in shapely.get_parts(g) if p.geom_type == "Polygon" and not p.is_empty]
+    out = []
+    for p in shapely.get_parts(g):
+        if p.geom_type == "Polygon":
+            if not p.is_empty:
+                out.append(p)
+        elif p.geom_type in ("MultiPolygon", "GeometryCollection"):      # what make_valid can return
+            out.extend(_polygons(p))
+    return out
+
+
+def _valid(g):
+    """GEOS can leave a large inward buffer self-intersecting, and a union of it then fails ("unable to assign free
+    hole to a shell"): repair it first."""
+    if g.is_empty or g.is_valid:
+        return g
+    return shapely.union_all(_polygons(shapely.make_valid(g)))     # buffer(0) would drop a lobe; lines are dropped
 
 
 def outline(lines: list, o: Options, mpu: float, progress=None):
@@ -138,11 +153,11 @@ def outline(lines: list, o: Options, mpu: float, progress=None):
         for poly in _polygons(fat):
             # fill what the strokes enclose and shrink back, so the edge lies on the outermost strokes; a kept hole
             # (an empty area the strokes enclose) is cut out with its edge on the strokes around it
-            solid = Polygon(poly.exterior).buffer(-r, quad_segs=6)
+            solid = _valid(Polygon(poly.exterior).buffer(-r, quad_segs=6))
             holes = [Polygon(h) for h in poly.interiors] if o.holes else []
             holes = [h for h in holes if h.area >= min_area]
             if holes and not solid.is_empty:
-                solid = solid.difference(shapely.union_all(holes).buffer(r, quad_segs=6))
+                solid = _valid(solid.difference(shapely.union_all(holes).buffer(r, quad_segs=6)))
             parts.append(solid)
         shape = shapely.union_all(parts)
         if shape.is_empty:   # open strokes enclosing nothing: keep their widened silhouette
@@ -163,7 +178,7 @@ def outline(lines: list, o: Options, mpu: float, progress=None):
         polys = [max(polys, key=lambda p: p.area)]
     shape = shapely.union_all(polys)
     if o.offset:
-        shape = shape.buffer(o.offset * u, quad_segs=8, join_style="round")
+        shape = _valid(shape.buffer(o.offset * u, quad_segs=8, join_style="round"))
         if shape.is_empty:
             raise OutlineError("the inward offset removed the whole outline")
     if o.smooth > 0:

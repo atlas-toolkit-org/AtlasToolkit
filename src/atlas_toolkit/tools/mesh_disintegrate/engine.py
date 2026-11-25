@@ -80,6 +80,22 @@ def _publish(ctx, dst, primary, stages, separate):
                    prefix=".mesh-disintegrate-")
 
 
+def fitted(ctx, mesh, fit: int, steps: int):
+    """The model simplified just enough that it and every stage fit the face budget (quadric decimation keeps the
+    shape; the result is a triangle soup anyway, so a pinch where thin parts collapse does no harm)."""
+    import trimesh
+    ctx.progress(0.01, "simplifying the model to fit the face budget")
+    target = fit
+    while True:
+        v, f = gm.simplify_faces(mesh.vertices, mesh.faces, target, ctx.log)
+        if len(f) <= fit:
+            break
+        target = int(target * 0.97)                # the decimator can land a little above its target
+    ctx.note(f"Simplified from {len(mesh.faces):,} to {len(f):,} faces so that {steps} steps fit the "
+             f"{mm.MAX_TOTAL_FACES:,}-face budget (Simplify to fit).")
+    return trimesh.Trimesh(v, f, process=False)
+
+
 def run(ctx, src: Path, dst: Path | None, p) -> Result:
     if ctx.dry_run:
         dst = None
@@ -90,6 +106,10 @@ def run(ctx, src: Path, dst: Path | None, p) -> Result:
             raise ValueError("Disintegrate exports STL, OBJ or PLY")
     ctx.progress(0.0, "loading model")
     mesh = gm.load_mesh(src)
+    loaded = len(mesh.faces)
+    fit = mm.fitting_faces(p.steps)
+    if p.fit and loaded > fit >= mm.FIT_MIN_FACES:
+        mesh = fitted(ctx, mesh, fit, p.steps)
     frag = mm.generate(mesh, p.steps, p.strength, p.units, p.growth, p.direction, p.influence, p.seed,
                        progress=lambda f, msg: ctx.progress(0.05 + 0.60 * f, msg))
     stages = frag.stages
@@ -111,8 +131,10 @@ def run(ctx, src: Path, dst: Path | None, p) -> Result:
     mm.checked_triangles(primary)
     box = mm.bounds(primary)
     size = box[1] - box[0]
-    report = [src.name, f"  stages     {len(stages)} (original + {p.steps} steps)",
-              f"  distortion {p.strength:g} {p.units}, growth {p.growth:g}, {p.direction}, seed {p.seed}",
+    report = [src.name, f"  stages     {len(stages)} (original + {p.steps} steps)"]
+    if len(stages[0]) < loaded:
+        report.append(f"  input      simplified from {loaded:,} to {len(stages[0]):,} faces to fit the budget")
+    report += [f"  distortion {p.strength:g} {p.units}, growth {p.growth:g}, {p.direction}, seed {p.seed}",
               "  XYZ        " + ", ".join(f"{x:g}" for x in p.influence),
               f"  layout     {p.layout}, progression along {p.axis.upper()}, gap {gap:.5g} units",
               "  surfaces   independent triangle fragments; not closed solids"]

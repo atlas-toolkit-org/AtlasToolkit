@@ -32,7 +32,7 @@ TOOL = Tool(
     id="mesh-fusion",
     name="Shape Fusion",
     version="1.0",
-    category="mesh",
+    category="mesh", group="combine",
     icon="fusion",
     action="Fuse",
     summary="Morph, fuse or carve a model with another shape: hybrid sculptures and topology-changing transitions.",

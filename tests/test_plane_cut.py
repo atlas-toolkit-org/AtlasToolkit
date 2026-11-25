@@ -41,6 +41,15 @@ class PlaneGeometryTests(unittest.TestCase):
             np.testing.assert_array_equal(mesh.vertices, original_v)
             np.testing.assert_array_equal(mesh.faces, original_f)
 
+    def test_a_cap_that_fails_is_cut_again_closed(self):
+        ball, real = trimesh.creation.icosphere(subdivisions=3), trimesh.Trimesh.slice_plane
+        with patch.object(trimesh.Trimesh, "slice_plane",
+                          lambda mesh, origin, normal, cap=False, **_: real(mesh, origin, normal, cap=False)):
+            pieces, _, _ = cut(ball, TOOL.values({"cut_type": "slice", "fill": "minimal"}))
+        self.assertEqual([side for side, _ in pieces], ["positive", "negative"])
+        self.assertTrue(all(m.is_volume for _, m in pieces))
+        self.assertAlmostEqual(sum(m.volume for _, m in pieces), ball.volume, places=9)
+
     def test_annular_cap_keeps_the_torus_hole(self):
         mesh = trimesh.creation.torus(major_radius=10, minor_radius=3)
         for fill in ("minimal", "remeshed", "fixed"):

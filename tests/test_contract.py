@@ -60,6 +60,25 @@ class ContractTests(unittest.TestCase):
                 self.assertTrue(t.summary and t.name and t.version)
                 self.assertIn("{stem}", t.output.template)
 
+    def test_built_in_tools_have_a_subgroup_and_plain_notices(self):
+        from atlas_toolkit.core.registry import validate
+        from atlas_toolkit.core.tool import GROUPS
+        for t in REG.ordered():
+            with self.subTest(tool=t.id):
+                if t.package.startswith("atlas_toolkit.tools.") and t.category in GROUPS:
+                    self.assertIn(t.group, dict(GROUPS[t.category]))
+                for text in (t.slow, t.draft_note):              # sentences: the app adds the icons and the rest
+                    if text:
+                        self.assertTrue(text[0].isupper() and text.endswith("."), text)
+                        self.assertLess(len(text), 220)
+        listed = [t for _c, subs in REG.by_group() for _k, _h, ts in subs for t in ts]
+        self.assertEqual(listed, REG.ordered())
+        import dataclasses
+        bad = dataclasses.replace(REG.get("mesh-twist"), group="nowhere")
+        self.assertIn("unknown group 'nowhere' in category 'mesh'", validate(bad))
+        plugin = dataclasses.replace(REG.get("mesh-twist"), group="")
+        self.assertEqual((plugin.group_title, validate(plugin)), ("More tools", []))
+
     def test_tool_icons_are_unique_and_exist(self):
         from atlas_toolkit.ui.theme import icon_paths
         seen = {}

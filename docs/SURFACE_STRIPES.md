@@ -33,6 +33,9 @@ hidden-line removal and pen widths belong to the downstream renderer and work in
   Body previews use the lower Preview field faces setting. Ribbon-only previews use the export resolution and
   share its cache to preserve closed topology and a stable pattern. If long field edges remain, the log reports
   the approximation.
+- **Simplify to fit** (on by default): a model too dense for the Band face budget (its surface may take a quarter of
+  it) is banded on a lighter copy, its longest edges split first. The finest detail softens, and the report says so.
+  Raise the budget to keep all of it. Off: the model is refused.
 - **Band face budget:** aborts construction instead of silently leaving stripes out. Very broad and shallow bands
   require many surface samples; increase relief, increase spacing, narrow bands, or raise the budget if necessary.
 
@@ -66,7 +69,7 @@ atlas-toolkit run mesh-stripes model.stl --stripes-only --relief 0.2 -o model_ri
 atlas-toolkit run plotter-vision model_broad.stl --preset Features --no-decimate --no-outline-layer --line-width 0.2 --simplify 0.05 --min-stroke 1 -o model_broad.svg
 ```
 
-Hatch Maker is another route: No hatching, outlines and creases, Everything on one pen, about 0.2 mm width.
+Hatch Maker is another route: No hatching, outlines and creases, Save pens as: All on one pen, about 0.2 mm width.
 Paper, camera and pen settings remain controls of the downstream drawing tool. Dense presets do more work;
 ribbon-only Preview uses the same field budget as Run, so the pattern and cache remain stable between them.
 

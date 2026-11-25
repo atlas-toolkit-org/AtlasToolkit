@@ -6,7 +6,7 @@ Blender.
 Outputs <name>_sketch.svg, signed <desc>sketch-hatching</desc> so Atlas links them to this tool.
 """
 from atlas_toolkit.core import (CAMERA_KEYS, CAMERA_NOTE, FRAME_KEYS, Bool, Choice, Float, Inputs, Int, Output, Section, Seed,
-                                Tool, camera_params, frame_params, paper_params)
+                                Tool, camera_params, frame_params, paper_params, pen_output_param)
 
 FIELDS = [("principal", "The form"), ("slice", "Cross-sections"), ("isophote", "Bands of light"),
           ("screen", "One angle")]
@@ -23,8 +23,8 @@ def focused(v):
 TOOL = Tool(
     id="sketch-hatching",
     name="Sketch Hatching",
-    version="1.1.0",
-    category="mesh2svg",
+    version="1.2.0",
+    category="mesh2svg", group="tone",
     icon="sketch",
     action="Draw",
     summary="Draw a 3D model as a pen sketch: outline, suggestive contours and hatching that follows the form.",
@@ -154,6 +154,7 @@ TOOL = Tool(
                   help="Hatching, details, creases."),
             Float("bold_width", "Bold pen", 0.4, unit="mm", min=0.05, max=3.0, step=0.05, decimals=2,
                   help="Outline and contours."),
+            pen_output_param(),
             Float("max_ink", "Most ink", 0.0, unit="m", min=0.0, max=1000.0, step=5.0, decimals=0, advanced=True,
                   help="Thins the hatching until the drawing fits (0 = no limit)."),
         ),

@@ -36,9 +36,9 @@ def ready_for(d: R.Diagnosis, registry=None) -> list[str]:
         registry = reg()
     out = []
     for t in registry.ordered():
-        need = getattr(t, "needs", None)
+        need = getattr(t, "strongest_need", getattr(t, "needs", None))
         if need and t.id != TOOL.id and d.ok_for(need):
-            out.append(t.name)
+            out.append(t.name if t.needs else f"{t.name} ({t.need_options(need)})")
     return out
 
 

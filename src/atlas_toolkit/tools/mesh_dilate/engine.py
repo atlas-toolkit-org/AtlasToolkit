@@ -5,7 +5,7 @@ from pathlib import Path
 import numpy as np
 
 from atlas_toolkit.core import Stat
-from atlas_toolkit.geom import frame3d, influence
+from atlas_toolkit.geom import frame3d, influence, repair
 from atlas_toolkit.geom import mesh as gm
 from atlas_toolkit.tools.mesh_compress import mesh_compress as mc
 
@@ -65,6 +65,11 @@ def run(ctx, src: Path, dst: Path | None, p):
         closed = bool(part.is_watertight and part.is_winding_consistent and
                       part.volume > max(1e-12, 1e-10 * part.area ** 1.5))
         S, SF, edge = mc.remesh(P, PF, int(simulation_budgets[k]), ctx.log)
+        # The fan that closes a cut (a bust's flat base) splits into tens of thousands of slivers, which cross their
+        # neighbours at the slightest bend: the contact guard then held the whole model back.
+        P, PF, refilled = repair.refill_flat_slivers(P, PF, longer_than=0.75 * edge)
+        if refilled:
+            ctx.log(f"re-triangulated {refilled} flat cap(s) made of slivers")
         D, DF = mc.detail_mesh(P, PF, edge, int(output_budgets[k]), ctx.log)
         # Decimation must not convert an open scan to a purported closed volume.
         closed = closed and mc.is_closed(SF) and mc.is_closed(DF)

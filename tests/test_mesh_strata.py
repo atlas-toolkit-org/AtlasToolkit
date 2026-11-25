@@ -64,6 +64,39 @@ class CuttingTests(unittest.TestCase):
         self.assertEqual(len(set(cells)), 27)
         self.assertAlmostEqual(sum(m.volume for m in parts), box.volume, places=4)
 
+    def test_a_cut_whose_cap_fails_is_made_again_and_stays_closed(self):
+        """Doryphoros' Pinned Strata and most Grid Slicer blocks: the cap's triangulation left a gap."""
+        from unittest import mock
+        ball = trimesh.creation.icosphere(subdivisions=3)
+        real = trimesh.Trimesh.slice_plane
+        good = cutting.split(ball, (0, 0, .1), (0, 0, 1))
+
+        def capless(mesh, origin, normal, cap=False, **_):
+            return real(mesh, origin, normal, cap=False)
+
+        def refused(*_, **__):
+            raise ValueError("no triangulation")
+        for broken in (capless, refused):
+            with mock.patch.object(trimesh.Trimesh, "slice_plane", broken):
+                pieces = cutting.split(ball, (0, 0, .1), (0, 0, 1))
+            self.assertTrue(all(m.is_volume for m in pieces))
+            for got, want in zip(pieces, good):
+                self.assertAlmostEqual(got.volume, want.volume, places=9)
+                np.testing.assert_allclose(got.bounds, want.bounds, atol=1e-9)
+        with mock.patch.object(trimesh.Trimesh, "slice_plane", capless):
+            self.assertFalse(any(m.is_watertight for m in cutting.split(ball, (0, 0, .1), (0, 0, 1), cap=False)))
+            half = cutting.split(ball, (0, 0, 0), (0, 0, 1), cap=False)[0]
+            self.assertFalse(any(m.is_watertight for m in cutting.split(half, (.1, 0, 0), (1, 0, 0)) if m))
+        with mock.patch.object(trimesh.Trimesh, "slice_plane", refused), self.assertRaisesRegex(ValueError, "no tri"):
+            cutting.split(half, (.1, 0, 0), (1, 0, 0))
+
+    def test_a_cut_that_closes_is_untouched(self):
+        from unittest import mock
+        ball = trimesh.creation.icosphere(subdivisions=3)
+        with mock.patch.object(cutting, "solid_split", side_effect=AssertionError("not needed")):
+            below, above = cutting.split(ball, (0, 0, .1), (0, 0, 1))
+        self.assertTrue(below.is_volume and above.is_volume)
+
 
 class StackTests(unittest.TestCase):
     def test_basis_is_orthonormal_and_right_handed(self):

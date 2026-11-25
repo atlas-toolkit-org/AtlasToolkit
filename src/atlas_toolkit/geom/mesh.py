@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import struct
 from dataclasses import dataclass
+from contextlib import contextmanager
 from pathlib import Path
 
 import numpy as np
@@ -44,17 +45,52 @@ def open_edge_segments(vertices, faces, keep: int = OPEN_EDGES_KEEP):
         return np.zeros((0, 2, 3), np.float32), 0
     e = np.sort(np.concatenate([f[:, [0, 1]], f[:, [1, 2]], f[:, [2, 0]]]), axis=1)
     key = e[:, 0] * (int(e.max()) + 1) + e[:, 1]
-    uniq, first, counts = np.unique(key, return_index=True, return_counts=True)
-    lone = e[first[counts == 1]]
+    order = np.argsort(key, kind="stable")          # one sort; the edges used once, in key order
+    sk = key[order]
+    single = np.ones(len(sk), bool)
+    same = sk[1:] == sk[:-1]
+    single[1:] &= ~same
+    single[:-1] &= ~same
+    lone = e[order[single]]
     n = len(lone)
     if n > keep:
         lone = lone[np.linspace(0, n - 1, keep, dtype=int)]
     return np.asarray(vertices, dtype=np.float32)[lone], n
 
 
+_REUSE: dict | None = None
+
+
+@contextmanager
+def reuse_loads():
+    """Within the block, loading the same unchanged file again gives a copy of the first load instead of reading
+    and cleaning it again (inspecting a file and checking it for a tool load it twice; a big scan takes seconds)."""
+    global _REUSE
+    outer, _REUSE = _REUSE, ({} if _REUSE is None else _REUSE)
+    try:
+        yield
+    finally:
+        _REUSE = outer
+
+
 def load_mesh(path, merge: bool = True):
     """A single Trimesh from any file trimesh reads (scenes are flattened with their transforms), cleaned:
     merged vertices, no degenerate or duplicate faces, no unreferenced vertices."""
+    if _REUSE is not None:
+        try:
+            st = Path(path).stat()
+            key = (str(Path(path).resolve()), st.st_size, st.st_mtime_ns, merge)
+        except OSError:
+            key = None
+        if key is not None:
+            if key not in _REUSE:
+                _REUSE.clear()
+                _REUSE[key] = _load_mesh(path, merge)
+            return _REUSE[key].copy()
+    return _load_mesh(path, merge)
+
+
+def _load_mesh(path, merge: bool = True):
     if Path(path).suffix.lower() in ('.obj', '.ply', '.off'):
         from .surface import load_surface
         surface = load_surface(path)
@@ -77,11 +113,89 @@ def load_mesh(path, merge: bool = True):
     return clean(mesh, merge)
 
 
+FAST_MERGE_MIN = 200_000          # vertices; below it trimesh's own merge is as quick
+
+
+def _row_hash(u: np.ndarray, primes) -> np.ndarray:
+    h = np.zeros(len(u), np.uint64)
+    for j in range(u.shape[1]):
+        h ^= u[:, j] * np.uint64(primes[j])
+        h = (h << np.uint64(29)) | (h >> np.uint64(35))
+    return h
+
+
+def first_rows(q: np.ndarray):
+    """Unique rows of an integer (n, k) array (k <= 4) in order of first appearance: (index of each unique row's first
+    occurrence, inverse), like trimesh.grouping.unique_rows(keep_order=True) but with one sort of a 64-bit row hash
+    instead of two row sorts. Rows that share the hash are checked with a second, independent hash; on a collision it
+    returns (None, None) and callers take the slow way."""
+    q = np.ascontiguousarray(q, dtype=np.int64)
+    if not len(q):
+        return np.zeros(0, np.int64), np.zeros(0, np.int64)
+    u = q.view(np.uint64)
+    h = _row_hash(u, (0x9E3779B97F4A7C15, 0xC2B2AE3D27D4EB4F, 0x165667B19E3779F9, 0x27D4EB2F165667C5))
+    order = np.argsort(h)
+    hs = h[order]
+    start = np.empty(len(q), bool)
+    start[0] = True
+    np.not_equal(hs[1:], hs[:-1], out=start[1:])
+    del hs
+    inner = np.flatnonzero(~start)
+    if len(inner):
+        g = _row_hash(u, (0xD6E8FEB86659FD93, 0xA0761D6478BD642F, 0xE7037ED1A0B428DB, 0x8EBC6AF09C88C6E3))[order]
+        if (g[inner] != g[inner - 1]).any():
+            return None, None
+    starts = np.flatnonzero(start)
+    firsts = np.minimum.reduceat(order, starts)
+    rank = np.argsort(firsts)
+    newid = np.empty(len(rank), np.int64)
+    newid[rank] = np.arange(len(rank))
+    inverse = np.empty(len(q), np.int64)
+    inverse[order] = newid[np.cumsum(start) - 1]
+    return firsts[rank], inverse
+
+
+def merge_vertices(mesh) -> None:
+    """trimesh's Trimesh.merge_vertices() with its defaults, the same result, about four times faster on large scans.
+    Meshes with colours, UVs or vertex normals (which trimesh's merge also compares) and small ones go to trimesh."""
+    V = mesh.vertices
+    if len(V) < FAST_MERGE_MIN or not len(mesh.faces) or mesh.visual.defined \
+            or np.shape(mesh._cache["vertex_normals"]) == np.shape(V):
+        mesh.merge_vertices()
+        return
+    from trimesh import util
+    from trimesh.constants import tol
+    referenced = np.zeros(len(V), dtype=bool)
+    referenced[mesh.faces] = True
+    q = (np.asarray(V)[referenced] * (10 ** util.decimal_to_digits(tol.merge))).round().astype(np.int64)
+    first, inv = first_rows(q)
+    if first is None:                     # pragma: no cover (a 64-bit hash collision)
+        mesh.merge_vertices()
+        return
+    inverse = np.zeros(len(V), dtype=np.int64)
+    inverse[referenced] = inv
+    mesh.update_vertices(mask=np.nonzero(referenced)[0][first], inverse=inverse)
+
+
+def unique_faces(mesh) -> np.ndarray:
+    """trimesh's Trimesh.unique_faces() (a mask of each face's first copy, whatever its winding), quicker on big
+    meshes."""
+    F = np.asarray(mesh.faces)
+    if len(F) < FAST_MERGE_MIN:
+        return mesh.unique_faces()
+    first, _ = first_rows(np.sort(F, axis=1))
+    if first is None:                     # pragma: no cover (a 64-bit hash collision)
+        return mesh.unique_faces()
+    mask = np.zeros(len(F), dtype=bool)
+    mask[first] = True
+    return mask
+
+
 def clean(mesh, merge: bool = True):
     if merge:
-        mesh.merge_vertices()
+        merge_vertices(mesh)
     mesh.update_faces(mesh.nondegenerate_faces())
-    mesh.update_faces(mesh.unique_faces())
+    mesh.update_faces(unique_faces(mesh))
     mesh.remove_unreferenced_vertices()
     if not np.isfinite(mesh.vertices).all():
         mesh.remove_infinite_values()
@@ -103,17 +217,22 @@ def decimate(vertices: np.ndarray, faces: np.ndarray, max_faces: int = PREVIEW_F
         key = (q[:, 0] * (res + 1) + q[:, 1]) * (res + 1) + q[:, 2]
         uniq, inv = np.unique(key, return_inverse=True)
         inv = inv.reshape(-1)
-        nv = np.zeros((len(uniq), 3))
-        np.add.at(nv, inv, v)
+        nv = np.column_stack([np.bincount(inv, weights=v[:, j], minlength=len(uniq)) for j in range(3)])
         nv /= np.bincount(inv, minlength=len(uniq))[:, None]
         nf = inv[f]
         keep = (nf[:, 0] != nf[:, 1]) & (nf[:, 1] != nf[:, 2]) & (nf[:, 0] != nf[:, 2])
         nf = nf[keep]
-        _, first = np.unique(np.sort(nf, axis=1), axis=0, return_index=True)
+        sf = np.sort(nf, axis=1)
+        n = np.int64(len(uniq))
+        if n < 2_000_000:                                   # one key per face: a 1-D unique, much quicker
+            _, first = np.unique((sf[:, 0] * n + sf[:, 1]) * n + sf[:, 2], return_index=True)
+        else:                                               # pragma: no cover (previews have far fewer cells)
+            _, first = np.unique(sf, axis=0, return_index=True)
         nf = nf[np.sort(first)]
         if len(nf) <= max_faces:
             return nv.astype(np.float32), nf.astype(np.int32)
-        res = int(res * 0.8)
+        # faces grow with the square of the grid: aim straight for the budget (at least the old 0.8 step)
+        res = int(res * min(0.8, 0.97 * np.sqrt(max_faces / len(nf))))
     return v.astype(np.float32), f[:max_faces].astype(np.int32)
 
 
@@ -154,9 +273,24 @@ def preview(mesh, max_faces: int = PREVIEW_FACES) -> MeshData:
                     open_edges=_open_edges(mesh.vertices, mesh.faces))
 
 
+def is_closed(faces) -> bool:
+    """trimesh's is_watertight (every edge shared by exactly two faces) with one sort of the edge keys instead of a
+    row grouping: the same answer, a few times sooner on big scans."""
+    F = np.asarray(faces, dtype=np.int64)
+    if not len(F):
+        return False
+    a, b = F.reshape(-1), F[:, [1, 2, 0]].reshape(-1)
+    n = np.int64(int(F.max()) + 1)
+    key = np.sort(np.minimum(a, b) * n + np.maximum(a, b))
+    if len(key) % 2:
+        return False
+    pairs = key.reshape(-1, 2)
+    return bool((pairs[:, 0] == pairs[:, 1]).all() and (pairs[1:, 0] != pairs[:-1, 1]).all())
+
+
 def describe(mesh) -> tuple[str, dict]:
     ext = mesh.extents
-    watertight = bool(mesh.is_watertight)
+    watertight = bool(mesh.is_watertight) if len(mesh.faces) < FAST_MERGE_MIN else is_closed(mesh.faces)
     values = {"faces": int(len(mesh.faces)), "vertices": int(len(mesh.vertices)),
               "extents": tuple(float(x) for x in ext), "max_dim": float(ext.max()), "min_dim": float(ext.min()),
               "diag": float(np.linalg.norm(ext)), "watertight": watertight,

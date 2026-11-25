@@ -27,7 +27,7 @@ TOOL = Tool(
     id="mesh-shatter",
     name="Mesh Shatter",
     version="4.1",
-    category="mesh",
+    category="mesh", group="fragment",
     icon="shatter",
     action="Shatter",
     summary="Break a model's surface into shards and blow them apart, cracks following its creases.",

@@ -25,7 +25,7 @@ TOOL = Tool(
     id="mesh-porous",
     name="Porous Forms",
     version="1.0",
-    category="mesh",
+    category="mesh", group="carve",
     icon="porous",
     action="Hollow",
     summary="Turn a model into a continuous labyrinth of walls or struts inside its own silhouette.",

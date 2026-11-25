@@ -1,5 +1,186 @@
 # Changelog
 
+## 2.5.2 (2026-11-25)
+
+**The first public release since 2.4.7.** It also brings 2.5.0 and 2.5.1 (below), which were never published on their
+own: the new Shape Crop, Save pens as, the side-by-side workflow layout, and a much quicker FlowRep Sketch. This
+version groups the tool lists and makes the sculpting tools work on dense models.
+
+- **Tools come in subgroups.** The side bar, Home, the Workflows step list, About and `atlas-toolkit list` group the
+  tools as the README does: Mesh → Mesh (was "Mesh · model prep") in six foldable families, Mesh → SVG and SVG in two
+  each. Headers fold with a click and are remembered; Mesh → Mesh starts folded to its six headers, and opening a tool
+  from elsewhere unfolds its group. Developable Surfaces moves to Surface and relief.
+- **The tool list can sit along the top.** Setup › General › Tool list (or the button at the top of the side bar)
+  swaps the side bar for a bar whose categories drop down as panels, every subgroup in view: point at another category
+  to switch, arrow keys, Enter and Esc. It switches at once and leaves the whole width to the page.
+- **Notices where they help.** A warning by the name of tools that can be slow (a small clock in the lists), an ⓘ
+  beside Preview (tools and workflow steps) saying how a draft can differ, and a strip on every Aim tab saying that it
+  is a simplified view and the drawing has more detail (it was only "light trace" in the read-out).
+- **Dilate 0.2.0 finishes on dense models, and reaches its inflation.** On the 259k-face David head it ran for over
+  ten minutes; now 1.6, with 79.5 % of the 80 % asked. Three causes: the contact search tested triangle pairs one by
+  one (now a grid, with the same exact test and the same answers) and stopped at the first 128 crossings; the sliver
+  fan that closes a bust's flat base crossed itself at the slightest bend (it is re-triangulated first); and one face
+  left after twelve local corrections held the whole model back (now up to 48, all local). The light David head goes
+  from 30 % to 79 %, Weeping Lady from 28 % to 77 %. Models that met no contact (Spot, Bob) come out byte for byte the
+  same in half the time; those that did now inflate further.
+- **Cuts stay closed.** A cap that the triangulation left with a gap made a block or layer an open shell: Grid Slicer
+  left most of the blocks of an intricate model open, and Strata's connectors refused Doryphoros. The cut is now made
+  again by manifold3d, which keeps a solid closed; a cut that already closed is unchanged (`geom/cutting.py`). Each
+  block and layer is also checked as a float32 file holds it. Grid Slicer 3.2.0 (also keeps the hole of a ring-shaped
+  section), Strata Sculpt 1.2.1, Plane Cut 0.1.2 (a cut it refused as not closed).
+- **Compress 0.1.1 and Dilate 0.2.1 keep a dense model closed.** Simplifying to the Output face limit pinched thin
+  parts of Laocoön and Discobolus together, so the result had edges four faces share, and Dilate took the model for
+  an open one. The pinches are separated; where nothing was pinched the simplified model is the same as before.
+  Where it was, the result changes: Dilate now inflates those models by volume, up to where they touch (it swelled
+  their surface instead), and Compress's morph smooths over a coarse copy that stays closed.
+- **Surface Stripes 0.3.0 and Surface Eject 0.5.0 take dense models.** A model too dense for the Band face budget
+  (Laocoön, Discobolus) or for Maximum faces once its pieces are cut (Discobolus) was refused. **Simplify to fit** (on
+  by default) works on a lighter copy of it, as Disintegrate and Motion Sculpture do, and the report says so; a model
+  that fits is unchanged. Stripes splits the copy's longest edges first, so the budget goes where the surface is
+  coarsest. A painted region is never simplified.
+- **Motion Sculpture 0.6.2 sweeps thin slivers.** One sliver a cut left could turn inside out under the curl and stop
+  the whole sculpture (Shattered slipstream on Doryphoros, Laocoön and Discobolus): the wake's straight edges cut its
+  bend by more than the sliver's thickness. Such a piece is swept with shorter edges; every other one is unchanged.
+  The check that a shell stays closed in a file, shared with Grid Slicer and Strata Sculpt, also fixes a few more.
+- For tool authors: `group`, `slow` and `draft_note` in the spec, and an optional `stage_note()` on a viewer
+  (docs/ADDING_A_TOOL.md); `scripts/dev/tool_times.py` measures which tools are slow.
+
+## 2.5.1 (2026-11-24, first released in 2.5.2)
+
+- **Plot time shows what stroke ordering saved.** Every Mesh → SVG tool that orders its strokes now shows the plot
+  time the drawing would take unordered as "was …" next to **Plot time**, as Pen-up travel already did (Stipple on a
+  ball: 3 h 44 → 42 min). Sketch Hatching and Stipple now report their travel before ordering too, and Depth Hatching
+  uses the shared tiles. The estimate counts the travel only, not lifts saved by joining, so it never overstates the
+  saving. A "was" that reads the same as the value (ordering off) is left out.
+- **FlowRep Sketch 0.3.1 is several times quicker, most of all on big meshes, with the same drawings.** On the sculpted
+  head (524k triangles), extraction with loading takes 47 s at 6000 quads and 70 s at 10,000 (before: about 2.5 and
+  11 minutes), 2.5 minutes at 20,000 (was about 13) and 5 at 40,000: it now grows about linearly. Profiling showed the
+  simplifier measuring the same patches over and over (1.45 million measures at 10,000 quads): they are now cached
+  under exactly what they read, whole assessments too, and the local search recomputes only the curve costs a swap
+  can change. Clustering builds its graph with array operations and refines each pair of clusters near the border
+  they share, not over both whole clusters (86 s → 9 s at 20,000 quads; the step that grew as faces^1.5). Uniform
+  meshes (scans, sculpts, STL) load with array operations: 32 s → 2 s for the head's faces.
+- Only the clustering window can change a result: with full refinement the networks are bit for bit the old ones
+  (checked on the head and on each benchmark model whose drawing changed). The window's clustering score on the head
+  at 20,000 quads matches the full refinement's (slightly higher on the second stage). At 6000 quads 10 of 14
+  benchmark drawings are byte-identical; the others differ by a curve or two (the wine glass and bottle lose their
+  last loose ends, spot gains three strokes).
+- The bar no longer sits at 9 % while clustering: it has its own steps (merging, then each refinement pass), and the
+  local search and decluttering report as they go. *Remesh resolution*'s help says what each range costs.
+- **A preset saved before a parameter was renamed keeps its value.** Loading one put the new parameter's default in
+  first, so the old name was never read: a Hatch Maker 7.0 preset with *Everything on one pen* loaded as a layer per
+  pen, without a word. Saved settings and workflows already converted; presets now do too.
+- **Shape Outline 2.0.1 outlines big, intricate drawings.** On a dense Contour Lines drawing (a 259k-face head) the
+  inward step of *Envelope* could come back self-intersecting from GEOS, and the union after it failed with "unable to
+  assign free hole to a shell". Such a shape is now repaired first (`make_valid`, keeping every lobe).
+- **Disintegrate, Motion Sculpture and Form Replicator work on catalogue-sized models.** On the catalogue (median
+  200k faces) every Disintegrate and Motion essential failed on Thinker (600k) and Venus de Milo (1M), and Form
+  Replicator's on Venus and one on Thinker; all now finish on both, in about a minute or less:
+  - *Disintegrate 1.2.0*: a model too dense for its steps is simplified just enough that every stage fits the
+    2-million-face budget (**Simplify to fit**, on: about 95,000 faces for two steps, 23,500 for three). Three-step
+    presets used to fail on every catalogue model, even the 30k light copies.
+  - *Motion Sculpture 0.6.0*: when the wake would exceed **Maximum faces**, a closed copy with half the faces is
+    sculpted, and half again, until it fits (**Simplify to fit**, on). A dense model's section caps are what the wake
+    refinement multiplies: a 259k head made over 2 million faces.
+  - *Form Replicator 1.0.3*: decimating Venus or Thinker pinched the drapery at every target, so the source stayed at
+    full detail and Sea Urchin, Sunflower and Toroidal Wreath were refused (96–216 copies × 1M faces). When no target
+    gives a solid, the safe tidy now closes what decimation pinched. One working result changes: a model that kept its
+    full detail because every target pinched (the light Venus, 40k faces a copy) now gets the Source detail asked.
+  - New `geom.repair.simplified_solid`: a lighter copy of a solid that is still a solid (decimation, then the tidy).
+- **Motion Sculpture 0.6.1 saves every shell closed.** A wake draws a few triangles thinner than float32 resolves, so
+  some files held flattened triangles and non-manifold edges, and one shell (Shattered slipstream on Thinker) a hole.
+  Only a shell that does not come through float32 intact is changed (`solid_connectors.stabilize`: closed, volume to
+  one part per million).
+- **Strata Sculpt 1.2.0 and Surface Eject 0.4.0 no longer stop a whole run over one connector.** On the catalogue,
+  Airy Roots, Square Supports and Pinned Strata failed on both David heads ("No safe connector"), and Fine Veins on
+  the heads, Thinker and the skull; changing the seed rarely helped. The 25
+  connected results that worked before (both heads, and Strata on Thinker and Venus) are byte-identical; the first
+  change below could in principle admit a support or branch that used to be rejected:
+  - A joint that float32 welds (two vertices a cut left closer than it resolves) is accepted as written: every export
+    writes float32, and the copy must still be closed, with the same pieces and volume (`solid_connectors.stabilize`,
+    for both tools). This was the whole failure of Square Supports and Airy Roots on the 30k head.
+  - *Strata*: a small piece a cut clips off a curl got its candidates only on its tapering rim; a pair that connects
+    from none of them now tries points inside its own facing caps, the most interior first. A speck narrower than six
+    of the thinnest connector, which no support fits, is left out and counted. When the fused solid cannot be
+    stabilized even without branches, the support that breaks it is found by halving and left out if its gap keeps
+    another (Airy Roots on Thinker).
+  - *Surface Eject*: a fragment no bridge can reach (one from the base of a bust thrown up past the head) floats free
+    like an unselected one, and so does one whose joint breaks the fused solid next to the others; the report names
+    them. Fine Veins: one floats on each David head, two of 22 on Thinker, seven on the thin-walled skull.
+- **Surface Stripes 0.2.2 makes a solid of sheets that touch.** On Venus de Milo (both sizes) Plotter broad and Plotter
+  dense failed "closed-solid validation": two band sheets met along an edge once float32 welded their vertices (an
+  edge four faces share, no hole), and each coarser simplification only made holes of it. Such an edge is now
+  separated first (Repair Mesh's split, whose copies stay apart through every format's reload); a mesh with a real
+  hole is refused as before.
+- **Image to Mesh 0.1.2 and Raster DEM to Mesh 0.3.2 finish dense terraced reliefs.** Terraced relief on the gallery
+  photo failed with "Collapsed terrain triangles" at 0.25, 0.35 and 0.5 mm pitch: simplifying millions of planar treads left zero-area
+  triangles, boolean specks and edges that float32 welding opens. Only where that happens, the float32 copy is tidied
+  and corners lying on an edge are flipped away, and it is kept
+  only when it is one closed solid of the same volume. At 0.25 mm that relief has 6.5 million faces, so it still
+  needs a larger export budget or a coarser pitch.
+
+## 2.5.0 (2026-11-23, first released in 2.5.2)
+
+**Shape Crop: keep the part of a model inside a box, sphere, cylinder or pyramid, quickly, even on large scans**
+- **Shape Crop** 0.1.0 (Mesh · Prepare and cut), a new tool. Place a box, sphere, cylinder or pyramid on a model and
+  keep what is inside it (**Keep inside**, the default), or **Cut away** the region, **Add the shape** to the model
+  (a plinth, a block), or keep **Both remainders** (the model without the shape and the shape without the model, as one
+  file or two). Each size is set on its own, so the shapes also give blocks, ellipsoids and rectangular pyramids.
+- The **Shape** tab crops the model live as you move (arrows), turn (rings) and size (square handles) the shape, or
+  drag a rectangle over the view and the shape fills it through the model's depth. It draws the model's light copy, so
+  it stays instant on any model; Preview computes the exact result. Sizes are % of the model or model units; each file
+  keeps its own placement, and presets leave it alone (the tool has no official presets).
+- Closed models get closed cuts (manifold3d booleans, the shape's surface filling the cut). Open scans are clipped
+  exactly along the shape, with no cracks, and stay open; Add the shape and Both remainders ask for Repair Mesh, but
+  only while one of them is chosen. A scan with a real opening is no longer tidied first for nothing (that took 40 s at
+  1.3 million faces).
+- **Quick on big meshes**, for every mesh tool: reading and cleaning a mesh is about twice as quick (5.2 million faces:
+  18 s → 8–9 s), adding a file to a tool that checks its input reads it once instead of twice (an open 1.3-million-face
+  scan: 32 s → 4.5 s), the solid and watertight checks are two sorts instead of a grouping, and mesh previews come
+  back about three times sooner. Shape Crop on 1.3 million faces takes 2–4.5 s, on 5.2 million 8–15 s, file and
+  preview included (`scripts/dev/validate_mesh_crop.py`, 48 runs); see `docs/SHAPE_CROP.md`.
+- For tool authors, three new contract fields: `Tool.needs_if` (a need for some settings only, like `requires_if`),
+  `Tool.official_presets` (False: the packs carry none) and `Tool.per_input_label` (what the file list calls the
+  per-file values). Plane Cut's and Mirror's plane editor and Shape Crop's shape editor now share one gizmo base,
+  `ui/widgets/gizmo.py`; they behave as before.
+- For developers: `geom/region.py` (placed shapes with exact crossings), `geom.mesh.first_rows` / `merge_vertices` /
+  `unique_faces` / `reuse_loads`, `geom.repair.solid_body` / `closed_and_consistent` / `open_half_edges` /
+  `beyond_tidy`, and `scripts/dev/validate_mesh_crop.py` (every shape and operation up to 5 million faces, timed by
+  stage). `readme_gallery.py --publish --only <id>` publishes just those images.
+
+**Save pens as: every drawing tool with several pens saves them the same way, and you choose how**
+- Six tools draw with more than one pen (widths, dashes, colours): **Hatch Maker** 7.1.0, **Plotter Vision** 1.7.0,
+  **Sketch Hatching** 1.2.0, **Stipple** 1.2, **FlowRep Sketch** 0.3.0 and **Photo Hatching** 1.2.0. Each now has
+  **Save pens as** in its Pens section, shown once the settings give more than one pen: **A layer per pen** (the
+  default, as before), **A group per pen, one layer** (apart for editing, one plotting pass), **A file per pen** (each
+  pen alone on the same sheet beside the whole drawing, `name-1-fine.svg` …, all signed, so they line up) or **All
+  on one pen** (one layer at the first pen's width, ordered together). The preview, the report and the travel figure
+  show the pens as saved; the report lists every file written.
+- Hatch Maker's *Everything on one pen* became *All on one pen*; older settings, presets and workflows carry over.
+  Photo Hatching's *One layer per direction* is now *A pen per direction*.
+- **FlowRep Sketch's hidden curves are dashed strokes** (1.5 mm on, 1.5 mm off), as Plotter Vision's always were.
+  They were a `stroke-dasharray`, which plotters draw as a solid line. Its SVG now comes from the shared writer:
+  pens are labelled `1 features`, `2 silhouette` … and the curves keep their fitted Béziers and network record.
+- For tool authors: `pen_output_param()` in `atlas_toolkit.core`, and `geom.svgout.write_pens`, `arrange`,
+  `pen_mode`, `pen_file` and `dashed` (moved from Plotter Vision); `drawing.saved_lines` words the files for a
+  report. `docs/ADDING_A_TOOL.md` explains them.
+
+**Workflows: a side-by-side layout with a full-height preview, foldable tabs and clear workflow controls**
+- **Side by side**, a new layout beside **Stacked** (the switch is in the head, and the page remembers it). The
+  pipeline sits on the left and is drawn top to bottom, with the tabs under it. The preview is on the right, at full
+  height. Lay out and Fit follow the layout, and switching never changes the workflow (no edit, nothing to undo).
+- **Inputs · Problems · Log · Report fold away** with the arrow beside Inputs, as the tool pages' file list does,
+  for a wider preview or a taller pipeline. A slim strip keeps a button per tab, and the Problems button turns red
+  or amber after a Check. A picker beside the preview's title still chooses the file. A Check with errors brings
+  the tabs back on Problems, and Run or Preview without a file brings them back on Inputs.
+- **Workflow controls** is now a panel of its own under the step settings: tinted, with a title and the workflow's
+  status beside the buttons. Check and Run sit side by side, and the next step is always the bright button (Check,
+  then Run once it passes). It uses the design tokens, so it suits the light and dark themes.
+- **A run skips files its input cannot take.** The file list stays when you open another workflow, and a run used to
+  try every file on it, so an image left from an image workflow failed in a mesh one. Such files now stay listed,
+  marked **Not used**, and Run counts only the others. Preview and Aim say why when one is selected, and the mark
+  goes when a workflow can take the file again.
+
 ## 2.4.7 (2026-11-23)
 
 **Surface Texture 0.2.0: every run finishes, the relief survives, and it shows in the drawing**

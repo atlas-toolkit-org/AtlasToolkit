@@ -7,7 +7,7 @@ def staged(v):
 
 
 TOOL = Tool(
-    id="mesh-bend", name="Bend", version="0.1.0", category="mesh", icon="bend-spine", action="Bend",
+    id="mesh-bend", name="Bend", version="0.1.0", category="mesh", group="deform", icon="bend-spine", action="Bend",
     summary="Curve a model into an arc, a sculptural S or a spatial wave, with anchored ends and transported sections.",
     tagline="A gesture through the whole form. Shape the silhouette, then draw its flowing contours.",
     description=("Bend carries cross-sections along a spine of unchanged length, rotating them with the curve. "

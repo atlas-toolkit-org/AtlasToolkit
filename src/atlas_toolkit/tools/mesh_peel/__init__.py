@@ -36,7 +36,7 @@ TOOL = Tool(
     name="Surface Peel",
     version="1.0.1",
     optional=(("blender", "Solidify with Blender: Complex Solidify, even thickness and careful corners"),),
-    category="mesh",
+    category="mesh", group="fragment",
     icon="peel",
     action="Peel",
     summary="Cut a model's skin into petals or scales and peel them back about their roots: a head opening like a "

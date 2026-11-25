@@ -212,6 +212,9 @@ def apply(tool, preset: Preset, current: dict | None = None) -> tuple[Params, li
         raw = tool.resolve(tool.migrate)(dict(raw), preset.tool_version) or raw
     base = tool.defaults()
     merged = dict(base)
+    for p in tool.param_list:      # a key the preset holds under a former name: leave it to `lookup` to convert
+        if p.key not in raw and any(raw.get(old) is not None for old in p.former):
+            merged.pop(p.key, None)
     merged.update(raw)
     values, problems = resolve_lenient(tool.param_list, merged)
     unknown = [k for k in raw if k not in base and not any(k in p.former for p in tool.param_list)]

@@ -23,7 +23,7 @@
   <img src="docs/images/readme/hero.webp" alt="Four drawings made with Atlas Toolkit: a sketched bust, a twisted head in cross-hatching, a head peeling open like a plant, and a hatched photograph of a bridge" width="100%">
 </p>
 
-Atlas Toolkit is a desktop app for pen-plotter art. It gathers 49 tools for transforming and sculpting 3D models, turning models and
+Atlas Toolkit is a desktop app for pen-plotter art. It gathers 50 tools for transforming and sculpting 3D models, turning models and
 images into line drawings, and preparing those drawings for the plotter.
 
 **Aim.** To take a drawing from first idea to a file the plotter can draw well, without leaving one app.
@@ -105,7 +105,7 @@ A typical drawing moves left to right, and any stage can be skipped:
 | [Draw from 3D](#draw-from-3d) | 6 | Turn a model into line art |
 | [Draw from photographs](#draw-from-photographs) | 1 | Turn a photo into hatching |
 | [From image to model](#from-image-to-model) | 2 | Raise images and terrain into 3D |
-| [Transform and sculpt](#transform-and-sculpt) | 33 | Transform, modify or sculpt models, in six families |
+| [Transform and sculpt](#transform-and-sculpt) | 36 | Transform, modify or sculpt models, in six families |
 | [Refine for the plotter](#refine-for-the-plotter) | 5 | Clean and shape finished SVGs |
 
 Each example shows a result beside a drawing of it, made with the drawing tool that suits the effect best. The samples
@@ -114,7 +114,12 @@ are the heads of the Venus de Milo and Michelangelo's David, a photograph of a b
 ### Draw from 3D
 
 Each tool gives a model its own line language and writes an SVG sized for your paper, with hidden lines removed. Aim
-the camera live and the drawing follows that view.
+the camera live and the drawing follows that view. A drawing with several pens (outlines, hatching, hidden lines)
+is saved as a layer, a group or a file per pen, or on one pen: see [Save pens as](docs/TOOLS.md#pens-how-a-drawing-with-several-pens-is-saved).
+
+#### Lines and contours
+
+Describe a form with its slices, edges and curves.
 
 <table>
 <tr>
@@ -135,18 +140,34 @@ with depth pens, outline and hidden-line pens, and red-blue stereo.
 </tr>
 <tr>
 <td valign="top">
+<img src="docs/images/readme/flowrep-sketch.webp" alt="Venus as a sparse network of curves" width="100%">
+
+**FlowRep Sketch**<br>
+A sparse network of curvature-aligned curves that describe a form, after FlowRep (Gori et al., 2017). Descriptiveness
+sets how many remain, and an optional silhouette closes the figure.
+</td>
+</tr>
+</table>
+
+#### Hatching and tone
+
+Build light and shade from strokes or dots.
+
+<table>
+<tr>
+<td width="50%" valign="top">
 <img src="docs/images/readme/sketch-hatching.webp" alt="David as a pen sketch" width="100%">
 
 **Sketch Hatching**<br>
 An illustrator's pen sketch: lost-and-found outline, suggestive contours, creases and hatching that follows the form in
 tone bands. Cast shadows, ambient occlusion and a portrait focus. Two pens.
 </td>
-<td valign="top">
+<td width="50%" valign="top">
 <img src="docs/images/readme/stl-hatch-maker.webp" alt="Venus shaded with hatching" width="100%">
 
 **Hatch Maker**<br>
 Shades a model from any view in seven styles, among them engraving, contours, crosshatch and stipple. Outlines and
-creases, one pen per layer, ordered to cut pen travel.
+creases, each pen saved as a layer, a group, a file or merged, ordered to cut pen travel.
 </td>
 </tr>
 <tr>
@@ -156,13 +177,6 @@ creases, one pen per layer, ordered to cut pen travel.
 **Stipple**<br>
 Dots only: blue-noise stippling of ray-cast light and shade. Keep highlights empty, darken edges in place of an outline,
 and set a dot budget.
-</td>
-<td valign="top">
-<img src="docs/images/readme/flowrep-sketch.webp" alt="Venus as a sparse network of curves" width="100%">
-
-**FlowRep Sketch**<br>
-A sparse network of curvature-aligned curves that describe a form, after FlowRep (Gori et al., 2017). Descriptiveness
-sets how many remain, and an optional silhouette closes the figure.
 </td>
 </tr>
 </table>
@@ -210,7 +224,7 @@ scaling, masks and adaptive detail. No GIS software needed.
 
 ### Transform and sculpt
 
-Thirty-four tools transform a model and return real geometry as STL, OBJ or PLY, in the model's own units. Many can also
+Thirty-six tools transform a model and return real geometry as STL, OBJ or PLY, in the model's own units. Many can also
 save a sequence of stages, which the drawing tools frame alike for a series of plates.
 
 #### Prepare and cut
@@ -248,6 +262,16 @@ Reflects a model through a plane you position. Keep the original or only the ref
 Fixes what stops the sculpting tools: holes, decimation debris, non-manifold edges, flipped faces. It keeps the
 surface where it can and rebuilds only if it must.
 </td>
+</tr>
+<tr>
+<td valign="top">
+<img src="docs/images/readme/mesh-crop.webp" alt="David cropped by a sphere, its cut closed by the sphere's surface" width="100%">
+
+**[Shape Crop](docs/SHAPE_CROP.md)**<br>
+Keeps the part of a model inside a box, sphere, cylinder or pyramid you move, turn and size live; or cuts it away,
+adds the shape, or keeps both remainders. Quick on scans of millions of faces.
+</td>
+<td width="50%"></td>
 </tr>
 </table>
 
@@ -312,13 +336,6 @@ Elastic or plastic skin, stiffness, pressure and friction.
 Stretches a still model into swept laminae or splintered bars. Stream, Pulse, Gust and Vortex fields draw tapered wakes
 behind a retained silhouette, over the whole model, a height band or a sphere.
 </td>
-<td valign="top">
-<img src="docs/images/readme/mesh-developable.webp" alt="David evolved into flowing folded surfaces" width="100%">
-
-**[Developable Surfaces](docs/DEVELOPABLE_SURFACES.md)**<br>
-Evolves a mesh into nearly developable pieces with flowing seams and straight rulings, after Stein, Grinspun and Crane
-(2018). From recognisable sculpture to abstract folds.
-</td>
 </tr>
 </table>
 
@@ -357,6 +374,15 @@ holds across models, and a second pattern can take over up the height.
 **Ribbon Wrap**<br>
 Wraps a model in silk, satin, velvet, cotton or gauze: a spiral bandage, parcel bands or a loose drape. Free tails fall
 outside the form, with threads, weave and ripples as geometry.
+</td>
+</tr>
+<tr>
+<td valign="top">
+<img src="docs/images/readme/mesh-developable.webp" alt="David evolved into flowing folded surfaces" width="100%">
+
+**[Developable Surfaces](docs/DEVELOPABLE_SURFACES.md)**<br>
+Evolves a mesh into nearly developable pieces with flowing seams and straight rulings, after Stein, Grinspun and Crane
+(2018). From recognisable sculpture to abstract folds.
 </td>
 </tr>
 </table>
@@ -537,11 +563,18 @@ echoed, patchworked or cocooned.
 The last step before the pen. These tools work on any SVG, in millimetres, and keep its layers, ids, styles and
 transforms.
 
+#### Clean up
+
 | Tool | What it does |
 |---|---|
 | **Overlap Cleaner** | Cuts ink drawn twice, so every line is plotted once. Optionally joins stroke ends and removes whole duplicates. |
 | **[Line Smooth](docs/LINE_SMOOTH.md)** | Removes sawtooth and jagged linework with curvature smoothing, within limits on displacement, corners and topology. |
 | **[Line Simplify](docs/LINE_SIMPLIFY.md)** | Reduces vertices within a physical error limit, protecting corners, crossings and enclosed shapes. |
+
+#### Cut and outline
+
+| Tool | What it does |
+|---|---|
 | **Shape Cutter** | Keeps the lines inside or outside a closed shape, taken from a layer, a named element or another SVG. |
 | **Shape Outline** | Draws one closed outline around a drawing: an envelope, a concave or a convex hull, with a margin in millimetres. |
 

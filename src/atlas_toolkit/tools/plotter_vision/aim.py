@@ -24,6 +24,7 @@ from PySide6.QtCore import Qt
 
 from atlas_toolkit.core.params import FRAME_KEYS
 from atlas_toolkit.geom import frame3d
+from atlas_toolkit.ui.widgets.common import tip_html
 
 from . import model as pm
 from .viewer import MODEL_KEYS, VisionView
@@ -50,8 +51,16 @@ class LightAim(VisionView):
     def load_model(self, path: str, p):
         return pm.load_light(path, AIM_FACES, bool(p.fix_winding))
 
+    def stage_note(self) -> tuple[str, str] | None:
+        """Said beside the tabs, in view all the time: this is not the drawing yet."""
+        return "Simplified view · the drawing has more detail", tip_html(
+            "Aim shows a simplified view", f"It traces a light version of the model (up to {AIM_FACES:,} faces) as "
+            "outlines and main creases, to stay quick while you turn it. The tool's own hatching, contours or dots are "
+            "not shown, and fine detail is left out.", "Use it to set the view and framing, then Preview or Run to see "
+            "the drawing.")
+
     def _mode_text(self) -> str:
-        return " · ".join(t for t in ("light trace", super()._mode_text()) if t)
+        return " · ".join(t for t in ("simplified", super()._mode_text()) if t)
 
 
 class AimView(LightAim):
@@ -76,7 +85,7 @@ class VisionAimView(LightAim):
     """Plotter Vision's Aim: the light trace by default; Exact lines (E) draws what Draw will write, live."""
     TRACE = {k: v for k, v in TRACE.items() if k != "fix_winding"}   # the tool's own winding fix stays
     MODEL_KEYS = ("fix_winding",)
-    EXACT_KEYS = AIM_KEYS + " · T stereo · X light trace"
+    EXACT_KEYS = AIM_KEYS + " · T stereo · X simplified view"
 
     def load_model(self, path: str, p):
         if self.exact:                           # the tool's own decimation and crossings, as Draw has them
@@ -87,7 +96,7 @@ class VisionAimView(LightAim):
         super().__init__(page)
         self.exact = False                       # view state only: never a setting, off whenever the page opens
         self.btn_exact = self._corner_button(
-            "Exact lines · X", "X: show the exact drawing (every edge, depth pens, stereo) instead of the light trace. "
+            "Exact lines · X", "X: show the exact drawing (every edge, depth pens, stereo) instead of the simplified view. "
                            "It can be slow on big models; Draw uses your settings either way.", self.set_exact)
         self.KEYS = AIM_KEYS + " · X exact lines"
 
@@ -111,10 +120,19 @@ class VisionAimView(LightAim):
         self.info_changed.emit(self.info_text())
         self.update()
 
+    def stage_note(self) -> tuple[str, str] | None:
+        if not self.exact:
+            text, tip = super().stage_note()
+            return text, tip + tip_html("Exact lines (X)", "Shows the whole drawing here instead, which can be slow on "
+                                                           "big models.")
+        return "Exact lines · can be slow on big models", tip_html(
+            "Exact lines", "The drawing as Draw will make it: every edge, depth pens and stereo. On big models each move "
+            "can take a while; turn it off (X) for the quick, simplified view.")
+
     def _mode_text(self) -> str:
         if not self.exact:
             return super()._mode_text()
-        return " · ".join(t for t in ("exact lines, may be slow on big models", VisionView._mode_text(self)) if t)
+        return " · ".join(t for t in ("exact lines", VisionView._mode_text(self)) if t)
 
     def keyPressEvent(self, e) -> None:
         if e.key() == Qt.Key_X:

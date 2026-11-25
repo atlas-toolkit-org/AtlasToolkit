@@ -14,6 +14,8 @@ from atlas_toolkit.geom.surface import from_mesh
 from . import TOOL
 from . import mesh_surface_eject as se
 
+FIT_SHARES = (.75, .55, .4, .25)        # of Maximum faces, tried in turn by Simplify to fit
+
 
 def selection_text(p):
     if p.get("selection_file"):
@@ -22,6 +24,46 @@ def selection_text(p):
             raise ValueError("Selection file is too large (maximum 32 MB).")
         return path.read_text(encoding="utf-8-sig")
     return p.get("selection", "")
+
+
+def eject(ctx, mesh, p, selected):
+    result = se.extract(mesh, p, selected, ctx)
+    # Check the partition before any file is staged. Translation never changes extracted material volume.
+    error = abs(result.body.volume() + sum(r["volume"] for r in result.records) - result.original_volume)
+    if error > result.original_volume * 1e-7:
+        raise ValueError("Extraction did not conserve model volume; no output was published.")
+    connection = None
+    if p.connectors and p.connector_percent > 0:
+        from . import connectors as co
+        connection = co.build(result, p, float(mesh.extents[2]), ctx)
+        if not connection.records:
+            connection = None
+    return result, connection
+
+
+def eject_within(ctx, mesh, p, selected, fit):
+    """eject(), and when the pieces would exceed Maximum faces, again on lighter copies of the closed model. A model
+    that fits is never simplified. Returns (mesh worked on, result, connection, faces before or None)."""
+    tries = [None] if not fit or len(mesh.faces) <= p.max_faces else []
+    if fit:
+        tries += [int(p.max_faces * share) for share in FIT_SHARES if p.max_faces * share < len(mesh.faces)]
+    refused = None
+    for target in tries:
+        working = mesh
+        if target is not None:
+            ctx.progress(.03, f"simplifying the model to {target:,} faces so the pieces fit Maximum faces")
+            reduced = R.simplified_solid(mesh.vertices, mesh.faces, target)
+            if reduced is None:
+                continue
+            working = trimesh.Trimesh(*reduced, process=False)
+            if abs(working.volume / mesh.volume - 1.) > .02:       # it lost a cavity or a piece, not only detail
+                continue
+        try:
+            return (working, *eject(ctx, working, p, selected), len(mesh.faces) if target is not None else None)
+        except se.FaceBudget as error:
+            refused = error
+    raise refused or se.FaceBudget("Input exceeds Maximum faces, and no lighter copy of it stayed a closed solid. "
+                                   "Simplify the model or raise the limit.")
 
 
 def run(ctx, src, dst, p):
@@ -34,7 +76,8 @@ def run(ctx, src, dst, p):
         raise ValueError("The output must not replace the input model.")
     ctx.progress(.01, "Loading source")
     original = gm.load_mesh(src)
-    if len(original.faces) > p.max_faces:
+    fit = p.fit and p.region != "paint"                 # a painted selection belongs to the model's own faces
+    if len(original.faces) > p.max_faces and not fit:
         raise ValueError("Input exceeds Maximum faces. Simplify the model or raise the limit.")
     if not len(original.faces) or not np.isfinite(original.vertices).all():
         raise ValueError("Input has no finite surface.")
@@ -58,20 +101,13 @@ def run(ctx, src, dst, p):
                            lambda t, msg="": ctx.progress(.03 + .1 * t, "Repair: " + msg))
         mesh = trimesh.Trimesh(v, f)
         repaired = True
-    result = se.extract(mesh, p, selected, ctx)
+    mesh, result, connection, worked = eject_within(ctx, mesh, p, selected, fit)
+    if worked:
+        ctx.note(f"Worked on a copy simplified from {worked:,} to {len(mesh.faces):,} faces so that the pieces fit "
+                 f"Maximum faces ({p.max_faces:,}). Simplify to fit.")
     if len(result.parts) < p.count:
         ctx.warn(f"Extracted {len(result.parts)} of {p.count} requested pieces. Constraints left fewer suitable sites; see Report.")
     removed = 100 * (result.original_volume - result.body.volume()) / result.original_volume
-    # Check the partition before any file is staged. Translation never changes extracted material volume.
-    error = abs(result.body.volume() + sum(r["volume"] for r in result.records) - result.original_volume)
-    if error > result.original_volume * 1e-7:
-        raise ValueError("Extraction did not conserve model volume; no output was published.")
-    connection = None
-    if p.connectors and p.connector_percent > 0:
-        from . import connectors as co
-        connection = co.build(result, p, float(mesh.extents[2]), ctx)
-        if not connection.records:
-            connection = None
 
     def source_mesh(body):
         out = se.to_mesh(body)
@@ -83,6 +119,7 @@ def run(ctx, src, dst, p):
     combined = trimesh.util.concatenate([body, fragments])
     connector_mesh = None
     if connection is not None:
+        from . import connectors as co
         combined = source_mesh(connection.combined)
         connector_solid, connector_precision = co.stabilize(co.union(connection.connectors), float(mesh.extents[2]))
         connection.precision = max(connection.precision, connector_precision)
@@ -120,7 +157,7 @@ def run(ctx, src, dst, p):
     report = [src.name, f"  sampler    {p.shape}; actual source material, original orientation",
               f"  pieces     {len(result.parts)} / {p.count}; {result.attempts} candidate sites",
               f"  removed    {removed:.3f}% of body volume, retained in fragments",
-              f"  region     {p.region}; {'repaired surface' if repaired else 'exact original surface'}",
+              f"  region     {p.region}; {'simplified surface' if worked else 'repaired surface' if repaired else 'exact original surface'}",
               f"  frame      up {up}, front {front} ({source}); original units and placement retained",
               f"  ejection   {'placed with clearance; selected pieces bridged to their cavities' if connection is not None else 'fully detached; clearance certified against original body and previous fragments' if p.fully_detach else 'translation only; intersections may remain'}",
               f"  range      size {p.size_min:g}–{p.size_max:g}, depth {p.depth_min:g}–{p.depth_max:g}, gap {p.distance_min:g}–{p.distance_max:g} % original height",

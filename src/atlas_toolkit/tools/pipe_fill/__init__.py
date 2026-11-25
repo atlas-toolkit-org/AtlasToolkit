@@ -4,7 +4,7 @@ from atlas_toolkit.core import (Bool, Choice, Float, Inputs, Int, Output, Sectio
 
 TOOL = Tool(
     needs="solid",
-    id="pipe-fill", name="Pipe Fill", version="0.1.1", category="mesh", icon="pipe-fill",
+    id="pipe-fill", name="Pipe Fill", version="0.1.1", category="mesh", group="carve", icon="pipe-fill",
     action="Fill", summary="Replace a model with organic curves or orthogonal pipes throughout its volume.",
     tagline="A sculpture woven from tubes, with open space between them.",
     description=("Fill a closed model's interior with independent strands or closed loops. Organic curves "

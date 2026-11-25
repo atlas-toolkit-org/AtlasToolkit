@@ -3,7 +3,7 @@ from atlas_toolkit.core import Bool, Choice, Float, Inputs, Int, Output, Section
 
 TOOL = Tool(
     needs="solid",
-    id="mesh-stripes", name="Surface Stripes", version="0.2.1", category="mesh", icon="surface-stripes",
+    id="mesh-stripes", name="Surface Stripes", version="0.3.0", category="mesh", group="surface", icon="surface-stripes",
     action="Stripe",
     summary="Generate flowing surface bands, on the model or as solid ribbons alone.",
     tagline="Flowing bands on a model, or solid ribbons that describe its shape on their own.",
@@ -48,7 +48,12 @@ TOOL = Tool(
                 Int("draft_faces", "Preview field faces", 8000, min=1000, max=50000, step=1000, advanced=True,
                     visible_if={"stripes_only": False}),
                 Int("max_faces", "Band face budget", 2000000, min=20000, max=5000000, step=100000, advanced=True,
-                    help="Stop rather than silently omit bands if construction exceeds this budget.")),
+                    help="The most faces the bands may take. Bands are never silently left out: see Simplify to "
+                         "fit."),
+                Bool("fit", "Simplify to fit", True, advanced=True,
+                     help="A model too dense for the Band face budget (the surface may take a quarter of it) is banded "
+                          "on a lighter copy, which softens its finest detail. The report says when. Off: such a "
+                          "model is refused.")),
         Section("Model", *frame_params(stage_sets=False)),
     ],
     sample=".engine:make_sample", test_values={"spacing": 18., "solve_faces": 2500, "draft_faces": 2500},

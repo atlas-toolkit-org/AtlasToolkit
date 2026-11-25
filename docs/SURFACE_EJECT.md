@@ -122,13 +122,17 @@ segments for dense work. Cancellation is checked during branch generation, not o
 
 Each selected connector must overlap its own fragment and the final cavity body by positive volume, remain one closed
 solid, and avoid other fragments. The selected assembly is checked for valid fused joints independently from
-the deliberately floating unselected pieces. If a selected joint cannot be established, the run stops before publishing rather
-than exporting an unattached fragment. Increasing Footprint spacing, reducing ejection distance or changing
-Seed can resolve an obstructed connector. Existing disconnected components of the input body are retained.
+the deliberately floating unselected pieces. A fragment no bridge can reach (every route crosses the body or another
+fragment, as for a piece from the base of a bust thrown up past the head) floats free like an unselected one, and
+the report names it; so does one whose joint, sound on its own, breaks the fused solid next to the others (found by
+halving the connector list). Increasing Footprint spacing, reducing ejection distance or changing Seed can still
+join it. Existing disconnected components of the input body are retained.
 Boolean junctions are checked through cleaned double-precision and float32 copies. If tiny joint slivers
 would open during reload, bounded native simplification and validated closed precision copies stabilize them
 without accepting holes or resampling:
 at most 0.00002% of original height, with component count retained and volume change below one part per million.
+Two vertices closer than float32 resolves but further apart than that are accepted as float32 welds them, since
+every export writes float32: only when that copy is still closed, with the same pieces and volume.
 The report records any stabilization tolerance. Separate cavity-body and fragment geometry stays unchanged.
 
 ## Select where extraction happens
@@ -171,7 +175,9 @@ Preview computes the same final geometry as Run. Dense combined previews simplif
 retaining complete fragments and connectors; the Connectors tab retains its full geometry. Saved geometry
 always uses the validated boolean assembly.
 
-Maximum faces applies to the input and combined output. Constraint failures and cancellation publish nothing.
+Maximum faces applies to the input and combined output. When a dense model's pieces would exceed it, **Simplify to
+fit** (on by default) works on a lighter copy, which softens the finest detail; the report says so. A painted region
+belongs to the model's own faces, so it is never simplified. Constraint failures and cancellation publish nothing.
 Excessive extraction that would remove the whole body is rejected. No input artwork is overwritten.
 
 ## Pen-plotter recipes

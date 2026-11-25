@@ -36,7 +36,8 @@ Manifold bisection, preserving closed boundaries and section holes. Splinters ma
 each layer. Disconnected components are handled independently, so a leg's front does not depend on another leg.
 
 Each piece is refined with shared-edge midpoint triangulation until longitudinal edges span no more than
-1 / Wake resolution of its travel extent. Vertices at the front remain fixed. Let x point toward travel,
+1 / Wake resolution of its travel extent. A piece so thin that the curl would turn it inside out
+gets shorter edges. Vertices at the front remain fixed. Let x point toward travel,
 t be normalized distance into the unprotected trailing part and q = smoothstep(t). The transformation is:
 
     x' = x − length q
@@ -52,7 +53,14 @@ Changing topology or layer/bar counts changes piece identity.
 The engine requires closed, consistently oriented, positive-volume input and checks every resulting shell for
 closure, winding, finite coordinates and positive volume. It does not silently repair a scan. Simplify or repair
 the source first if cuts encounter invalid geometry. Maximum faces is a hard total budget; a second guard limits
-Splinters to 5,000 layer/bar cells. Cancellation is checked during cuts, refinement and every piece.
+Splinters to 5,000 layer/bar cells. A dense model's section caps are what the wake refinement multiplies (a
+259k-face head makes over 2 million faces at 64 layers), so with **Simplify to fit** (on by default) a result that
+would exceed the budget is sculpted again from a closed copy with half the faces, and half again, until it fits. A
+model that fits is never simplified; the report gives the face count it worked at. Cancellation is checked during cuts, refinement and every piece.
+
+Every shell is then checked as a float32 file holds it. A wake can draw triangles thinner than float32 resolves, and
+losing those can open a shell: only such a shell is made safe (closed, its volume kept to one part per million), and
+the others keep their exact vertices.
 
 The output is separate sculptural shells, without a boolean union, supports or structural certification. Curl can
 make bars within a layer overlap; zero gaps can leave touching surfaces. Treat the output as drawing geometry

@@ -74,7 +74,113 @@ def _standalone_triangulate(vertices, faces):
     return np.asarray(triangles,np.int64).reshape(-1,3),np.asarray(owners,np.int64)
 
 
+def _uniform_clean_orient(vertices, faces):
+    """`_clean_orient` with array operations, for faces that all have the same number of corners (scans, sculpts and
+    every STL): the same welding, duplicate and sliver removal, checks, messages and orientation. It returns None
+    when the mesh needs the general path: faces of mixed sizes, a polygon that collapses to fewer corners, an invalid
+    index, or surface sheets touching at a vertex (which the general path splits). The per-face loop took about
+    35 s on a 524k-triangle sculpt."""
+    from scipy.sparse import coo_matrix
+    from scipy.sparse.csgraph import connected_components
+    try:
+        F = np.asarray(faces, np.int64)
+    except (ValueError, TypeError):
+        return None
+    if F.ndim != 2 or F.shape[1] < 3 or not len(F):
+        return None
+    k = F.shape[1]
+    V = np.asarray(vertices, np.float64).reshape(-1, 3)
+    if not len(V) or not np.isfinite(V).all():
+        raise FlowRepError("mesh vertices must be finite and nonempty")
+    V, inverse = np.unique(V, axis=0, return_inverse=True)
+    inverse = inverse.reshape(-1)
+    diag = float(np.linalg.norm(np.ptp(V, axis=0)))
+    if diag <= 0:
+        raise FlowRepError("mesh has zero extent")
+    if (F < 0).any() or (F >= len(inverse)).any():
+        return None
+    f = inverse[F]
+    repeated = np.zeros(len(f), bool)
+    for i in range(k):
+        for j in range(i + 1, k):
+            repeated |= f[:, i] == f[:, j]
+    if repeated.any():
+        if k != 3:
+            return None                  # a polygon that loses a corner: the general path keeps its rest
+        f = f[~repeated]                 # a triangle with a repeated corner has fewer than 3: dropped
+    p = V[f]
+    relative = p - p[:, :1]
+    area = np.linalg.norm(np.sum(np.cross(relative, np.roll(relative, -1, axis=1)), axis=1), axis=1)
+    valid = np.flatnonzero(area > diag * diag * 1e-14)
+    if not len(valid):
+        raise FlowRepError("mesh has no usable polygon faces")
+    _, first = np.unique(np.sort(f[valid], axis=1), axis=0, return_index=True)
+    f = f[valid[np.sort(first)]]         # the first usable copy of each polygon, in file order
+    used, inv = np.unique(f.ravel(), return_inverse=True)
+    C = inv.reshape(-1, k).astype(np.int64)
+    V = V[used]
+    n, nv = len(C), len(V)
+    a = C.ravel(); b = np.roll(C, -1, axis=1).ravel(); owner = np.repeat(np.arange(n), k)
+    key = np.minimum(a, b) * nv + np.maximum(a, b)
+    order = np.argsort(key, kind="stable"); key_sorted = key[order]
+    starts = np.r_[0, np.flatnonzero(np.diff(key_sorted)) + 1]; counts = np.diff(np.r_[starts, len(key)])
+    bad = int((counts > 2).sum())
+    if bad:
+        raise FlowRepError(f"{bad} non-manifold edges remain; split or repair these edges before extraction")
+    # Vertex links (the general path's check): a link node (v, u) with more than two link edges is non-manifold;
+    # a vertex whose link falls apart is two sheets touching, which the general path splits.
+    previous = np.roll(C, 1, axis=1).ravel()
+    node_keys = np.concatenate([a * nv + previous, a * nv + b])
+    nodes, node_of = np.unique(node_keys, return_inverse=True)
+    node_of = node_of.reshape(-1)
+    degree = np.bincount(node_of, minlength=len(nodes))
+    if (degree > 2).any():
+        bad = len(np.unique(nodes[degree > 2] // nv))
+        raise FlowRepError(f"{bad} non-manifold vertices remain; split the touching surface sheets before extraction")
+    m = len(a)
+    _, link = connected_components(coo_matrix((np.ones(m), (node_of[:m], node_of[m:])), shape=(len(nodes),) * 2),
+                                   directed=False)
+    pieces = np.unique(np.stack([nodes // nv, link], 1), axis=0)
+    if len(pieces) != len(np.unique(pieces[:, 0])):
+        return None                      # touching sheets: split by the general path
+    # Orientation: neighbours that run their shared edge the same way need opposite flips. Faces and their flipped
+    # copies form a doubled graph; a face joined to its own copy cannot be oriented.
+    forward = (a < b)[order]
+    twin = np.flatnonzero(counts == 2)
+    fa, fb = owner[order][starts[twin]], owner[order][starts[twin] + 1]
+    same = forward[starts[twin]] == forward[starts[twin] + 1]
+    rows = np.concatenate([fa, fa + n])
+    cols = np.concatenate([np.where(same, fb + n, fb), np.where(same, fb, fb + n)])
+    _, doubled = connected_components(coo_matrix((np.ones(len(rows)), (rows, cols)), shape=(2 * n, 2 * n)), directed=False)
+    if (doubled[:n] == doubled[n:]).any():
+        raise FlowRepError("surface is not consistently orientable")
+    _, component = connected_components(coo_matrix((np.ones(len(fa)), (fa, fb)), shape=(n, n)), directed=False)
+    root = np.full(component.max() + 1, n, np.int64); np.minimum.at(root, component, np.arange(n))
+    flip = doubled[:n] != doubled[root[component]]
+    C[flip] = C[flip][:, ::-1]
+    adjacency = np.bincount(np.concatenate([fa, fb]), minlength=n)
+    closed = np.bincount(component, weights=(adjacency != k).astype(float), minlength=len(root)) == 0
+    if closed.any():
+        origin = V[C[root, 0]][component]
+        q = V[C] - origin[:, None, :]
+        volume = np.zeros(n)
+        for j in range(1, k - 1):
+            volume += np.einsum("ij,ij->i", q[:, 0], np.cross(q[:, j], q[:, j + 1]))
+        negative = closed & (np.bincount(component, weights=volume, minlength=len(root)) < 0)
+        turn = negative[component]
+        C[turn] = C[turn][:, ::-1]
+    return V, C, {"split_touching_vertices": 0, "added_fan_vertices": 0}
+
+
 def _clean_orient(vertices, faces):
+    fast = _uniform_clean_orient(vertices, faces)
+    if fast is not None:
+        V, C, repairs = fast
+        return V, tuple(C), repairs
+    return _general_clean_orient(vertices, faces)
+
+
+def _general_clean_orient(vertices, faces):
     V = np.asarray(vertices, np.float64).reshape(-1, 3)
     if not len(V) or not np.isfinite(V).all():
         raise FlowRepError("mesh vertices must be finite and nonempty")
@@ -347,8 +453,14 @@ def _open_loops(half_edges):
 
 
 def from_arrays(vertices, faces, source="", metadata=None):
-    V, polygons, repairs = _clean_orient(vertices, faces)
-    T, owner = triangulate(V, polygons)
+    fast = _uniform_clean_orient(vertices, faces)
+    if fast is not None:
+        V, C, repairs = fast
+        polygons = tuple(C)
+        T, owner = triangulate(V, C if C.shape[1] == 3 else polygons)
+    else:
+        V, polygons, repairs = _general_clean_orient(vertices, faces)
+        T, owner = triangulate(V, polygons)
     return PolygonMesh(V, polygons, T, owner, V.copy(), T.copy(), str(source), (metadata or {})|{"topology_repairs":repairs})
 
 

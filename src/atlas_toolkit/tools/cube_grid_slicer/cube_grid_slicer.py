@@ -16,7 +16,7 @@ from __future__ import annotations
 
 import numpy as np
 
-from atlas_toolkit.geom.cutting import split
+from atlas_toolkit.geom.cutting import best_engine, split
 
 
 def _slice(parts: list, axis: int, value: float) -> list:
@@ -30,7 +30,7 @@ def _slice(parts: list, axis: int, value: float) -> list:
         if lo >= value or hi <= value:     # the plane misses this part: keep it whole
             out.append(m)
             continue
-        below, above = split(m, origin, normal, cap=True)
+        below, above = split(m, origin, normal, cap=True, engine=best_engine())
         out += [piece for piece in (above, below) if piece is not None]
     return out
 

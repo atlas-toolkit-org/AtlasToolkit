@@ -32,8 +32,8 @@ def dislocated(v):
 TOOL = Tool(
     id="mesh-strata",
     name="Strata Sculpt",
-    version="1.1.1",
-    category="mesh",
+    version="1.2.1",
+    category="mesh", group="fragment",
     icon="strata",
     action="Sculpt",
     summary="Cut a model into a stack of capped slabs and dislocate them: floating wafers, a spiral of sections, a "

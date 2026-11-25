@@ -64,6 +64,10 @@ def decode_selection(mesh, text):
         raise ValueError("Invalid selection JSON. Paint an area or load an exported selection file.") from exc
 
 
+class FaceBudget(ValueError):
+    """The output would exceed Maximum faces (Simplify to fit retries on a lighter copy)."""
+
+
 def validate(p):
     for key in ("size", "depth", "distance"):
         if p[key + "_min"] > p[key + "_max"]:
@@ -185,7 +189,7 @@ def extract(mesh, p, selected=None, ctx=None):
     validate(p)
     budget = int(p["max_faces"])
     if len(mesh.faces) > budget:
-        raise ValueError("Input exceeds Maximum faces. Simplify the model or raise the limit.")
+        raise FaceBudget("Input exceeds Maximum faces. Simplify the model or raise the limit.")
     original, ident = solid(mesh, selected)
     remaining, obstacle = original, original
     volume = original.volume()
@@ -265,7 +269,7 @@ def extract(mesh, p, selected=None, ctx=None):
             travel = gap
             moved = piece.translate(normal * travel)
         if body.num_tri() + sum(part.num_tri() for part in parts) + moved.num_tri() > budget:
-            raise ValueError("Extraction exceeds Maximum faces. Reduce Pieces / sampler segments or raise the limit.")
+            raise FaceBudget("Extraction exceeds Maximum faces. Reduce Pieces / sampler segments or raise the limit.")
         remaining = body
         parts.append(moved)
         # A union is used only for collision queries. Exported fragments are concatenated without welding.

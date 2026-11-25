@@ -3,7 +3,9 @@ Plane cuts that keep solids closed: shared by Grid Slicer (three families of axi
 family of parallel planes, any direction).
 
 Every cut is capped (trimesh triangulates the cross-section), so the pieces of a watertight model
-are closed solids. An open model still cuts, but its caps can be missing where the section is not a closed loop.
+are closed solids; where that triangulation leaves a gap (a plane grazing a vertex, slivers of an earlier cap), the
+cut is made again by manifold3d, which keeps a solid closed. A cut that closes is never changed by this.
+An open model still cuts, but its caps can be missing where the section is not a closed loop.
 A plane only cuts the pieces it actually crosses.
 
 Caps are triangulated by trimesh's default engine (earcut) unless `engine` says otherwise. Earcut drops the hole of a
@@ -27,11 +29,55 @@ def best_engine() -> str | None:
 
 def split(mesh, origin, normal, cap: bool = True, engine: str | None = None) -> tuple:
     """(below, above) the plane through `origin` with `normal`; either is None when empty."""
+    from .repair import closed_and_consistent
     normal = np.asarray(normal, dtype=np.float64)
+    out, failure = [], None
+    try:
+        for side in (-normal, normal):
+            piece = mesh.slice_plane(origin, side, cap=cap, engine=engine)
+            out.append(piece if piece is not None and not piece.is_empty else None)
+    except Exception as e:               # a cross-section the triangulation refuses
+        failure = e
+    if cap and (failure is not None or not all(p is None or closed_and_consistent(p.faces) for p in out)):
+        native = solid_split(mesh, origin, normal)
+        if native is not None:
+            return native
+    if failure is not None:
+        raise failure
+    return out[0], out[1]
+
+
+def solid_split(mesh, origin, normal) -> tuple | None:
+    """`split` by manifold3d in double precision, which keeps a closed solid closed: (below, above), or None when
+    the mesh is not a solid it accepts or the pieces do not add up to it."""
+    import trimesh
+    from .repair import closed_and_consistent
+    if not closed_and_consistent(mesh.faces):
+        return None
+    try:
+        import manifold3d as mf
+    except ImportError:                  # pragma: no cover (bundled)
+        return None
+    body = mf.Manifold(mf.Mesh64(np.array(mesh.vertices, dtype=np.float64, order="C"),
+                                 np.array(mesh.faces, dtype=np.uint64, order="C")))
+    if body.status() != mf.Error.NoError or body.is_empty():
+        return None
+    n = np.asarray(normal, dtype=np.float64)
+    n = n / np.linalg.norm(n)
+    above, below = body.split_by_plane(n.tolist(), float(np.dot(np.asarray(origin, dtype=np.float64), n)))
+    if abs(above.volume() + below.volume() - mesh.volume) > 1e-6 * abs(mesh.volume):
+        return None
     out = []
-    for side in (-normal, normal):
-        piece = mesh.slice_plane(origin, side, cap=cap, engine=engine)
-        out.append(piece if piece is not None and not piece.is_empty else None)
+    for piece in (below, above):
+        if piece.is_empty():
+            out.append(None)
+            continue
+        data = piece.to_mesh64()
+        part = trimesh.Trimesh(np.array(data.vert_properties)[:, :3], np.array(data.tri_verts).astype(np.int64),
+                               process=False)
+        if not closed_and_consistent(part.faces):
+            return None
+        out.append(part)
     return out[0], out[1]
 
 

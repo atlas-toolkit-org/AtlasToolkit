@@ -4,6 +4,7 @@ The main window, laid out like the Atlas gallery:
     top bar   brand · Home / Tools / Activity tabs · search & command palette · jobs badge · art mode · theme · setup
               · help
     sidebar   tools by category (cyan bar on the active one), groups fold; full or icons only (]), hidden with [
+    tool bar  the same list along the top instead (Setup › General › Tool list; ui/toolbar.py)
     page      Home | a tool page | Activity
     footer    status · progress · log drawer toggle
 """
@@ -32,6 +33,7 @@ from .keys import shown
 from .theme import icon, label_font, logo_icon, make_logo, mono, sans
 from .theme.qss import stylesheet
 from .tool_page import ToolPage
+from .toolbar import ToolBar
 from .updates import UpdateBar
 from .workflow import WorkflowPage
 from .widgets.common import Toaster, apply_icon, badge, icon_button, label, set_badge
@@ -137,12 +139,17 @@ class MainWindow(QMainWindow):
         self.updatebar = UpdateBar(self.ctx)          # new versions: asks once, then tells (ui/updates.py)
         self.ctx.check_updates = self.updatebar.check_now
         lay.addWidget(self.updatebar)
+        self.toolbar = ToolBar(self.ctx, root)
+        self.toolbar.open_tool.connect(self.open_tool)
+        self.toolbar.move_to_side.connect(lambda: self.ctx.set_pref("tool_nav", "side"))
+        lay.addWidget(self.toolbar)
 
         body = QHBoxLayout()
         body.setContentsMargins(0, 0, 0, 0)
         body.setSpacing(0)
         self.sidebar = Sidebar(self.ctx)
         self.sidebar.open_tool.connect(self.open_tool)
+        self.sidebar.move_to_top.connect(lambda: self.ctx.set_pref("tool_nav", "top"))
         self.nav = self.sidebar.nav
         body.addWidget(self.sidebar)
         self.vsplit = QSplitter(Qt.Vertical)
@@ -273,7 +280,7 @@ class MainWindow(QMainWindow):
         e = []
         for t in self.ctx.registry.ordered():
             needs = self.ctx.needs_short(t)
-            e.append((t.name, f"{t.category_title} · {t.io_badge}" + (f" · ⚠ {needs} (not found)" if needs else ""),
+            e.append((t.name, f"{t.place} · {t.io_badge}" + (f" · ⚠ {needs} (not found)" if needs else ""),
                       t.icon, lambda tid=t.id: self.open_tool(tid)))
         e += [
             ("Home", "overview and drop zone", "grid", self.show_home),
@@ -285,7 +292,8 @@ class MainWindow(QMainWindow):
              lambda: self.ctx.set_theme("light" if self.ctx.theme.dark else "dark")),
             ("Toggle paper / blueprint", "appearance", "blueprint", lambda: self.btn_art.toggle()),
             ("Show log", "messages from every run", "log", lambda: self.btn_log.setChecked(True)),
-            ("Show or hide the tool list", "side bar", "sidebar", self.toggle_sidebar),
+            ("Show or hide the tool list", "side bar or top bar", "sidebar", self.toggle_sidebar),
+            ("Tool list: side bar or top bar", "layout", "topbar", self.switch_nav),
             ("Tool list: icons only or names", "side bar", "sidebar", self.toggle_rail),
             ("Fold or unfold every tool group", "side bar", "layers", self._fold_all),
             ("Open plug-ins folder", "add tools without rebuilding", "folder",
@@ -357,22 +365,43 @@ class MainWindow(QMainWindow):
         if self.stack.currentWidget() is self.workflows:
             self.workflows.toggle_library()
             return
-        self._sidebar_on = self.sidebar.isHidden()
-        self.sidebar.setVisible(self._sidebar_on)
+        self._sidebar_on = not self._sidebar_on
         self.ctx.settings.set("sidebar_on", self._sidebar_on)
+        self._show_nav()
+
+    def switch_nav(self) -> None:
+        self.ctx.set_pref("tool_nav", "top" if self.ctx.pref("tool_nav") == "side" else "side")
+
+    def _show_nav(self) -> None:
+        """The tool list as the settings have it: a side bar or a top bar, shown or hidden (never on Workflows, whose
+        step list takes its place)."""
+        top = self.ctx.pref("tool_nav") == "top"
+        on = self._sidebar_on and self.stack.currentWidget() is not self.workflows
+        self.sidebar.setVisible(on and not top)
+        self.toolbar.setVisible(on and top)
+        apply_icon(self.btn_side, self.ctx.theme, "topbar" if top else "sidebar")
+
+    def _mark_current(self, tool_id: str | None) -> None:
+        self.sidebar.set_current(tool_id)
+        self.toolbar.set_current(tool_id)
 
     def toggle_rail(self) -> None:
         """Icons only or names, showing the list if it was hidden."""
         if self.stack.currentWidget() is self.workflows:
             self.workflows.toggle_library_rail()
             return
+        if self.ctx.pref("tool_nav") == "top":
+            self.set_status("Icons only is for the side bar: the tool list is along the top.")
+            return
         self.sidebar.set_mode("full" if self.sidebar.rail else "icons")
-        if self.sidebar.isHidden():
+        if not self._sidebar_on:
             self.toggle_sidebar()
 
     def _fold_all(self) -> None:
         if self.stack.currentWidget() is self.workflows:
             self.workflows.library.fold_all()
+        elif self.ctx.pref("tool_nav") == "top":
+            self.set_status("The top bar shows its groups unfolded.")
         else:
             self.sidebar.fold_all()
 
@@ -386,23 +415,20 @@ class MainWindow(QMainWindow):
         for k, b in self.tabs.items():
             b.setChecked(k == key)
 
-    def _leave_workflows(self) -> None:
-        self.sidebar.setVisible(self._sidebar_on)
-
     def show_home(self) -> None:
-        self._leave_workflows()
         self.stack.setCurrentWidget(self.home)
+        self._show_nav()
         self._select_tab("home")
-        self.sidebar.set_current(None)
+        self._mark_current(None)
         self.ctx.settings.set("last_page", "home")
         self.set_status("Ready.")
 
     def show_activity(self) -> None:
-        self._leave_workflows()
         self.activity.reload()
         self.stack.setCurrentWidget(self.activity)
+        self._show_nav()
         self._select_tab("activity")
-        self.sidebar.set_current(None)
+        self._mark_current(None)
         self.ctx.settings.set("last_page", "activity")
 
     def page(self, tool_id: str) -> ToolPage:
@@ -419,13 +445,13 @@ class MainWindow(QMainWindow):
             self.toast(f"Unknown tool {tool_id}.", "danger")
             return None
         p = self.page(tool_id)
-        self._leave_workflows()
         self.stack.setCurrentWidget(p)
+        self._show_nav()
         self.current_tool = tool_id
         self.ctx.settings.set("last_tool", tool_id)
         self.ctx.settings.set("last_page", "tool")
         self._select_tab("tools")
-        self.sidebar.set_current(tool_id)
+        self._mark_current(tool_id)
         if paths:
             p.add_paths(paths, values)
         elif values:
@@ -436,10 +462,10 @@ class MainWindow(QMainWindow):
 
     def open_workflow(self, path=None, paths: list | None = None) -> WorkflowPage:
         """Show the Workflows page; open a saved workflow and add files to run on, when given."""
-        self.sidebar.hide()                      # the page's own step library takes its place
         self.stack.setCurrentWidget(self.workflows)
+        self._show_nav()                         # the page's own step library takes its place
         self._select_tab("workflows")
-        self.sidebar.set_current(None)
+        self._mark_current(None)
         self.ctx.settings.set("last_page", "workflows")
         if path:
             self.workflows.open_path(path)
@@ -583,6 +609,10 @@ class MainWindow(QMainWindow):
     def _pref_changed(self, key: str) -> None:
         if key == "update_check":
             self.updatebar.pref_changed()
+        elif key == "tool_nav":
+            self._show_nav()
+            if self.setup is not None:
+                self.setup.show_nav()
         elif key == "workers":
             self.ctx.bridge.runner.process.set_workers(self.ctx.pref("workers"))
         elif key == "preview_delay_ms":
@@ -593,6 +623,7 @@ class MainWindow(QMainWindow):
     def _runtimes_changed(self) -> None:
         """A required program was found or lost (located, installed, removed): every list and page updates."""
         self.sidebar.refresh_availability()
+        self.toolbar.refresh_availability()
         self.home.refresh_availability()
         self.workflows.refresh_availability()
         for p in self.pages.values():
@@ -615,6 +646,7 @@ class MainWindow(QMainWindow):
         for b in self.tabs.values():
             b.setIcon(icon(b._icon_name, theme["text-3"], 16, active=theme["text"]))
         self.sidebar.retheme(theme)
+        self.toolbar.retheme(theme)
         apply_icon(self.btn_side, theme)
         self.updatebar.retheme(theme)
         apply_icon(self.btn_theme, theme, "sun" if theme.dark else "moon")

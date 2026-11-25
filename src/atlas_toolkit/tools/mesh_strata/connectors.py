@@ -5,6 +5,7 @@ source components and layer transforms remain explicit until the final solid uni
 """
 from __future__ import annotations
 
+import copy
 from dataclasses import dataclass
 
 import numpy as np
@@ -311,6 +312,97 @@ def build_tree(a, b, start, finish, radius, width, solid_obstacles, earlier, p, 
                            extent=extent, lateral_max=lateral_max, curve_scale=scale, precision=precision), solids
 
 
+SPECK_WIDTH = 6               # × the thinnest connector: a cap narrower than this holds none
+
+FALLBACK_INDEX = 100_000          # candidate numbers (and seeds) of overlap points, apart from the layer's samples
+
+
+def is_speck(slab, sign, p):
+    """A component too small for any connector: its facing cap is narrower than a few of the thinnest one."""
+    region = slab.caps[sign][0]
+    return np.sqrt(region.area) < SPECK_WIDTH * p["connector_diameter_min"] / 100.
+
+
+def touches(row, slab):
+    """Whether a support record reaches this slab."""
+    return row["source"] == slab.source and ((row["lower"] == slab.layer and row["lower_component"] == slab.index)
+                                             or (row["upper"] == slab.layer and row["upper_component"] == slab.index))
+
+
+def overlap_points(a, b, p, identity, count=32):
+    """Points inside where the two caps face each other (or the smaller cap, when they do not overlap): the pole
+    of inaccessibility of each part, then seeded points spread over it."""
+    from shapely.geometry import MultiPolygon
+    from shapely.ops import polylabel
+    region = a.caps[1][0].intersection(b.caps[-1][0])
+    if region.is_empty or region.area <= 1e-14:
+        region = min((a.caps[1][0], b.caps[-1][0]), key=lambda r: r.area)
+    parts = [g for g in (region.geoms if isinstance(region, MultiPolygon) else [region])
+             if g.geom_type == "Polygon" and g.area > 1e-14]
+    if not parts:
+        return np.empty((0, 2))
+    parts.sort(key=lambda g: -g.area)
+    points = []
+    for part in parts:
+        centre = polylabel(part, tolerance=max(np.sqrt(part.area) * 1e-3, 1e-9))
+        points.append((centre.x, centre.y))
+    rng = np.random.default_rng(np.random.SeedSequence([int(p["connector_seed"]), *identity, 9124]))
+    lo_x, lo_y, hi_x, hi_y = region.bounds
+    draws = rng.random((count * 16, 2)) * (hi_x - lo_x, hi_y - lo_y) + (lo_x, lo_y)
+    from shapely import contains_xy
+    inside = draws[contains_xy(region, draws[:, 0], draws[:, 1])]
+    points.extend(map(tuple, inside[:max(0, count - len(points))]))
+    return np.asarray(points, dtype=float)
+
+
+def without_conflicts(kept, supports, trees, records, ctx=None):
+    """The fused solid without the supports whose joints break it, kept whole otherwise. Supports count in order;
+    the first one that makes the union unstable (found by halving: a few checks, not one per support) is left out
+    when its gap keeps another, and the search goes on after it; a gap's last support never is. For when removing
+    branches did not help: supports far apart can still interact through a thin slab."""
+    def pair_of(row):
+        return row["source"], row["lower"], row["lower_component"], row["upper"], row["upper_component"]
+
+    def stable(indices):
+        if ctx:
+            ctx.check_cancel()
+        try:
+            return co.stabilize(co.union(base + [supports[i] for i in indices]), 2.)
+        except ValueError:
+            return None
+
+    remaining = {}
+    for row in records:
+        remaining[pair_of(row)] = remaining.get(pair_of(row), 0) + 1
+    base = [s.solid for s in kept]
+    accepted, rest, spare = [], list(range(len(supports))), 0
+    while True:
+        result = stable(accepted + rest)
+        if result is not None:
+            accepted += rest
+            break
+        lo, hi = 0, len(rest) - 1                 # the shortest unstable prefix of the rest ends at its culprit
+        while lo < hi:
+            mid = (lo + hi) // 2
+            if stable(accepted + rest[:mid + 1]) is not None:
+                lo = mid + 1
+            else:
+                hi = mid
+        culprit = rest[lo]
+        if remaining[pair_of(records[culprit])] <= 1:
+            raise ValueError("Connector joints could not be stabilized for reliable export. Reduce branches or "
+                             "increase thickness.")
+        remaining[pair_of(records[culprit])] -= 1
+        spare += 1
+        accepted += rest[:lo]
+        rest = rest[lo + 1:]
+    supports[:] = [supports[i] for i in accepted]
+    trees[:] = [trees[i] for i in accepted]
+    records[:] = [records[i] for i in accepted]
+    combined, precision = result
+    return combined, precision, spare
+
+
 def tip_pool(slab, sign, count, eps):
     """Interior candidates just behind the receiving cap, including concave caps."""
     _, triangles, _ = slab.caps[sign]
@@ -341,7 +433,7 @@ def sculpt(mesh, st, u, p, dice, progress=None, ctx=None, plan=None, connection_
         raise ValueError("Nothing left after cutting: raise retained thickness.")
     if sum(s.solid.num_tri() for s in slabs) > p["max_faces"]:
         raise ValueError("Slabs exceed Maximum faces. Reduce Layers or simplify the input.")
-    records, supports, pair_rows, trees = [], [], [], []
+    records, supports, pair_rows, trees, dropped = [], [], [], [], []
     connections = pairs(slabs)
     for pair_index, (a, b) in enumerate(connections):
         if connection_progress:
@@ -349,6 +441,8 @@ def sculpt(mesh, st, u, p, dice, progress=None, ctx=None, plan=None, connection_
         if ctx:
             ctx.check_cancel()
             ctx.log(f"Connecting layers {a.layer+1}–{b.layer+1}")
+        if any(s is a or s is b for s in dropped):
+            continue
         fused_pair = a.solid + b.solid
         if solid_count(fused_pair) == 1:
             pair_rows.append(dict(source=a.source, lower=a.layer, upper=b.layer, already_joined=True, supports=0))
@@ -358,7 +452,21 @@ def sculpt(mesh, st, u, p, dice, progress=None, ctx=None, plan=None, connection_
         width = min(np.sqrt(a.caps[1][0].area), np.sqrt(b.caps[-1][0].area))
         samples = plan.samples.get((a.source, a.layer), np.empty((0, 2)))
         count, used = 0, []
-        for candidate_index, xy in enumerate(samples):
+        candidates, fell_back = list(enumerate(samples)), False
+        while True:
+            if not candidates:
+                if count or fell_back:
+                    break
+                # The layer's samples cover its whole section, so a small component (a curl tip the cut clips)
+                # gets them only projected onto its cap's rim, where a tapering wafer has no room. Before giving
+                # up, try points inside the pair's own overlap, its most interior one first. Only then: a pair
+                # that connected from the samples is never changed.
+                fell_back = True
+                candidates = [(FALLBACK_INDEX + i, point) for i, point in
+                              enumerate(overlap_points(a, b, p, (a.source, a.layer, a.index, b.index)))]
+                if not candidates:
+                    break
+            candidate_index, xy = candidates.pop(0)
             if count >= p["connector_count"]:
                 break
             if ctx:
@@ -394,14 +502,31 @@ def sculpt(mesh, st, u, p, dice, progress=None, ctx=None, plan=None, connection_
             if sum(s.solid.num_tri() for s in slabs) + sum(s.num_tri() for s in supports) > p["max_faces"]:
                 raise ValueError("Connectors exceed Maximum faces. Reduce supports, branches or curved shape segments.")
         if count == 0:
-            raise ValueError(f"No safe connector between layers {a.layer+1} and {b.layer+1}. "
-                             "Reduce dislocation or thickness, or change Connection seed. No output was published.")
+            speck = next((s for s, sign in ((b, -1), (a, 1)) if is_speck(s, sign, p)), None)
+            if speck is None:
+                raise ValueError(f"No safe connector between layers {a.layer+1} and {b.layer+1}. "
+                                 "Reduce dislocation or thickness, or change Connection seed. No output was published.")
+            # A speck the cut leaves at a feature's tip, narrower than the thinnest connector: no support fits
+            # into it, and it would float. Leave it out (and any support already reaching it) rather than fail.
+            dropped.append(speck)
+            keep = [i for i, row in enumerate(records) if not touches(row, speck)]
+            supports[:] = [supports[i] for i in keep]
+            trees[:] = [trees[i] for i in keep]
+            records[:] = [records[i] for i in keep]
+            pair_rows.append(dict(source=a.source, lower=a.layer, upper=b.layer, already_joined=False, supports=0,
+                                  left_out=dict(layer=speck.layer, component=speck.index)))
+            continue
         pair_rows.append(dict(source=a.source, lower=a.layer, upper=b.layer, already_joined=False,
                               supports=count, requested=p["connector_count"]))
+    kept = [s for s in slabs if not any(s is d for d in dropped)]
+    if dropped and ctx:
+        ctx.note(f"Left out {len(dropped)} speck{'s' if len(dropped) > 1 else ''} the cuts left at feature tips "
+                 "(narrower than the thinnest connector, so nothing could hold them).")
+    whole = (list(supports), [list(tree) for tree in trees], copy.deepcopy(records))
     while True:
         if ctx:
             ctx.check_cancel()
-        combined = co.union([s.solid for s in slabs] + supports)
+        combined = co.union([s.solid for s in kept] + supports)
         try:
             combined, precision = co.stabilize(combined, 2.)
             break
@@ -409,7 +534,12 @@ def sculpt(mesh, st, u, p, dice, progress=None, ctx=None, plan=None, connection_
             # Independent trees can interact through a thin slab during the final
             # boolean. Drop newest optional leaves, retaining every required trunk.
             if not any(len(tree) > 1 for tree in trees):
-                raise
+                supports[:], trees[:], records[:] = whole
+                combined, precision, spare = without_conflicts(kept, supports, trees, records, ctx)
+                if ctx and spare:
+                    ctx.note(f"Left out {spare} support{'s' if spare > 1 else ''} whose joint broke the fused "
+                             "solid; every gap keeps at least one.")
+                break
             for i, (tree, row) in enumerate(zip(trees, records)):
                 if len(tree) > 1:
                     tree.pop()
@@ -425,6 +555,8 @@ def sculpt(mesh, st, u, p, dice, progress=None, ctx=None, plan=None, connection_
     # Connectivity is certified pair by pair, rather than assuming every input is
     # one object or assuming an empty layer should be bridged.
     for a, b in connections:
+        if any(s is a or s is b for s in dropped):
+            continue
         own = [support for support, row in zip(supports, records) if row["source"] == a.source
                and row["lower"] == a.layer and row["lower_component"] == a.index
                and row["upper_component"] == b.index]
@@ -435,6 +567,7 @@ def sculpt(mesh, st, u, p, dice, progress=None, ctx=None, plan=None, connection_
     out = co.to_mesh(combined)
     if connection_progress:
         connection_progress(len(connections), len(connections))
-    return out, dict(layers=len({s.layer for s in slabs}), pieces=len(slabs), closed=len(slabs), cuts=cuts,
+    return out, dict(layers=len({s.layer for s in kept}), pieces=len(kept), closed=len(kept), cuts=cuts,
+                     left_out=len(dropped),
                      moved=moved, connectors=records, pairs=pair_rows, precision=precision,
                      components=solid_count(combined))

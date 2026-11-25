@@ -17,7 +17,7 @@ import traceback
 from dataclasses import dataclass
 from pathlib import Path
 
-from .tool import CATEGORIES, Tool
+from .tool import CATEGORIES, GROUPS, Tool
 
 ENV_PLUGINS = "ATLAS_TOOLKIT_PLUGINS"
 # options every `run <tool>` command already has (core/cli.py); a parameter may not reuse them
@@ -121,13 +121,31 @@ class Registry:
         return self.tools[tool_id]
 
     def ordered(self) -> list[Tool]:
-        return sorted(self.tools.values(), key=lambda t: (CATEGORIES.get(t.category, CATEGORIES["other"])[1], t.name))
+        return sorted(self.tools.values(), key=lambda t: (CATEGORIES.get(t.category, CATEGORIES["other"])[1],
+                                                         t.group_index, t.name))
 
     def by_category(self) -> list[tuple[str, list[Tool]]]:
         out: dict[str, list[Tool]] = {}
         for t in self.ordered():
             out.setdefault(t.category, []).append(t)
         return [(CATEGORIES.get(c, CATEGORIES["other"])[0], ts) for c, ts in out.items()]
+
+    def by_group(self) -> list[tuple[str, list[tuple[str, str, list[Tool]]]]]:
+        """[(category heading, [(key, subgroup heading, tools)])] as the tool lists show them. The key names the
+        subgroup in settings ("mesh/deform"); a category without subgroups has one entry with an empty heading."""
+        out = []
+        for cat, tools in self.by_category():
+            subs: dict[str, tuple[str, list[Tool]]] = {}
+            for t in tools:
+                key = f"{t.category}/{t.group}" if t.group_title else ""
+                subs.setdefault(key, (t.group_title, []))[1].append(t)
+            out.append((cat, [(k, title, ts) for k, (title, ts) in subs.items()]))
+        return out
+
+    def folded_at_first(self) -> set[str]:
+        """The subgroups a tool list starts with folded: those of a category too long to read through at once."""
+        return {key for _cat, subs in self.by_group() if sum(len(ts) for _k, _t, ts in subs) > LONG_CATEGORY
+                for key, _title, _ts in subs if key}
 
     def for_file(self, path: Path) -> list[Tool]:
         return [t for t in self.ordered() if t.inputs.accepts(Path(path))]
@@ -140,6 +158,8 @@ def validate(tool: Tool) -> list[str]:
         errs.append(f"id {tool.id!r} must be lower-case kebab-case")
     if tool.category not in CATEGORIES:
         errs.append(f"unknown category {tool.category!r}")
+    if tool.group and tool.group not in dict(GROUPS.get(tool.category, ())):
+        errs.append(f"unknown group {tool.group!r} in category {tool.category!r}")
     if not tool.engine or ":" not in tool.engine:
         errs.append("engine must be 'module:function'")
     keys = [p.key for p in tool.param_list]
@@ -159,6 +179,11 @@ def validate(tool: Tool) -> list[str]:
     for key, rule in tool.requires_if:
         if not rule or set(rule) - set(keys):
             errs.append(f"requires_if for {key} must reference known parameters")
+    for need, rule in tool.needs_if:
+        if need not in ("solid", "manifold") or not rule or set(rule) - set(keys):
+            errs.append(f"needs_if entries are ('solid' | 'manifold', {{known parameter: value}}), not {need!r}")
+    if tool.needs not in (None, "solid", "manifold"):
+        errs.append(f"needs must be None, 'solid' or 'manifold', not {tool.needs!r}")
     if set(tool.output.format_notes) - (set(tool.output.formats) | {tool.output.ext}):
         errs.append('format_notes must reference offered output formats')
     for item in tool.optional:
@@ -173,6 +198,8 @@ def default_plugin_dirs() -> list[str]:
     dirs.append(str(config_dir() / "plugins"))
     return dirs
 
+
+LONG_CATEGORY = 12       # a category with more tools than this starts with its subgroups folded
 
 _REGISTRY: Registry | None = None
 

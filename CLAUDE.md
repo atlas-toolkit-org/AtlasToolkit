@@ -37,7 +37,8 @@ One PySide6 app for pen-plotter tools, in its own repository. `README.md` is the
   through `[paths] presets` in `dev.local.toml` (`tests/_presets.py`, skips without it). A renamed parameter keeps
   old files working with `former=` / `former_values=`. Official packs are signed (`core/ed25519.py`); only public
   keys go in `core/preset_keys.py`, never a private key in any repository. The official pack keeps 5 or more
-  presets per tool (3 for utility tools) and exactly 3 tagged `essentials`, each clearly unlike the others (fewer beat
+  presets per tool (3 for utility tools; none for a tool with `official_presets=False`, whose settings belong to each
+  model, such as Shape Crop) and exactly 3 tagged `essentials`, each clearly unlike the others (fewer beat
   near-duplicates): review new ones with `scripts/dev/preset_sheet.py`. See `docs/PRESETS.md`.
 - **Licence: GPL-3.0-or-later** (`LICENSE`, `COPYRIGHT.md`; `version.LICENSE_ID` is the one source, `test_licence`
   checks). New third-party code, models or images need a GPL-3-compatible licence and a line in
@@ -56,6 +57,9 @@ One PySide6 app for pen-plotter tools, in its own repository. `README.md` is the
   is v1's suite, unchanged. New behaviour goes in as options that are off by default.
 - **Outputs are signed for Atlas:** `<desc>tool-id</desc>` for SVGs, `atlas-toolkit:<id>` for meshes. The literal
   must be in the tool's folder (`test_contract` checks it). Names come from the `Output` template.
+- **A drawing with several pens is saved through `svgout.write_pens`.** A tool that can draw more than one pen (widths,
+  dashes, colours) offers `pen_output_param()` (Save pens as: a layer, a group or a file per pen, or one pen) and
+  never its own variant; dashes are geometry (`svgout.dashed`), never a `stroke-dasharray` (`test_pen_output`).
 - **Tests and screenshots use temporary folders.** Outputs never go into a user's model, image or project folders
   unless the user runs the app on files there. Dev and validation scripts write to `build/qa/<name>`. Every test module
   starts with `import _isolate`, which keeps settings and caches out of real profiles (`test_portability` checks).
